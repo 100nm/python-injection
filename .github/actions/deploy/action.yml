@@ -1,0 +1,14 @@
+name: Deploy
+description: Publish package on PyPI
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare Poetry
+      shell: bash
+      run: poetry config pypi-token.pypi ${{ env.PYPI_API_TOKEN }}
+
+    - name: Publish
+      shell: bash
+      run: |
+        poetry version ${{ env.VERSION }}
+        poetry publish --build
