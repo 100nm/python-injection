@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "injection"
+version = "0.0.0"
+description = "Fast and easy dependency injection framework."
+authors = ["remimd"]
+keywords = ["dependencies", "inject", "injection"]
+license = "MIT"
+packages = [{ include = "injection" }]
+readme = "README.md"
+repository = "https://github.com/soon-app/injection"
+
+[tool.poetry.dependencies]
+python = ">=3.10, <4"
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+flake8 = "*"
+isort = "*"
+pytest = "*"
+pytest-cov = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
