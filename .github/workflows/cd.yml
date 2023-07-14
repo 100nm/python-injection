@@ -1,0 +1,21 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  cd:
+    name: Continuous Delivery
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        uses: ./.github/actions/environment
+
+      - name: Deploy
+        uses: ./.github/actions/deploy
