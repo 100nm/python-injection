@@ -1,0 +1,8 @@
+name: Tests
+description: Run all tests
+runs:
+  using: "composite"
+  steps:
+    - name: Pytest
+      shell: bash
+      run: pytest
