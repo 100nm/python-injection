@@ -10,7 +10,7 @@ Fast and easy dependency injection framework.
 ⚠️ _Requires Python 3.10 or higher_
 
 ```bash
-pip install injection
+pip install python-injection
 ```
 
 ## How to use

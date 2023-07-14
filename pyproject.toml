@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "injection"
+name = "python-injection"
 version = "0.0.0"
 description = "Fast and easy dependency injection framework."
 authors = ["remimd"]
