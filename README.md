@@ -1,6 +1,7 @@
 # Injection
 
 [![CI](https://github.com/soon-app/injection/actions/workflows/ci.yml/badge.svg)](https://github.com/soon-app/injection)
+[![PyPI](https://badge.fury.io/py/python-injection.svg)](https://pypi.org/project/python-injection/)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Fast and easy dependency injection framework.
@@ -56,6 +57,7 @@ In the case of inheritance, you can use the decorator parameters `reference` or 
 one or several other classes.
 
 **Warning: if the child class is in another file, make sure that file is imported before injection.**
+[_See `load_package` function._](#load_package)
 
 _`reference` parameter example:_
 
@@ -97,4 +99,31 @@ from injection import unique
 @unique(reference=MyClass)
 def my_recipe() -> MyClass:
     """ recipe implementation """
+```
+
+## Utils
+
+### load_package
+
+Useful for put in memory injectables hidden deep within a package. Example:
+
+```
+package
+├── sub_package
+│   ├── __init__.py
+│   └── module2.py
+│       └── class Injectable1
+├── __init__.py
+└── module1.py
+    └── class Injectable2
+```
+
+To load Injectable1 and Injectable2 into memory you can do the following:
+
+```python
+from injection.utils import load_package
+
+import package
+
+load_package(package)
 ```
