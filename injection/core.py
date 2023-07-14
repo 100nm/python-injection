@@ -3,20 +3,17 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property, wraps
 from inspect import Parameter
-from typing import Generic, NamedTuple, TypeVar
+from typing import Callable, Generic, NamedTuple, TypeVar
 
 T = TypeVar("T")
 
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Injectable(Generic[T], ABC):
-    cls: type[T]
-
-    def __repr__(self) -> str:
-        return f"<{self.cls.__name__} injectable>"
+    __constructor: Callable[..., T]
 
     def factory(self) -> T:
-        return self.cls()
+        return self.__constructor()
 
     @abstractmethod
     def get_instance(self) -> T:
@@ -43,28 +40,22 @@ class NoInjectable(Exception):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectionManager:
-    __injectables: dict[type, Injectable] = field(default_factory=dict, init=False)
+    __container: dict[type, Injectable] = field(default_factory=dict, init=False)
 
     def __getitem__(self, reference: type) -> Injectable:
         try:
-            return self.__injectables[reference]
+            return self.__container[reference]
         except KeyError as exc:
             raise NoInjectable(f"No injectable for {reference.__name__}.") from exc
 
     def __setitem__(self, reference: type, injectable: Injectable):
-        if not issubclass(injectable.cls, reference):
-            raise TypeError(
-                f"`{injectable.cls.__name__}` isn't a subclass of "
-                f"reference class `{reference.__name__}`."
-            )
-
-        if reference in self.__injectables:
+        if reference in self.__container:
             raise RuntimeError(
                 f"An injectable already exists for the "
                 f"reference class `{reference.__name__}`."
             )
 
-        self.__injectables[reference] = injectable
+        self.__container[reference] = injectable
 
 
 _manager = InjectionManager()
@@ -76,12 +67,14 @@ class Decorator(NamedTuple):
     injectable_class: type[Injectable]
 
     def __repr__(self) -> str:
-        return f"<{self.injectable_class.__name__} decorator>"
+        return f"<{self.injectable_class.__name__} decorator>"  # pragma: no cover
 
-    def __call__(self, cls=None, /, **kwargs):
-        def wrap(cls):
-            injectable = self.injectable_class(cls)
-            _manager[cls] = injectable
+    def __call__(self, wp=None, /, **kwargs):
+        def decorator(wrapped):
+            injectable = self.injectable_class(wrapped)
+
+            if isinstance(wrapped, type):
+                _manager[wrapped] = injectable
 
             if reference := kwargs.pop("reference", None):
                 _manager[reference] = injectable
@@ -89,9 +82,9 @@ class Decorator(NamedTuple):
             for reference in kwargs.pop("references", ()):
                 _manager[reference] = injectable
 
-            return cls
+            return wrapped
 
-        return wrap(cls) if cls else wrap
+        return decorator(wp) if wp else decorator
 
 
 new = Decorator(NewInjectable)
