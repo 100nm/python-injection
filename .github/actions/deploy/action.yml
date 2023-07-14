@@ -5,7 +5,7 @@ runs:
   steps:
     - name: Prepare Poetry
       shell: bash
-      run: poetry config pypi-token.pypi ${{ env.PYPI_API_TOKEN }}
+      run: poetry config pypi-token.deploy ${{ env.PYPI_API_TOKEN }}
 
     - name: Publish
       shell: bash
