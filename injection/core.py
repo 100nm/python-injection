@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property, wraps
 from inspect import Parameter
-from typing import Callable, Generic, NamedTuple, TypeVar
+from typing import Callable, Generic, TypeVar
+
+from injection.exceptions import NoInjectable
 
 T = TypeVar("T")
 
@@ -34,10 +36,6 @@ class UniqueInjectable(Injectable[T]):
         return self.__instance
 
 
-class NoInjectable(Exception):
-    ...
-
-
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectionManager:
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
@@ -63,15 +61,16 @@ _manager = InjectionManager()
 del InjectionManager
 
 
-class Decorator(NamedTuple):
-    injectable_class: type[Injectable]
+@dataclass(repr=False, frozen=True, slots=True)
+class Decorator:
+    __injectable_class: type[Injectable]
 
     def __repr__(self) -> str:
-        return f"<{self.injectable_class.__name__} decorator>"  # pragma: no cover
+        return f"<{self.__injectable_class.__name__} decorator>"  # pragma: no cover
 
     def __call__(self, wp=None, /, **kwargs):
         def decorator(wrapped):
-            injectable = self.injectable_class(wrapped)
+            injectable = self.__injectable_class(wrapped)
 
             if isinstance(wrapped, type):
                 _manager[wrapped] = injectable
