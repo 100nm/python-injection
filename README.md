@@ -112,10 +112,10 @@ package
 ├── sub_package
 │   ├── __init__.py
 │   └── module2.py
-│       └── class Injectable1
+│       └── class Injectable2
 ├── __init__.py
 └── module1.py
-    └── class Injectable2
+    └── class Injectable1
 ```
 
 To load Injectable1 and Injectable2 into memory you can do the following:
