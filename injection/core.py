@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property, wraps
 from inspect import Parameter
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, Iterable, TypeVar
 
 from injection.exceptions import NoInjectable
 
@@ -40,20 +40,27 @@ class UniqueInjectable(Injectable[T]):
 class InjectionManager:
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
 
-    def __getitem__(self, reference: type) -> Injectable:
+    def get(self, reference: type) -> Injectable:
         try:
             return self.__container[reference]
         except KeyError as exc:
             raise NoInjectable(f"No injectable for {reference.__name__}.") from exc
 
-    def __setitem__(self, reference: type, injectable: Injectable):
+    def set_multiple(self, references: Iterable[type], injectable: Injectable):
+        def reference_parser():
+            for reference in references:
+                self.check_if_exists(reference)
+                yield reference, injectable
+
+        new_values = reference_parser()
+        self.__container.update(new_values)
+
+    def check_if_exists(self, reference: type):
         if reference in self.__container:
             raise RuntimeError(
                 f"An injectable already exists for the "
                 f"reference class `{reference.__name__}`."
             )
-
-        self.__container[reference] = injectable
 
 
 _manager = InjectionManager()
@@ -70,16 +77,19 @@ class Decorator:
 
     def __call__(self, wp=None, /, **kwargs):
         def decorator(wrapped):
+            def iter_references():
+                if isinstance(wrapped, type):
+                    yield wrapped
+
+                if reference := kwargs.pop("reference", None):
+                    yield reference
+
+                for reference in kwargs.pop("references", ()):
+                    yield reference
+
+            references = iter_references()
             injectable = self.__injectable_class(wrapped)
-
-            if isinstance(wrapped, type):
-                _manager[wrapped] = injectable
-
-            if reference := kwargs.pop("reference", None):
-                _manager[reference] = injectable
-
-            for reference in kwargs.pop("references", ()):
-                _manager[reference] = injectable
+            _manager.set_multiple(references, injectable)
 
             return wrapped
 
@@ -93,7 +103,7 @@ del Decorator
 
 
 def get_instance(reference: type[T]) -> T:
-    return _manager[reference].get_instance()
+    return _manager.get(reference).get_instance()
 
 
 def inject(fn=None):
@@ -120,7 +130,7 @@ def inject(fn=None):
                     case Parameter.VAR_POSITIONAL:
                         args.extend(value)
                     case Parameter.VAR_KEYWORD:
-                        kwargs |= value
+                        kwargs.update(value)
                     case _:
                         kwargs[name] = value
 
