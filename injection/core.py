@@ -117,7 +117,7 @@ def inject(fn=None):
 
             for name, parameter in signature.parameters.items():
                 try:
-                    value = arguments[name]
+                    value = arguments.pop(name)
                 except KeyError:
                     try:
                         value = get_instance(parameter.annotation)
