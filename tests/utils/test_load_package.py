@@ -1,12 +1,11 @@
 import sys
-from unittest import TestCase
 
 import pytest
 
 from injection.utils import load_package
 
 
-class TestLoadPackage(TestCase):
+class TestLoadPackage:
     def test_load_package_with_success(self):
         from tests.utils import package
 

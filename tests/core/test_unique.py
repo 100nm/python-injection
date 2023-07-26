@@ -1,12 +1,10 @@
-from unittest import TestCase
-
 import pytest
 
 from injection import unique
 from injection.core import get_instance
 
 
-class TestUnique(TestCase):
+class TestUnique:
     def test_unique_with_success(self):
         @unique
         class SomeInjectable:

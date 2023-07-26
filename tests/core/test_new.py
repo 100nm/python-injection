@@ -1,12 +1,10 @@
-from unittest import TestCase
-
 import pytest
 
 from injection import new
 from injection.core import get_instance
 
 
-class TestNew(TestCase):
+class TestNew:
     def test_new_with_success(self):
         @new
         class SomeInjectable:

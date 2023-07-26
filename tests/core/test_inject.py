@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import pytest
 
 from injection import inject, new
@@ -14,7 +12,7 @@ class SomeClass:
     ...
 
 
-class TestInject(TestCase):
+class TestInject:
     def test_inject_with_success(self):
         @inject
         def my_function(instance: SomeInjectable):
