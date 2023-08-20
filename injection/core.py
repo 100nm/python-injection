@@ -1,9 +1,9 @@
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from functools import cached_property, wraps
+from functools import wraps
 from inspect import Parameter
-from typing import Callable, Generic, Iterable, TypeVar
+from typing import Callable, Generic, Iterable, TypeVar, get_origin
 
 from injection.exceptions import NoInjectable
 
@@ -23,17 +23,20 @@ class Injectable(Generic[T], ABC):
 
 
 class NewInjectable(Injectable[T]):
+    __slots__ = ()
+
     def get_instance(self) -> T:
         return self.factory()
 
 
 class UniqueInjectable(Injectable[T]):
-    @cached_property
-    def __instance(self) -> T:
-        return self.factory()
+    __slots__ = ("instance",)
 
     def get_instance(self) -> T:
-        return self.__instance
+        if hasattr(self, "instance") is False:
+            object.__setattr__(self, "instance", self.factory())
+
+        return self.instance
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -41,10 +44,12 @@ class InjectionManager:
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
 
     def get(self, reference: type) -> Injectable:
+        cls = origin if (origin := get_origin(reference)) else reference
+
         try:
-            return self.__container[reference]
+            return self.__container[cls]
         except KeyError as exc:
-            raise NoInjectable(f"No injectable for {reference.__name__}.") from exc
+            raise NoInjectable(f"No injectable for {cls.__name__}.") from exc
 
     def set_multiple(self, references: Iterable[type], injectable: Injectable):
         def reference_parser():
@@ -64,8 +69,6 @@ class InjectionManager:
 
 
 _manager = InjectionManager()
-
-del InjectionManager
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -99,7 +102,7 @@ class Decorator:
 new = Decorator(NewInjectable)
 unique = Decorator(UniqueInjectable)
 
-del Decorator
+del Decorator, InjectionManager, Injectable, NewInjectable, UniqueInjectable
 
 
 def get_instance(reference: type[T]) -> T:
