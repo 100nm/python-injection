@@ -4,7 +4,7 @@ from types import ModuleType as Package
 
 
 def load_package(package: Package):
-    if not hasattr(package, "__path__"):
+    if hasattr(package, "__path__") is False:
         raise TypeError(
             "Package has no `__path__` attribute, as it's probably a module."
         )

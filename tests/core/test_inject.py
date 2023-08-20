@@ -1,6 +1,15 @@
+from typing import Generic, TypeVar
+
 import pytest
 
 from injection import inject, new
+
+T = TypeVar("T")
+
+
+@new
+class SomeGenericInjectable(Generic[T]):
+    ...
 
 
 @new
@@ -44,6 +53,13 @@ class TestInject:
             assert args == arguments
 
         my_function(*arguments)
+
+    def test_inject_with_generic_injectable(self):
+        @inject
+        def my_function(instance: SomeGenericInjectable[str]):
+            assert isinstance(instance, SomeGenericInjectable)
+
+        my_function()
 
     def test_inject_with_no_injectable_raise_type_error(self):
         @inject
