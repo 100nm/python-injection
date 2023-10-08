@@ -1,2 +1,6 @@
-class NoInjectable(Exception):
+class InjectionError(Exception):
+    ...
+
+
+class NoInjectable(InjectionError):
     ...
