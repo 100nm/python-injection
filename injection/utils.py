@@ -4,12 +4,14 @@ from types import ModuleType as Package
 
 
 def load_package(package: Package):
-    if hasattr(package, "__path__") is False:
+    try:
+        path = getattr(package, "__path__")
+    except AttributeError as exc:
         raise TypeError(
             "Package has no `__path__` attribute, as it's probably a module."
-        )
+        ) from exc
 
-    for info in walk_packages(package.__path__, prefix=f"{package.__name__}."):
+    for info in walk_packages(path, prefix=f"{package.__name__}."):
         if info.ispkg:
             continue
 
