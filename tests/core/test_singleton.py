@@ -1,50 +1,49 @@
 import pytest
 
-from injection import new
-from injection.core import get_instance
+from injection import get_instance, singleton
 
 
-class TestNew:
-    def test_new_with_success(self):
-        @new
+class TestSingleton:
+    def test_singleton_with_success(self):
+        @singleton
         class SomeInjectable:
             ...
 
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
-        assert instance_1 is not instance_2
+        assert instance_1 is instance_2
 
-    def test_new_with_recipe(self):
+    def test_singleton_with_recipe(self):
         class SomeClass:
             ...
 
-        @new(reference=SomeClass)
+        @singleton(reference=SomeClass)
         def recipe() -> SomeClass:
             return SomeClass()
 
         instance_1 = get_instance(SomeClass)
         instance_2 = get_instance(SomeClass)
-        assert instance_1 is not instance_2
+        assert instance_1 is instance_2
 
-    def test_new_with_reference(self):
+    def test_singleton_with_reference(self):
         class A:
             ...
 
-        @new(reference=A)
+        @singleton(reference=A)
         class B(A):
             ...
 
         instance = get_instance(A)
         assert isinstance(instance, B)
 
-    def test_new_with_references(self):
+    def test_singleton_with_references(self):
         class A:
             ...
 
         class B(A):
             ...
 
-        @new(references=(A, B))
+        @singleton(references=(A, B))
         class C(B):
             ...
 
@@ -52,18 +51,18 @@ class TestNew:
         instance_2 = get_instance(B)
         assert isinstance(instance_1, C)
         assert isinstance(instance_2, C)
-        assert instance_1 is not instance_2
+        assert instance_1 is instance_2
 
-    def test_new_with_injectable_already_exist_raise_runtime_error(self):
+    def test_singleton_with_injectable_already_exist_raise_runtime_error(self):
         class A:
             ...
 
-        @new(reference=A)
+        @singleton(reference=A)
         class B(A):
             ...
 
         with pytest.raises(RuntimeError):
 
-            @new(reference=A)
+            @singleton(reference=A)
             class C(A):
                 ...

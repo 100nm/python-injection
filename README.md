@@ -18,22 +18,22 @@ pip install python-injection
 
 ### Create an injectable
 
-If you wish to inject a singleton, use `unique` decorator.
+If you wish to inject a singleton, use `singleton` decorator.
 
 ```python
-from injection import unique
+from injection import singleton
 
-@unique
+@singleton
 class MyClass:
     """ class implementation """
 ```
 
-If you wish to inject a new instance each time, use `new` decorator.
+If you wish to inject a new instance each time, use `injectable` decorator.
 
 ```python
-from injection import new
+from injection import injectable
 
-@new
+@injectable
 class MyClass:
     """ class implementation """
 ```
@@ -62,12 +62,12 @@ one or several other classes.
 _`reference` parameter example:_
 
 ```python
-from injection import unique
+from injection import singleton
 
 class A:
     ...
 
-@unique(reference=A)
+@singleton(reference=A)
 class B(A):
     ...
 ```
@@ -75,7 +75,7 @@ class B(A):
 _`references` parameter example:_
 
 ```python
-from injection import unique
+from injection import singleton
 
 class A:
     ...
@@ -83,7 +83,7 @@ class A:
 class B(A):
     ...
 
-@unique(references=(A, B))
+@singleton(references=(A, B))
 class C(B):
     ...
 ```
@@ -94,9 +94,9 @@ A recipe is a function that tells the injector how to construct the instance to 
 the reference class(es) when defining the recipe.
 
 ```python
-from injection import unique
+from injection import singleton
 
-@unique(reference=MyClass)
+@singleton(reference=MyClass)
 def my_recipe() -> MyClass:
     """ recipe implementation """
 ```

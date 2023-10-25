@@ -2,17 +2,17 @@ from typing import Generic, TypeVar
 
 import pytest
 
-from injection import inject, new
+from injection import inject, injectable
 
 T = TypeVar("T")
 
 
-@new
+@injectable
 class SomeGenericInjectable(Generic[T]):
     ...
 
 
-@new
+@injectable
 class SomeInjectable:
     ...
 
