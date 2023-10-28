@@ -176,14 +176,53 @@ class Injector:
 
 
 @dataclass(repr=False, frozen=True, slots=True)
+class InjectDecorator:
+    def __call__(self, wrapped=None, /):
+        def decorator(wp):
+            if isinstance(wp, type):
+                return self.__class_decorator(wp)
+
+            return self.__decorator(wp)
+
+        return decorator(wrapped) if wrapped else decorator
+
+    @classmethod
+    def __decorator(cls, __function: Callable[..., Any], /) -> Callable[..., Any]:
+        injector = Injector(__function)
+
+        @wraps(__function)
+        def wrapper(*args, **kwargs):
+            arguments = injector.bind(*args, **kwargs)
+            return __function(*arguments.args, **arguments.kwargs)
+
+        return wrapper
+
+    @classmethod
+    def __class_decorator(cls, __type: type, /) -> type:
+        init_function = type.__getattribute__(__type, "__init__")
+        type.__setattr__(__type, "__init__", cls.__decorator(init_function))
+        return __type
+
+
+@dataclass(repr=False, frozen=True, slots=True)
 class InjectableDecorator:
     __class: type[Injectable]
 
     def __repr__(self) -> str:
         return f"<{self.__class.__name__} decorator>"  # pragma: no cover
 
-    def __call__(self, wrapped=None, /, reference=None, references=()):
+    def __call__(
+        self,
+        wrapped=None,
+        /,
+        reference=None,
+        references=(),
+        auto_inject=True,
+    ):
         def decorator(wp):
+            if auto_inject:
+                wp = inject(wp)
+
             def iter_references():
                 if isinstance(wp, type):
                     yield wp
@@ -204,6 +243,7 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
 
+inject = InjectDecorator()
 injectable = InjectableDecorator(NewInjectable)
 singleton = InjectableDecorator(SingletonInjectable)
 
@@ -212,25 +252,12 @@ def get_instance(reference: type[T]) -> T:
     return _manager.get(reference).get_instance()
 
 
-def inject(function=None, /):
-    def decorator(fn):
-        injector = Injector(fn)
-
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            arguments = injector.bind(*args, **kwargs)
-            return fn(*arguments.args, **arguments.kwargs)
-
-        return wrapper
-
-    return decorator(function) if function else decorator
-
-
 del (
     Injectable,
     InjectableDecorator,
+    InjectDecorator,
     InjectionManager,
     NewInjectable,
-    T,
     SingletonInjectable,
+    T,
 )

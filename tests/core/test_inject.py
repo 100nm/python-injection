@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 import pytest
@@ -42,6 +43,7 @@ class TestInject:
         @inject
         def my_function(instance: SomeInjectable, **kw):
             assert kw == kwargs
+            assert isinstance(instance, SomeInjectable)
 
         my_function(**kwargs)
 
@@ -51,6 +53,7 @@ class TestInject:
         @inject
         def my_function(*args, instance: SomeInjectable = ...):
             assert args == arguments
+            assert isinstance(instance, SomeInjectable)
 
         my_function(*arguments)
 
@@ -60,6 +63,24 @@ class TestInject:
             assert isinstance(instance, SomeGenericInjectable)
 
         my_function()
+
+    def test_inject_with_class(self):
+        @inject
+        class Class:
+            def __init__(self, some_injectable: SomeInjectable):
+                self.injectable = some_injectable
+
+        instance = Class()
+        assert isinstance(instance.injectable, SomeInjectable)
+
+    def test_inject_with_dataclass(self):
+        @inject
+        @dataclass(frozen=True, slots=True)
+        class DataClass:
+            injectable: SomeInjectable = ...
+
+        instance = DataClass()
+        assert isinstance(instance.injectable, SomeInjectable)
 
     def test_inject_with_no_injectable_raise_type_error(self):
         @inject
