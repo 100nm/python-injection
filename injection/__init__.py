@@ -1,1 +1,1 @@
-from .core import inject, new, unique
+from .core import get_instance, inject, injectable, singleton

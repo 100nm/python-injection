@@ -5,7 +5,7 @@ from types import ModuleType as Package
 
 def load_package(package: Package):
     try:
-        path = getattr(package, "__path__")
+        path = package.__path__
     except AttributeError as exc:
         raise TypeError(
             "Package has no `__path__` attribute, as it's probably a module."

@@ -40,7 +40,7 @@ class NewInjectable(Injectable[T]):
         return self.factory()
 
 
-class UniqueInjectable(Injectable[T]):
+class SingletonInjectable(Injectable[T]):
     __instance_attribute: str = "_instance"
 
     __slots__ = (__instance_attribute,)
@@ -61,29 +61,30 @@ class UniqueInjectable(Injectable[T]):
 class InjectionManager:
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
 
-    def get(self, reference: type) -> Injectable:
-        cls = origin if (origin := get_origin(reference)) else reference
+    def get(self, __reference: type) -> Injectable:
+        cls = origin if (origin := get_origin(__reference)) else __reference
 
         try:
             return self.__container[cls]
         except KeyError as exc:
             raise NoInjectable(f"No injectable for {cls.__name__}.") from exc
 
-    def set_multiple(self, references: Iterable[type], injectable: Injectable):
+    def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
         new_values = (
-            (self.check_if_exists(reference), injectable) for reference in references
+            (self.check_if_exists(reference), __injectable)
+            for reference in __references
         )
         self.__container.update(new_values)
         return self
 
-    def check_if_exists(self, reference: type) -> type:
-        if reference in self.__container:
+    def check_if_exists(self, __reference: type) -> type:
+        if __reference in self.__container:
             raise RuntimeError(
                 f"An injectable already exists for the "
-                f"reference class `{reference.__name__}`."
+                f"reference class `{__reference.__name__}`."
             )
 
-        return reference
+        return __reference
 
 
 _manager = InjectionManager()
@@ -94,27 +95,27 @@ class Dependencies:
     __mapping: MappingProxyType[str, Injectable]
 
     def __iter__(self) -> Iterator[tuple[str, Any]]:
-        for name, injectable in self.__mapping.items():
-            yield name, injectable.get_instance()
+        for name, injectable_object in self.__mapping.items():
+            yield name, injectable_object.get_instance()
 
     @property
     def arguments(self) -> Mapping[str, Any]:
         return dict(self)
 
     @classmethod
-    def resolve(cls, signature: Signature):
-        dependencies = dict(cls.__resolver(signature))
+    def resolve(cls, __signature: Signature):
+        dependencies = dict(cls.__resolver(__signature))
         return cls(MappingProxyType(dependencies))
 
     @classmethod
-    def __resolver(cls, signature: Signature) -> Iterator[tuple[str, Injectable]]:
-        for name, parameter in signature.parameters.items():
+    def __resolver(cls, __signature: Signature) -> Iterator[tuple[str, Injectable]]:
+        for name, parameter in __signature.parameters.items():
             try:
-                injectable = _manager.get(parameter.annotation)
+                injectable_object = _manager.get(parameter.annotation)
             except NoInjectable:
                 continue
 
-            yield name, injectable
+            yield name, injectable_object
 
 
 class Arguments(NamedTuple):
@@ -123,21 +124,21 @@ class Arguments(NamedTuple):
 
 
 class Injector:
-    __slots__ = ("__function", "__signature", "__dependencies")
+    __slots__ = ("__callable", "__signature", "__dependencies")
 
-    def __init__(self, function: Callable[..., Any]):
-        self.__function = function
+    def __init__(self, __callable: Callable[..., Any], /):
+        self.__callable = __callable
         self.__signature = None
         self.__dependencies = None
 
     @property
-    def function(self) -> Callable[..., Any]:
-        return self.__function
+    def callable(self) -> Callable[..., Any]:
+        return self.__callable
 
     @property
     def signature(self) -> Signature:
         if self.__signature is None:
-            self.__signature = inspect.signature(self.function)
+            self.__signature = inspect.signature(self.callable)
 
         return self.__signature
 
@@ -148,8 +149,8 @@ class Injector:
 
         return self.__dependencies
 
-    def bind(self, /, *args, **kwargs) -> Arguments:
-        bound = self.signature.bind_partial(*args, **kwargs)
+    def bind(self, /, *__args, **__kwargs) -> Arguments:
+        bound = self.signature.bind_partial(*__args, **__kwargs)
         arguments = self.dependencies.arguments | bound.arguments
 
         args = []
@@ -175,14 +176,53 @@ class Injector:
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class Decorator:
-    __injectable_class: type[Injectable]
+class InjectDecorator:
+    def __call__(self, wrapped=None, /):
+        def decorator(wp):
+            if isinstance(wp, type):
+                return self.__class_decorator(wp)
+
+            return self.__decorator(wp)
+
+        return decorator(wrapped) if wrapped else decorator
+
+    @classmethod
+    def __decorator(cls, __function: Callable[..., Any], /) -> Callable[..., Any]:
+        injector = Injector(__function)
+
+        @wraps(__function)
+        def wrapper(*args, **kwargs):
+            arguments = injector.bind(*args, **kwargs)
+            return __function(*arguments.args, **arguments.kwargs)
+
+        return wrapper
+
+    @classmethod
+    def __class_decorator(cls, __type: type, /) -> type:
+        init_function = type.__getattribute__(__type, "__init__")
+        type.__setattr__(__type, "__init__", cls.__decorator(init_function))
+        return __type
+
+
+@dataclass(repr=False, frozen=True, slots=True)
+class InjectableDecorator:
+    __class: type[Injectable]
 
     def __repr__(self) -> str:
-        return f"<{self.__injectable_class.__name__} decorator>"  # pragma: no cover
+        return f"<{self.__class.__name__} decorator>"  # pragma: no cover
 
-    def __call__(self, wrapped=None, /, reference=None, references=()):
+    def __call__(
+        self,
+        wrapped=None,
+        /,
+        reference=None,
+        references=(),
+        auto_inject=True,
+    ):
         def decorator(wp):
+            if auto_inject:
+                wp = inject(wp)
+
             def iter_references():
                 if isinstance(wp, type):
                     yield wp
@@ -192,10 +232,10 @@ class Decorator:
 
                 yield from references
 
-            injectable = self.__injectable_class(wp)
+            injectable_object = self.__class(wp)
             _manager.set_multiple(
                 iter_references(),
-                injectable,
+                injectable_object,
             )
 
             return wp
@@ -203,32 +243,21 @@ class Decorator:
         return decorator(wrapped) if wrapped else decorator
 
 
-new = Decorator(NewInjectable)
-unique = Decorator(UniqueInjectable)
-
-
-del (
-    Decorator,
-    InjectionManager,
-    Injectable,
-    NewInjectable,
-    UniqueInjectable,
-)
+inject = InjectDecorator()
+injectable = InjectableDecorator(NewInjectable)
+singleton = InjectableDecorator(SingletonInjectable)
 
 
 def get_instance(reference: type[T]) -> T:
     return _manager.get(reference).get_instance()
 
 
-def inject(function=None, /):
-    def decorator(fn):
-        injector = Injector(fn)
-
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            arguments = injector.bind(*args, **kwargs)
-            return fn(*arguments.args, **arguments.kwargs)
-
-        return wrapper
-
-    return decorator(function) if function else decorator
+del (
+    Injectable,
+    InjectableDecorator,
+    InjectDecorator,
+    InjectionManager,
+    NewInjectable,
+    SingletonInjectable,
+    T,
+)
