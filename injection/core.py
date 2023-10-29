@@ -87,7 +87,18 @@ class InjectionManager:
         return __reference
 
 
-_manager = InjectionManager()
+class InjectionManagerGetter:
+    __slots__ = ("__default",)
+
+    def __init__(self):
+        self.__default = self.__manager_factory()
+
+    def __call__(self) -> InjectionManager:
+        return self.__default
+
+    @classmethod
+    def __manager_factory(cls) -> InjectionManager:
+        return InjectionManager()
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -109,9 +120,11 @@ class Dependencies:
 
     @classmethod
     def __resolver(cls, __signature: Signature) -> Iterator[tuple[str, Injectable]]:
+        manager = _get_manager()
+
         for name, parameter in __signature.parameters.items():
             try:
-                injectable_object = _manager.get(parameter.annotation)
+                injectable_object = manager.get(parameter.annotation)
             except NoInjectable:
                 continue
 
@@ -233,7 +246,7 @@ class InjectableDecorator:
                 yield from references
 
             injectable_object = self.__class(wp)
-            _manager.set_multiple(
+            _get_manager().set_multiple(
                 iter_references(),
                 injectable_object,
             )
@@ -243,20 +256,22 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
 
+_get_manager = InjectionManagerGetter()
+
 inject = InjectDecorator()
 injectable = InjectableDecorator(NewInjectable)
 singleton = InjectableDecorator(SingletonInjectable)
 
 
 def get_instance(reference: type[T]) -> T:
-    return _manager.get(reference).get_instance()
+    return _get_manager().get(reference).get_instance()
 
 
 del (
     Injectable,
     InjectableDecorator,
     InjectDecorator,
-    InjectionManager,
+    InjectionManagerGetter,
     NewInjectable,
     SingletonInjectable,
     T,
