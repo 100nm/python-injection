@@ -58,7 +58,7 @@ class SingletonInjectable(Injectable[T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class InjectionManager:
+class Manager:
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
 
     def get(self, __reference: type) -> Injectable:
@@ -67,7 +67,12 @@ class InjectionManager:
         try:
             return self.__container[cls]
         except KeyError as exc:
-            raise NoInjectable(f"No injectable for {cls.__name__}.") from exc
+            try:
+                name = cls.__name__
+            except AttributeError:  # pragma: no cover
+                name = repr(__reference)
+
+            raise NoInjectable(f"No injectable for {name}.") from exc
 
     def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
         new_values = (
@@ -87,18 +92,18 @@ class InjectionManager:
         return __reference
 
 
-class InjectionManagerGetter:
+class ManagerGetter:
     __slots__ = ("__default",)
 
     def __init__(self):
         self.__default = self.__manager_factory()
 
-    def __call__(self) -> InjectionManager:
+    def __call__(self) -> Manager:
         return self.__default
 
     @classmethod
-    def __manager_factory(cls) -> InjectionManager:
-        return InjectionManager()
+    def __manager_factory(cls) -> Manager:
+        return Manager()
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -136,7 +141,7 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class Injector:
+class Binder:
     __slots__ = ("__callable", "__signature", "__dependencies")
 
     def __init__(self, __callable: Callable[..., Any], /):
@@ -201,11 +206,11 @@ class InjectDecorator:
 
     @classmethod
     def __decorator(cls, __function: Callable[..., Any], /) -> Callable[..., Any]:
-        injector = Injector(__function)
+        binder = Binder(__function)
 
         @wraps(__function)
         def wrapper(*args, **kwargs):
-            arguments = injector.bind(*args, **kwargs)
+            arguments = binder.bind(*args, **kwargs)
             return __function(*arguments.args, **arguments.kwargs)
 
         return wrapper
@@ -236,6 +241,7 @@ class InjectableDecorator:
             if auto_inject:
                 wp = inject(wp)
 
+            @lambda fn: fn()
             def iter_references():
                 if isinstance(wp, type):
                     yield wp
@@ -247,7 +253,7 @@ class InjectableDecorator:
 
             injectable_object = self.__class(wp)
             _get_manager().set_multiple(
-                iter_references(),
+                iter_references,
                 injectable_object,
             )
 
@@ -256,7 +262,7 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
 
-_get_manager = InjectionManagerGetter()
+_get_manager = ManagerGetter()
 
 inject = InjectDecorator()
 injectable = InjectableDecorator(NewInjectable)
@@ -271,8 +277,15 @@ del (
     Injectable,
     InjectableDecorator,
     InjectDecorator,
-    InjectionManagerGetter,
+    ManagerGetter,
     NewInjectable,
     SingletonInjectable,
     T,
+)
+
+__all__ = (
+    "get_instance",
+    "inject",
+    "injectable",
+    "singleton",
 )

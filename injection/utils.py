@@ -16,3 +16,6 @@ def load_package(package: Package):
             continue
 
         import_module(info.name)
+
+
+__all__ = ("load_package",)
