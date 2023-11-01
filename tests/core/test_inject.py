@@ -82,6 +82,14 @@ class TestInject:
         instance = DataClass()
         assert isinstance(instance.injectable, SomeInjectable)
 
+    def test_inject_with_str_type_annotation_raise_type_error(self):
+        @inject
+        def my_function(instance: "SomeInjectable"):
+            raise NotImplementedError
+
+        with pytest.raises(TypeError):
+            my_function()
+
     def test_inject_with_no_injectable_raise_type_error(self):
         @inject
         def my_function(instance: SomeClass):
