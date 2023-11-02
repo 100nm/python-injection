@@ -63,6 +63,74 @@ class SingletonInjectable(Injectable[T]):
         return instance
 
 
+class Subscriber(Generic[T], ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def notify(self, __object: T):
+        raise NotImplementedError
+
+
+@dataclass(repr=False, frozen=True, slots=True)
+class Manager(Subscriber):
+    __container: dict[type, Injectable] = field(default_factory=dict, init=False)
+    __subscribers: set[Subscriber] = field(default_factory=set, init=False)
+
+    @property
+    def inject(self) -> InjectDecorator:
+        return InjectDecorator(self)
+
+    @property
+    def injectable(self) -> InjectableDecorator:
+        return InjectableDecorator(self, NewInjectable)
+
+    @property
+    def singleton(self) -> InjectableDecorator:
+        return InjectableDecorator(self, SingletonInjectable)
+
+    def get(self, __reference: type) -> Injectable:
+        cls = origin if (origin := get_origin(__reference)) else __reference
+
+        try:
+            return self.__container[cls]
+        except KeyError as exc:
+            try:
+                name = cls.__name__
+            except AttributeError:
+                name = repr(__reference)
+
+            raise NoInjectable(f"No injectable for {name}.") from exc
+
+    def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
+        new_values = (
+            (self.check_if_exists(reference), __injectable)
+            for reference in __references
+        )
+        self.__container.update(new_values)
+        self.__notify_subscribers()
+        return self
+
+    def check_if_exists(self, __reference: type) -> type:
+        if __reference in self.__container:
+            raise RuntimeError(
+                "An injectable already exists for the "
+                f"reference class `{__reference.__name__}`."
+            )
+
+        return __reference
+
+    def subscribe(self, __subscriber: Subscriber):
+        self.__subscribers.add(__subscriber)
+        return self
+
+    def notify(self, _: Any):
+        self.__notify_subscribers()
+
+    def __notify_subscribers(self):
+        for subscriber in self.__subscribers:
+            subscriber.notify(self)
+
+
 @dataclass(repr=False, frozen=True, slots=True)
 class Dependencies:
     __mapping: MappingProxyType[str, Injectable]
@@ -111,7 +179,7 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class Binder:
+class Binder(Subscriber[Manager]):
     __slots__ = ("__signature", "__dependencies")
 
     def __init__(self, __callable: Callable[..., Any]):
@@ -150,63 +218,11 @@ class Binder:
         self.__dependencies = Dependencies.resolve(self.__signature, __manager)
         return self
 
-
-@dataclass(repr=False, frozen=True, slots=True)
-class Manager:
-    __container: dict[type, Injectable] = field(default_factory=dict, init=False)
-    __binders: set[Binder] = field(default_factory=set, init=False)
-
-    @property
-    def inject(self) -> InjectDecorator:
-        return InjectDecorator(self)
-
-    @property
-    def injectable(self) -> InjectableDecorator:
-        return InjectableDecorator(self, NewInjectable)
-
-    @property
-    def singleton(self) -> InjectableDecorator:
-        return InjectableDecorator(self, SingletonInjectable)
-
-    def get(self, __reference: type) -> Injectable:
-        cls = origin if (origin := get_origin(__reference)) else __reference
-
-        try:
-            return self.__container[cls]
-        except KeyError as exc:
-            try:
-                name = cls.__name__
-            except AttributeError:
-                name = repr(__reference)
-
-            raise NoInjectable(f"No injectable for {name}.") from exc
-
-    def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
-        new_values = (
-            (self.check_if_exists(reference), __injectable)
-            for reference in __references
-        )
-        self.__container.update(new_values)
-        self.__notify_binders()
-        return self
-
-    def check_if_exists(self, __reference: type) -> type:
-        if __reference in self.__container:
-            raise RuntimeError(
-                f"An injectable already exists for the "
-                f"reference class `{__reference.__name__}`."
-            )
-
-        return __reference
-
-    def new_binder(self, __callable: Callable[..., Any]) -> Binder:
-        binder = Binder(__callable).notify(self)
-        self.__binders.add(binder)
+    @classmethod
+    def from_manager(cls, __callable: Callable[..., Any], __manager: Manager):
+        binder = cls(__callable).notify(__manager)
+        __manager.subscribe(binder)
         return binder
-
-    def __notify_binders(self):
-        for binder in self.__binders:
-            binder.notify(self)
 
 
 @final
@@ -224,7 +240,7 @@ class InjectDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     def __decorator(self, __function: Callable[..., Any], /) -> Callable[..., Any]:
-        binder = self.__manager.new_binder(__function)
+        binder = Binder.from_manager(__function, self.__manager)
 
         @wraps(__function)
         def wrapper(*args, **kwargs):
