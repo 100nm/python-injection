@@ -64,6 +64,49 @@ class SingletonInjectable(Injectable[T]):
         return instance
 
 
+class Subscriber(Generic[T], ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def notify(self, __provider: T, /):
+        raise NotImplementedError
+
+
+class Provider(ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def subscribe(self, __subscriber: Subscriber):
+        raise NotImplementedError
+
+    @abstractmethod
+    def unsubscribe(self, __subscriber: Subscriber):
+        raise NotImplementedError
+
+
+@dataclass(repr=False, frozen=True, slots=True)
+class Subscription:
+    __subscriber: Subscriber
+    __provider: Provider
+
+    def __post_init__(self):
+        self.__subscribe()
+
+    def __del__(self):
+        self.__unsubscribe()
+
+    def keep(self):
+        return
+
+    def __subscribe(self):
+        self.__provider.subscribe(self.__subscriber)
+        return self
+
+    def __unsubscribe(self):
+        self.__provider.unsubscribe(self.__subscriber)
+        return self
+
+
 class Ref(Generic[T]):
     __slots__ = ("value",)
 
@@ -71,30 +114,15 @@ class Ref(Generic[T]):
         self.value = value
 
 
-class Subscriber(Generic[T], ABC):
-    __slots__ = ()
-
-    @abstractmethod
-    def notify(self, __object: T):
-        raise NotImplementedError
-
-
 @dataclass(repr=False, frozen=True, slots=True)
-class Manager(Subscriber):
+class Manager(Provider, Subscriber[Any]):
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
     __subscribers: set[Subscriber] = field(default_factory=set, init=False)
-    __proxy: Ref[Manager] = field(default_factory=Ref, init=False)
-
-    def __getitem__(self, __key: type) -> Injectable:
-        if self.proxy:
-            with suppress(KeyError):
-                return self.proxy.__container[__key]
-
-        return self.__container[__key]
+    __proxy_reference: Ref[Manager] = field(default_factory=Ref, init=False)
 
     @property
     def proxy(self) -> Manager:
-        return self.__proxy.value
+        return self.__proxy_reference.value
 
     @property
     def inject(self) -> InjectDecorator:
@@ -109,10 +137,14 @@ class Manager(Subscriber):
         return InjectableDecorator(self, SingletonInjectable)
 
     def get(self, __reference: type) -> Injectable:
+        if self.proxy:
+            with suppress(NoInjectable):
+                return self.proxy.get(__reference)
+
         cls = origin if (origin := get_origin(__reference)) else __reference
 
         try:
-            return self[cls]
+            return self.__container[cls]
         except KeyError as exc:
             try:
                 name = cls.__name__
@@ -140,18 +172,23 @@ class Manager(Subscriber):
         return __reference
 
     def set_proxy(self, __manager: Manager = None):
-        if self.proxy:
-            self.proxy.unsubscribe(self)
+        current_proxy = self.proxy
+        self.__proxy_reference.value = __manager
+
+        if current_proxy:
+            current_proxy.unsubscribe(self)
+
+        elif __manager is None:
+            self.__notify_subscribers()
 
         if __manager:
             __manager.subscribe(self)
 
-        self.__proxy.value = __manager
-        self.__notify_subscribers()
         return self
 
     def subscribe(self, __subscriber: Subscriber):
         self.__subscribers.add(__subscriber)
+        __subscriber.notify(self)
         return self
 
     def unsubscribe(self, __subscriber: Subscriber):
@@ -160,7 +197,7 @@ class Manager(Subscriber):
 
         return self
 
-    def notify(self, _: Any):
+    def notify(self, _: Any, /):
         self.__notify_subscribers()
 
     def __notify_subscribers(self):
@@ -251,15 +288,9 @@ class Binder(Subscriber[Manager]):
 
         return Arguments(tuple(args), kwargs)
 
-    def notify(self, __manager: Manager):
+    def notify(self, __manager: Manager, /):
         self.__dependencies = Dependencies.resolve(self.__signature, __manager)
         return self
-
-    @classmethod
-    def from_manager(cls, __callable: Callable[..., Any], __manager: Manager):
-        binder = cls(__callable).notify(__manager)
-        __manager.subscribe(binder)
-        return binder
 
 
 @final
@@ -277,10 +308,12 @@ class InjectDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     def __decorator(self, __function: Callable[..., Any], /) -> Callable[..., Any]:
-        binder = Binder.from_manager(__function, self.__manager)
+        binder = Binder(__function)
+        subscription = Subscription(binder, self.__manager)
 
         @wraps(__function)
         def wrapper(*args, **kwargs):
+            subscription.keep()
             arguments = binder.bind(*args, **kwargs)
             return __function(*arguments.args, **arguments.kwargs)
 
@@ -335,18 +368,24 @@ class InjectableDecorator:
 
 
 @runtime_checkable
-class Module(Protocol):  # pragma: no cover
+class Module(Protocol):
+    __slots__ = ()
+
+    @abstractmethod
     def get_instance(self, *args, **kwargs):
-        ...
+        raise NotImplementedError
 
+    @abstractmethod
     def inject(self, *args, **kwargs):
-        ...
+        raise NotImplementedError
 
+    @abstractmethod
     def injectable(self, *args, **kwargs):
-        ...
+        raise NotImplementedError
 
+    @abstractmethod
     def singleton(self, *args, **kwargs):
-        ...
+        raise NotImplementedError
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -374,10 +413,14 @@ class InjectionModule:
             self.manager.set_proxy(module.manager)
 
         else:
-            class_name = self.__class__.__name__
-            proxy_name = module.__class__.__name__
+            class_name = type(self).__name__
+            proxy_name = type(module).__name__
             raise TypeError(f"`{proxy_name}` is incompatible with `{class_name}`.")
 
+        return self
+
+    def remove_proxy(self):
+        self.manager.set_proxy()
         return self
 
 
