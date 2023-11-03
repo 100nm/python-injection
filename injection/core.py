@@ -23,6 +23,7 @@ from typing import (
     runtime_checkable,
 )
 
+from injection.basis import Provider, Ref, Subscriber, Subscription
 from injection.exceptions import NoInjectable
 
 T = TypeVar("T")
@@ -53,7 +54,7 @@ class SingletonInjectable(Injectable[T]):
     __slots__ = (__instance_attribute,)
 
     def get_instance(self) -> T:
-        cls = self.__class__
+        cls = type(self)
 
         try:
             instance = getattr(self, cls.__instance_attribute)
@@ -64,56 +65,6 @@ class SingletonInjectable(Injectable[T]):
         return instance
 
 
-class Subscriber(Generic[T], ABC):
-    __slots__ = ()
-
-    @abstractmethod
-    def notify(self, __provider: T, /):
-        raise NotImplementedError
-
-
-class Provider(ABC):
-    __slots__ = ()
-
-    @abstractmethod
-    def subscribe(self, __subscriber: Subscriber):
-        raise NotImplementedError
-
-    @abstractmethod
-    def unsubscribe(self, __subscriber: Subscriber):
-        raise NotImplementedError
-
-
-@dataclass(repr=False, frozen=True, slots=True)
-class Subscription:
-    __subscriber: Subscriber
-    __provider: Provider
-
-    def __post_init__(self):
-        self.__subscribe()
-
-    def __del__(self):
-        self.__unsubscribe()
-
-    def keep(self):
-        return
-
-    def __subscribe(self):
-        self.__provider.subscribe(self.__subscriber)
-        return self
-
-    def __unsubscribe(self):
-        self.__provider.unsubscribe(self.__subscriber)
-        return self
-
-
-class Ref(Generic[T]):
-    __slots__ = ("value",)
-
-    def __init__(self, value: T = None):
-        self.value = value
-
-
 @dataclass(repr=False, frozen=True, slots=True)
 class Manager(Provider, Subscriber[Any]):
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
@@ -121,7 +72,7 @@ class Manager(Provider, Subscriber[Any]):
     __proxy_reference: Ref[Manager] = field(default_factory=Ref, init=False)
 
     @property
-    def proxy(self) -> Manager:
+    def proxy(self) -> Manager | None:
         return self.__proxy_reference.value
 
     @property
@@ -171,29 +122,27 @@ class Manager(Provider, Subscriber[Any]):
 
         return __reference
 
-    def set_proxy(self, __manager: Manager = None):
-        current_proxy = self.proxy
-        self.__proxy_reference.value = __manager
+    def set_proxy(self, __proxy: Manager = None):
+        with self.__proxy_reference.transaction(new_value=__proxy) as previous_proxy:
+            if previous_proxy:
+                previous_proxy.unsubscribe(self)
 
-        if current_proxy:
-            current_proxy.unsubscribe(self)
+            elif __proxy is None:
+                self.__notify_subscribers()
 
-        elif __manager is None:
-            self.__notify_subscribers()
-
-        if __manager:
-            __manager.subscribe(self)
+            if __proxy:
+                __proxy.subscribe(self)
 
         return self
 
-    def subscribe(self, __subscriber: Subscriber):
-        self.__subscribers.add(__subscriber)
-        __subscriber.notify(self)
+    def subscribe(self, subscriber: Subscriber):
+        self.__subscribers.add(subscriber)
+        subscriber.notify(self)
         return self
 
-    def unsubscribe(self, __subscriber: Subscriber):
+    def unsubscribe(self, subscriber: Subscriber):
         with suppress(KeyError):
-            self.__subscribers.remove(__subscriber)
+            self.__subscribers.remove(subscriber)
 
         return self
 
@@ -391,6 +340,9 @@ class Module(Protocol):
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectionModule:
     manager: Manager = field(default_factory=Manager)
+
+    def __del__(self):
+        self.remove_proxy()
 
     @property
     def inject(self) -> InjectDecorator:
