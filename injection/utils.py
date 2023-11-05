@@ -2,6 +2,8 @@ from importlib import import_module
 from pkgutil import walk_packages
 from types import ModuleType as Package
 
+__all__ = ("load_package",)
+
 
 def load_package(package: Package):
     try:
@@ -16,6 +18,3 @@ def load_package(package: Package):
             continue
 
         import_module(info.name)
-
-
-__all__ = ("load_package",)

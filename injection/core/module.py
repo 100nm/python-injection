@@ -23,8 +23,10 @@ from typing import (
     runtime_checkable,
 )
 
-from injection.basis import Provider, Ref, Subscriber, Subscription
+from injection.common import LazyMapping, Observable, Observation, Observer
 from injection.exceptions import NoInjectable
+
+__all__ = ("Module", "new_module")
 
 T = TypeVar("T")
 
@@ -66,14 +68,9 @@ class SingletonInjectable(Injectable[T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class Manager(Provider, Subscriber[Any]):
+class Manager(Observable[Any]):
     __container: dict[type, Injectable] = field(default_factory=dict, init=False)
-    __subscribers: set[Subscriber] = field(default_factory=set, init=False)
-    __proxy_reference: Ref[Manager] = field(default_factory=Ref, init=False)
-
-    @property
-    def proxy(self) -> Manager | None:
-        return self.__proxy_reference.value
+    __observers: set[Observer[Manager]] = field(default_factory=set, init=False)
 
     @property
     def inject(self) -> InjectDecorator:
@@ -88,10 +85,6 @@ class Manager(Provider, Subscriber[Any]):
         return InjectableDecorator(self, SingletonInjectable)
 
     def get(self, __reference: type) -> Injectable:
-        if self.proxy:
-            with suppress(NoInjectable):
-                return self.proxy.get(__reference)
-
         cls = origin if (origin := get_origin(__reference)) else __reference
 
         try:
@@ -100,7 +93,7 @@ class Manager(Provider, Subscriber[Any]):
             try:
                 name = cls.__name__
             except AttributeError:
-                name = repr(__reference)
+                name = f"<{type(__reference).__name__} {repr(__reference)}>"
 
             raise NoInjectable(f"No injectable for {name}.") from exc
 
@@ -110,7 +103,7 @@ class Manager(Provider, Subscriber[Any]):
             for reference in __references
         )
         self.__container.update(new_values)
-        self.__notify_subscribers()
+        self.notify()
         return self
 
     def check_if_exists(self, __reference: type) -> type:
@@ -122,36 +115,22 @@ class Manager(Provider, Subscriber[Any]):
 
         return __reference
 
-    def set_proxy(self, __proxy: Manager = None):
-        with self.__proxy_reference.transaction(new_value=__proxy) as previous_proxy:
-            if previous_proxy:
-                previous_proxy.unsubscribe(self)
-
-            elif __proxy is None:
-                self.__notify_subscribers()
-
-            if __proxy:
-                __proxy.subscribe(self)
+    def notify(self, _: Any = None, /):
+        for observer in self.__observers.copy():
+            observer.notify(self)
 
         return self
 
-    def subscribe(self, subscriber: Subscriber):
-        self.__subscribers.add(subscriber)
-        subscriber.notify(self)
+    def subscribe(self, observer: Observer):
+        self.__observers.add(observer)
+        observer.notify(self)
         return self
 
-    def unsubscribe(self, subscriber: Subscriber):
+    def unsubscribe(self, observer: Observer):
         with suppress(KeyError):
-            self.__subscribers.remove(subscriber)
+            self.__observers.remove(observer)
 
         return self
-
-    def notify(self, _: Any, /):
-        self.__notify_subscribers()
-
-    def __notify_subscribers(self):
-        for subscriber in self.__subscribers:
-            subscriber.notify(self)
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -179,7 +158,7 @@ class Dependencies:
 
     @classmethod
     def resolve(cls, __signature: Signature, __manager: Manager):
-        dependencies = dict(cls.__resolver(__signature, __manager))
+        dependencies = LazyMapping(cls.__resolver(__signature, __manager))
         return cls.from_mapping(dependencies)
 
     @classmethod
@@ -202,7 +181,7 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class Binder(Subscriber[Manager]):
+class Binder(Observer[Manager]):
     __slots__ = ("__signature", "__dependencies")
 
     def __init__(self, __callable: Callable[..., Any]):
@@ -258,11 +237,11 @@ class InjectDecorator:
 
     def __decorator(self, __function: Callable[..., Any], /) -> Callable[..., Any]:
         binder = Binder(__function)
-        subscription = Subscription(binder, self.__manager)
+        observation = Observation(binder, self.__manager).subscribe()
 
         @wraps(__function)
         def wrapper(*args, **kwargs):
-            subscription.keep()
+            observation.keep()
             arguments = binder.bind(*args, **kwargs)
             return __function(*arguments.args, **arguments.kwargs)
 
@@ -341,9 +320,6 @@ class Module(Protocol):
 class InjectionModule:
     manager: Manager = field(default_factory=Manager)
 
-    def __del__(self):
-        self.remove_proxy()
-
     @property
     def inject(self) -> InjectDecorator:
         return self.manager.inject
@@ -360,29 +336,7 @@ class InjectionModule:
         instance = self.manager.get(reference).get_instance()
         return cast(reference, instance)
 
-    def set_proxy(self, module: Module):
-        if isinstance(module, InjectionModule):
-            self.manager.set_proxy(module.manager)
 
-        else:
-            class_name = type(self).__name__
-            proxy_name = type(module).__name__
-            raise TypeError(f"`{proxy_name}` is incompatible with `{class_name}`.")
-
-        return self
-
-    def remove_proxy(self):
-        self.manager.set_proxy()
-        return self
-
-
-def new_module(proxy: Module = None) -> Module:
+def new_module() -> Module:
     module = InjectionModule()
-
-    if proxy:
-        module.set_proxy(proxy)
-
     return cast(Module, module)
-
-
-__all__ = ("Module", "new_module")
