@@ -237,7 +237,8 @@ class InjectDecorator:
 
     def __decorator(self, __function: Callable[..., Any], /) -> Callable[..., Any]:
         binder = Binder(__function)
-        observation = Observation(binder, self.__manager).subscribe()
+        observation = Observation(binder, self.__manager)
+        observation.subscribe()
 
         @wraps(__function)
         def wrapper(*args, **kwargs):
@@ -318,7 +319,7 @@ class Module(Protocol):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectionModule:
-    manager: Manager = field(default_factory=Manager)
+    manager: Manager = field(default_factory=Manager, init=False)
 
     @property
     def inject(self) -> InjectDecorator:

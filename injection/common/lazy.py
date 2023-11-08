@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, Generic, Iterable, Iterator, Mapping, TypeVar
+from typing import Any, Callable, Generic, Iterator, Mapping, TypeVar
 
 from injection.common.sentinel import sentinel
 
@@ -46,8 +46,8 @@ class LazyMapping(Mapping[K, V]):
 
     __lazy: Lazy[dict[K, V]]
 
-    def __init__(self, iterable: Iterable[tuple[K, V]]):
-        constructor = partial(dict, iterable)
+    def __init__(self, iterator: Iterator[tuple[K, V]]):
+        constructor = partial(dict, iterator)
         self.__lazy = Lazy(constructor)
 
     def __getitem__(self, key: K) -> V:
