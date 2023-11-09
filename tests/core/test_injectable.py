@@ -19,7 +19,7 @@ class TestInjectable:
         class SomeClass:
             ...
 
-        @injectable(reference=SomeClass)
+        @injectable(on=SomeClass)
         def recipe() -> SomeClass:
             return SomeClass()
 
@@ -31,7 +31,7 @@ class TestInjectable:
         class A:
             ...
 
-        @injectable(reference=A)
+        @injectable(on=A)
         class B(A):
             ...
 
@@ -45,7 +45,7 @@ class TestInjectable:
         class B(A):
             ...
 
-        @injectable(references=(A, B))
+        @injectable(on=(A, B))
         class C(B):
             ...
 
@@ -110,7 +110,7 @@ class TestInjectable:
         class B:
             ...
 
-        @injectable(reference=B, auto_inject=True)
+        @injectable(on=B, auto_inject=True)
         def recipe(__a: A) -> B:
             assert isinstance(__a, A)
             assert __a is not a
@@ -125,12 +125,12 @@ class TestInjectable:
         class A:
             ...
 
-        @injectable(reference=A)
+        @injectable(on=A)
         class B(A):
             ...
 
         with pytest.raises(RuntimeError):
 
-            @injectable(reference=A)
+            @injectable(on=A)
             class C(A):
                 ...

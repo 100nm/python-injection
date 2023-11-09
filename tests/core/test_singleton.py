@@ -19,7 +19,7 @@ class TestSingleton:
         class SomeClass:
             ...
 
-        @singleton(reference=SomeClass)
+        @singleton(on=SomeClass)
         def recipe() -> SomeClass:
             return SomeClass()
 
@@ -31,7 +31,7 @@ class TestSingleton:
         class A:
             ...
 
-        @singleton(reference=A)
+        @singleton(on=A)
         class B(A):
             ...
 
@@ -45,7 +45,7 @@ class TestSingleton:
         class B(A):
             ...
 
-        @singleton(references=(A, B))
+        @singleton(on=(A, B))
         class C(B):
             ...
 
@@ -110,7 +110,7 @@ class TestSingleton:
         class B:
             ...
 
-        @singleton(reference=B, auto_inject=True)
+        @singleton(on=B, auto_inject=True)
         def recipe(__a: A) -> B:
             assert isinstance(__a, A)
             assert __a is a
@@ -125,12 +125,12 @@ class TestSingleton:
         class A:
             ...
 
-        @singleton(reference=A)
+        @singleton(on=A)
         class B(A):
             ...
 
         with pytest.raises(RuntimeError):
 
-            @singleton(reference=A)
+            @singleton(on=A)
             class C(A):
                 ...

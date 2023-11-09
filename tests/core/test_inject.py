@@ -90,7 +90,7 @@ class TestInject:
         def my_function(instance: LateInjectable):
             assert isinstance(instance, LateInjectable)
 
-        @injectable(reference=LateInjectable)
+        @injectable(on=LateInjectable)
         def late_injectable_factory() -> LateInjectable:
             return LateInjectable()
 

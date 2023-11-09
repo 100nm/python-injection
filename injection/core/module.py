@@ -91,11 +91,11 @@ class Manager(Observable[Any]):
             return self.__container[cls]
         except KeyError as exc:
             try:
-                name = cls.__name__
+                name = f"{cls.__module__}.{cls.__qualname__}"
             except AttributeError:
-                name = f"<{type(__reference).__name__} {repr(__reference)}>"
+                name = repr(__reference)
 
-            raise NoInjectable(f"No injectable for {name}.") from exc
+            raise NoInjectable(f"No injectable for `{name}`.") from exc
 
     def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
         new_values = (
@@ -248,10 +248,10 @@ class InjectDecorator:
 
         return wrapper
 
-    def __class_decorator(self, __type: type, /) -> type:
-        init_function = type.__getattribute__(__type, "__init__")
-        type.__setattr__(__type, "__init__", self.__decorator(init_function))
-        return __type
+    def __class_decorator(self, __class: type, /) -> type:
+        init_function = type.__getattribute__(__class, "__init__")
+        type.__setattr__(__class, "__init__", self.__decorator(init_function))
+        return __class
 
 
 @final
@@ -263,14 +263,7 @@ class InjectableDecorator:
     def __repr__(self) -> str:
         return f"<{self.__class.__name__} decorator>"  # pragma: no cover
 
-    def __call__(
-        self,
-        wrapped=None,
-        /,
-        reference=None,
-        references=(),
-        auto_inject=True,
-    ):
+    def __call__(self, wrapped=None, /, on=None, auto_inject=True):
         def decorator(wp):
             if auto_inject:
                 wp = self.__manager.inject(wp)
@@ -280,10 +273,12 @@ class InjectableDecorator:
                 if isinstance(wp, type):
                     yield wp
 
-                if reference:
-                    yield reference
-
-                yield from references
+                if on is None:
+                    return
+                elif isinstance(on, Iterable):
+                    yield from on
+                else:
+                    yield on
 
             injectable_object = self.__class(wp)
             self.__manager.set_multiple(
