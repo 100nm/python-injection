@@ -9,7 +9,11 @@ on:
 
 jobs:
   ci:
-    name: Continuous Integration
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
 
     steps:
@@ -18,6 +22,8 @@ jobs:
 
       - name: Set up environment
         uses: ./.github/actions/environment
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
 
       - name: Check code style
         uses: ./.github/actions/code-style
