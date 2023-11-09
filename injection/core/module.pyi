@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterable, TypeVar, overload
+from typing import Any, Callable, Iterable, TypeVar
 
 _T = TypeVar("_T")
 
@@ -19,32 +19,18 @@ class Module:
 
         Doesn't work with type annotations resolved by `__future__` module.
         """
-    def injectable(self, *, reference: type = ..., auto_inject: bool = ...):
+    def injectable(self, *, on: type | Iterable[type] = ..., auto_inject: bool = ...):
         """
         Decorator applicable to a class or function. It is used to indicate how the injectable will be constructed. At
         injection time, a new instance will be injected each time. Automatically injects constructor dependencies, can
         be disabled with `auto_inject=False`.
         """
-    @overload
-    def injectable(
-        self,
-        *,
-        references: Iterable[type] = ...,
-        auto_inject: bool = ...,
-    ): ...
-    def singleton(self, *, reference: type = ..., auto_inject: bool = ...):
+    def singleton(self, *, on: type | Iterable[type] = ..., auto_inject: bool = ...):
         """
         Decorator applicable to a class or function. It is used to indicate how the singleton will be constructed. At
         injection time, the injected instance will always be the same. Automatically injects constructor dependencies,
         can be disabled with `auto_inject=False`.
         """
-    @overload
-    def singleton(
-        self,
-        *,
-        references: Iterable[type] = ...,
-        auto_inject: bool = ...,
-    ): ...
 
 def new_module() -> Module:
     """

@@ -52,13 +52,13 @@ class DataClass:
 
 ## Inheritance
 
-In the case of inheritance, you can use the decorator parameters `reference` or `references` to link the injection to 
-one or several other classes.
+In the case of inheritance, you can use the decorator parameter `on` to link the injection to one or several other
+classes.
 
 **Warning: if the child class is in another file, make sure that file is imported before injection.**
 [_See `load_package` function._](utils.md#load_package)
 
-_`reference` parameter example:_
+_Example with a reference class:_
 
 ```python
 from injection import singleton
@@ -66,12 +66,12 @@ from injection import singleton
 class A:
     ...
 
-@singleton(reference=A)
+@singleton(on=A)
 class B(A):
     ...
 ```
 
-_`references` parameter example:_
+_Example with several reference classes:_
 
 ```python
 from injection import singleton
@@ -82,7 +82,7 @@ class A:
 class B(A):
     ...
 
-@singleton(references=(A, B))
+@singleton(on=(A, B))
 class C(B):
     ...
 ```
@@ -95,7 +95,7 @@ the reference class(es) when defining the recipe.
 ```python
 from injection import singleton
 
-@singleton(reference=Singleton)
+@singleton(on=Singleton)
 def my_recipe() -> Singleton:
     """ recipe implementation """
 ```
