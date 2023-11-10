@@ -5,5 +5,5 @@ class InjectionError(Exception):
     ...
 
 
-class NoInjectable(InjectionError):
+class NoInjectable(KeyError, InjectionError):
     ...

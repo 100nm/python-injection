@@ -9,7 +9,7 @@ runs:
         python-version: "${{ env.PYTHON_VERSION || '3.10' }}"
         architecture: "x64"
 
-    - name: Install Poetry & Dependancies
+    - name: Install Poetry & Dependencies
       shell: bash
       run: |
         pip install --upgrade pip
