@@ -1,9 +1,12 @@
 from functools import partial
+from types import new_class
 from typing import Any, Callable, Generic, Iterator, Mapping, TypeVar
 
-from injection.common.sentinel import sentinel
+from frozendict import frozendict
 
-__all__ = ("LazyMapping",)
+__all__ = ("Lazy", "LazyMapping")
+
+_sentinel = new_class("sentinel")()
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -11,44 +14,44 @@ V = TypeVar("V")
 
 
 class Lazy(Generic[T]):
-    __slots__ = ("__constructor", "__value")
+    __slots__ = ("__factory", "__value")
 
-    def __init__(self, constructor: Callable[[], T]):
-        self.__constructor = constructor
-        self.__value = sentinel
+    def __init__(self, factory: Callable[[], T]):
+        self.__factory = factory
+        self.__value = _sentinel
 
     def __setattr__(self, name: str, value: Any):
         if self.is_set:
-            raise TypeError(f"`{repr(self)}` is frozen.")
+            raise TypeError(f"`{repr(self)}` is frozen.")  # pragma: no cover
 
         return super().__setattr__(name, value)
 
     @property
     def value(self) -> T:
         if not self.is_set:
-            self.__value = self.__constructor()
-            self.__constructor = sentinel
+            self.__value = self.__factory()
+            self.__factory = _sentinel
 
         return self.__value
 
     @property
     def is_set(self) -> bool:
         try:
-            constructor = self.__constructor
+            factory = self.__factory
         except AttributeError:
             return False
 
-        return constructor is sentinel
+        return factory is _sentinel
 
 
 class LazyMapping(Mapping[K, V]):
     __slots__ = ("__lazy",)
 
-    __lazy: Lazy[dict[K, V]]
+    __lazy: Lazy[frozendict[K, V]]
 
     def __init__(self, iterator: Iterator[tuple[K, V]]):
-        constructor = partial(dict, iterator)
-        self.__lazy = Lazy(constructor)
+        factory = partial(frozendict, iterator)
+        self.__lazy = Lazy(factory)
 
     def __getitem__(self, key: K) -> V:
         return self.__lazy.value[key]

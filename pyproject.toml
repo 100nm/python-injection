@@ -11,6 +11,7 @@ repository = "https://github.com/soon-app/python-injection"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4"
+frozendict = "*"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

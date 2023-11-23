@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import inspect
 from abc import ABC, abstractmethod
-from contextlib import suppress
 from dataclasses import dataclass, field
-from functools import wraps
+from functools import singledispatchmethod, wraps
 from inspect import Parameter, Signature
 from types import MappingProxyType
 from typing import (
@@ -23,7 +22,8 @@ from typing import (
     runtime_checkable,
 )
 
-from injection.common import LazyMapping, Observable, Observation, Observer
+from injection.common.event import Event, EventChannel, EventListener
+from injection.common.lazy import LazyMapping
 from injection.exceptions import NoInjectable
 
 __all__ = ("Module", "new_module")
@@ -33,10 +33,7 @@ T = TypeVar("T")
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Injectable(Generic[T], ABC):
-    __constructor: Callable[..., T]
-
-    def factory(self) -> T:
-        return self.__constructor()
+    factory: Callable[[], T]
 
     @abstractmethod
     def get_instance(self) -> T:
@@ -68,9 +65,27 @@ class SingletonInjectable(Injectable[T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class Manager(Observable[Any]):
-    __container: dict[type, Injectable] = field(default_factory=dict, init=False)
-    __observers: set[Observer[Manager]] = field(default_factory=set, init=False)
+class ContainerUpdated(Event):
+    container: Container
+
+
+@dataclass(repr=False, frozen=True, slots=True)
+class Container:
+    __data: dict[type, Injectable] = field(default_factory=dict, init=False)
+    __channel: EventChannel = field(default_factory=EventChannel, init=False)
+
+    def __getitem__(self, reference: type) -> Injectable:
+        cls = origin if (origin := get_origin(reference)) else reference
+
+        try:
+            return self.__data[cls]
+        except KeyError as exc:
+            try:
+                name = f"{cls.__module__}.{cls.__qualname__}"
+            except AttributeError:
+                name = repr(reference)
+
+            raise NoInjectable(f"No injectable for `{name}`.") from exc
 
     @property
     def inject(self) -> InjectDecorator:
@@ -84,52 +99,30 @@ class Manager(Observable[Any]):
     def singleton(self) -> InjectableDecorator:
         return InjectableDecorator(self, SingletonInjectable)
 
-    def get(self, __reference: type) -> Injectable:
-        cls = origin if (origin := get_origin(__reference)) else __reference
-
-        try:
-            return self.__container[cls]
-        except KeyError as exc:
-            try:
-                name = f"{cls.__module__}.{cls.__qualname__}"
-            except AttributeError:
-                name = repr(__reference)
-
-            raise NoInjectable(f"No injectable for `{name}`.") from exc
-
-    def set_multiple(self, __references: Iterable[type], __injectable: Injectable):
+    def set_multiple(self, references: Iterable[type], injectable: Injectable):
         new_values = (
-            (self.check_if_exists(reference), __injectable)
-            for reference in __references
+            (self.check_if_exists(reference), injectable) for reference in references
         )
-        self.__container.update(new_values)
-        self.notify()
+        self.__data.update(new_values)
+        self.__notify()
         return self
 
-    def check_if_exists(self, __reference: type) -> type:
-        if __reference in self.__container:
+    def check_if_exists(self, reference: type) -> type:
+        if reference in self.__data:
             raise RuntimeError(
                 "An injectable already exists for the "
-                f"reference class `{__reference.__name__}`."
+                f"reference class `{reference.__name__}`."
             )
 
-        return __reference
+        return reference
 
-    def notify(self, _: Any = None, /):
-        for observer in self.__observers.copy():
-            observer.notify(self)
-
+    def add_listener(self, listener: EventListener):
+        self.__channel.add_listener(listener)
         return self
 
-    def subscribe(self, observer: Observer):
-        self.__observers.add(observer)
-        observer.notify(self)
-        return self
-
-    def unsubscribe(self, observer: Observer):
-        with suppress(KeyError):
-            self.__observers.remove(observer)
-
+    def __notify(self):
+        event = ContainerUpdated(self)
+        self.__channel.dispatch(event)
         return self
 
 
@@ -141,39 +134,39 @@ class Dependencies:
         return bool(self.__mapping)
 
     def __iter__(self) -> Iterator[tuple[str, Any]]:
-        for name, injectable_object in self.__mapping.items():
-            yield name, injectable_object.get_instance()
+        for name, injectable in self.__mapping.items():
+            yield name, injectable.get_instance()
 
     @property
     def arguments(self) -> Mapping[str, Any]:
         return dict(self)
 
     @classmethod
-    def from_mapping(cls, __mapping: Mapping[str, Injectable]):
-        return cls(MappingProxyType(__mapping))
+    def from_mapping(cls, mapping: Mapping[str, Injectable]):
+        return cls(MappingProxyType(mapping))
 
     @classmethod
     def empty(cls):
         return cls.from_mapping({})
 
     @classmethod
-    def resolve(cls, __signature: Signature, __manager: Manager):
-        dependencies = LazyMapping(cls.__resolver(__signature, __manager))
+    def resolve(cls, signature: Signature, container: Container):
+        dependencies = LazyMapping(cls.__resolver(signature, container))
         return cls.from_mapping(dependencies)
 
     @classmethod
     def __resolver(
         cls,
-        __signature: Signature,
-        __manager: Manager,
+        signature: Signature,
+        container: Container,
     ) -> Iterator[tuple[str, Injectable]]:
-        for name, parameter in __signature.parameters.items():
+        for name, parameter in signature.parameters.items():
             try:
-                injectable_object = __manager.get(parameter.annotation)
+                injectable = container[parameter.annotation]
             except NoInjectable:
                 continue
 
-            yield name, injectable_object
+            yield name, injectable
 
 
 class Arguments(NamedTuple):
@@ -181,22 +174,22 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class Binder(Observer[Manager]):
+class Binder(EventListener):
     __slots__ = ("__signature", "__dependencies")
 
-    def __init__(self, __callable: Callable[..., Any]):
-        self.__signature = inspect.signature(__callable)
+    def __init__(self, signature: Signature):
+        self.__signature = signature
         self.__dependencies = Dependencies.empty()
 
-    def bind(self, /, *__args, **__kwargs) -> Arguments:
+    def bind(self, /, *args, **kwargs) -> Arguments:
         if not self.__dependencies:
-            return Arguments(__args, __kwargs)
+            return Arguments(args, kwargs)
 
-        bound = self.__signature.bind_partial(*__args, **__kwargs)
+        bound = self.__signature.bind_partial(*args, **kwargs)
         arguments = self.__dependencies.arguments | bound.arguments
 
-        args = []
-        kwargs = {}
+        positional = []
+        keywords = {}
 
         for name, parameter in self.__signature.parameters.items():
             try:
@@ -206,25 +199,33 @@ class Binder(Observer[Manager]):
 
             match parameter.kind:
                 case Parameter.POSITIONAL_ONLY:
-                    args.append(value)
+                    positional.append(value)
                 case Parameter.VAR_POSITIONAL:
-                    args.extend(value)
+                    positional.extend(value)
                 case Parameter.VAR_KEYWORD:
-                    kwargs.update(value)
+                    keywords.update(value)
                 case _:
-                    kwargs[name] = value
+                    keywords[name] = value
 
-        return Arguments(tuple(args), kwargs)
+        return Arguments(tuple(positional), keywords)
 
-    def notify(self, __manager: Manager, /):
-        self.__dependencies = Dependencies.resolve(self.__signature, __manager)
+    def update(self, container: Container):
+        self.__dependencies = Dependencies.resolve(self.__signature, container)
         return self
+
+    @singledispatchmethod
+    def on_event(self, event: Event, /):
+        ...  # pragma: no cover
+
+    @on_event.register
+    def _(self, event: ContainerUpdated, /):
+        self.update(event.container)
 
 
 @final
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectDecorator:
-    __manager: Manager
+    __container: Container
 
     def __call__(self, wrapped=None, /):
         def decorator(wp):
@@ -235,29 +236,28 @@ class InjectDecorator:
 
         return decorator(wrapped) if wrapped else decorator
 
-    def __decorator(self, __function: Callable[..., Any], /) -> Callable[..., Any]:
-        binder = Binder(__function)
-        observation = Observation(binder, self.__manager)
-        observation.subscribe()
+    def __decorator(self, function: Callable[..., Any], /) -> Callable[..., Any]:
+        signature = inspect.signature(function)
+        binder = Binder(signature).update(self.__container)
+        self.__container.add_listener(binder)
 
-        @wraps(__function)
+        @wraps(function)
         def wrapper(*args, **kwargs):
-            observation.keep()
             arguments = binder.bind(*args, **kwargs)
-            return __function(*arguments.args, **arguments.kwargs)
+            return function(*arguments.args, **arguments.kwargs)
 
         return wrapper
 
-    def __class_decorator(self, __class: type, /) -> type:
-        init_function = type.__getattribute__(__class, "__init__")
-        type.__setattr__(__class, "__init__", self.__decorator(init_function))
-        return __class
+    def __class_decorator(self, cls: type, /) -> type:
+        init_function = type.__getattribute__(cls, "__init__")
+        type.__setattr__(cls, "__init__", self.__decorator(init_function))
+        return cls
 
 
 @final
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectableDecorator:
-    __manager: Manager
+    __container: Container
     __class: type[Injectable]
 
     def __repr__(self) -> str:
@@ -266,10 +266,10 @@ class InjectableDecorator:
     def __call__(self, wrapped=None, /, on=None, auto_inject=True):
         def decorator(wp):
             if auto_inject:
-                wp = self.__manager.inject(wp)
+                wp = self.__container.inject(wp)
 
             @lambda fn: fn()
-            def iter_references():
+            def references():
                 if isinstance(wp, type):
                     yield wp
 
@@ -280,11 +280,8 @@ class InjectableDecorator:
                 else:
                     yield on
 
-            injectable_object = self.__class(wp)
-            self.__manager.set_multiple(
-                iter_references,
-                injectable_object,
-            )
+            injectable = self.__class(wp)
+            self.__container.set_multiple(references, injectable)
 
             return wp
 
@@ -314,22 +311,22 @@ class Module(Protocol):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectionModule:
-    manager: Manager = field(default_factory=Manager, init=False)
+    __container: Container = field(default_factory=Container, init=False)
 
     @property
     def inject(self) -> InjectDecorator:
-        return self.manager.inject
+        return self.__container.inject
 
     @property
     def injectable(self) -> InjectableDecorator:
-        return self.manager.injectable
+        return self.__container.injectable
 
     @property
     def singleton(self) -> InjectableDecorator:
-        return self.manager.singleton
+        return self.__container.singleton
 
     def get_instance(self, reference: type[T]) -> T:
-        instance = self.manager.get(reference).get_instance()
+        instance = self.__container[reference].get_instance()
         return cast(reference, instance)
 
 
