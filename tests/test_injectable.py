@@ -2,50 +2,60 @@ from dataclasses import dataclass
 
 import pytest
 
-from injection import get_instance, singleton
+from injection import get_instance, injectable
 
 
-class TestSingleton:
-    def test_singleton_with_success(self):
-        @singleton
+class TestInjectable:
+    def test_injectable_with_success(self):
+        @injectable
         class SomeInjectable:
             ...
 
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
-        assert instance_1 is instance_2
+        assert instance_1 is not instance_2
 
-    def test_singleton_with_recipe(self):
+    def test_injectable_with_recipe(self):
         class SomeClass:
             ...
 
-        @singleton(on=SomeClass)
+        @injectable
         def recipe() -> SomeClass:
             return SomeClass()
 
         instance_1 = get_instance(SomeClass)
         instance_2 = get_instance(SomeClass)
-        assert instance_1 is instance_2
+        assert instance_1 is not instance_2
 
-    def test_singleton_with_reference(self):
+    def test_injectable_with_recipe_and_no_return_type(self):
+        class SomeClass:
+            ...
+
+        @injectable
+        def recipe():
+            return SomeClass()  # pragma: no cover
+
+        assert get_instance(SomeClass) is None
+
+    def test_injectable_with_reference(self):
         class A:
             ...
 
-        @singleton(on=A)
+        @injectable(on=A)
         class B(A):
             ...
 
         a = get_instance(A)
         assert isinstance(a, B)
 
-    def test_singleton_with_references(self):
+    def test_injectable_with_references(self):
         class A:
             ...
 
         class B(A):
             ...
 
-        @singleton(on=(A, B))
+        @injectable(on=(A, B))
         class C(B):
             ...
 
@@ -53,14 +63,14 @@ class TestSingleton:
         b = get_instance(B)
         assert isinstance(a, C)
         assert isinstance(b, C)
-        assert a is b
+        assert a is not b
 
     def test_injectable_without_auto_inject_raise_type_error(self):
-        @singleton
+        @injectable
         class A:
             ...
 
-        @singleton(auto_inject=False)
+        @injectable(auto_inject=False)
         class B:
             def __init__(self, a: A):
                 raise NotImplementedError
@@ -68,12 +78,12 @@ class TestSingleton:
         with pytest.raises(TypeError):
             get_instance(B)
 
-    def test_singleton_with_auto_inject(self):
-        @singleton
+    def test_injectable_with_auto_inject(self):
+        @injectable
         class A:
             ...
 
-        @singleton(auto_inject=True)
+        @injectable(auto_inject=True)
         class B:
             def __init__(self, __a: A):
                 self.a = __a
@@ -83,14 +93,14 @@ class TestSingleton:
         assert isinstance(a, A)
         assert isinstance(b, B)
         assert isinstance(b.a, A)
-        assert a is b.a
+        assert a is not b.a
 
-    def test_singleton_with_dataclass_and_auto_inject(self):
-        @singleton
+    def test_injectable_with_dataclass_and_auto_inject(self):
+        @injectable
         class A:
             ...
 
-        @singleton(auto_inject=True)
+        @injectable(auto_inject=True)
         @dataclass(frozen=True, slots=True)
         class B:
             a: A
@@ -100,20 +110,20 @@ class TestSingleton:
         assert isinstance(a, A)
         assert isinstance(b, B)
         assert isinstance(b.a, A)
-        assert a is b.a
+        assert a is not b.a
 
-    def test_singleton_with_recipe_and_auto_inject(self):
-        @singleton
+    def test_injectable_with_recipe_and_auto_inject(self):
+        @injectable
         class A:
             ...
 
         class B:
             ...
 
-        @singleton(on=B, auto_inject=True)
+        @injectable(auto_inject=True)
         def recipe(__a: A) -> B:
             assert isinstance(__a, A)
-            assert __a is a
+            assert __a is not a
             return B()
 
         a = get_instance(A)
@@ -121,16 +131,16 @@ class TestSingleton:
         assert isinstance(a, A)
         assert isinstance(b, B)
 
-    def test_singleton_with_injectable_already_exist_raise_runtime_error(self):
+    def test_injectable_with_injectable_already_exist_raise_runtime_error(self):
         class A:
             ...
 
-        @singleton(on=A)
+        @injectable(on=A)
         class B(A):
             ...
 
         with pytest.raises(RuntimeError):
 
-            @singleton(on=A)
+            @injectable(on=A)
             class C(A):
                 ...

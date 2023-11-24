@@ -90,15 +90,25 @@ class TestInject:
         def my_function(instance: LateInjectable):
             assert isinstance(instance, LateInjectable)
 
-        @injectable(on=LateInjectable)
+        with pytest.raises(TypeError):
+            my_function()
+
+        @injectable
         def late_injectable_factory() -> LateInjectable:
             return LateInjectable()
 
         my_function()
 
-    def test_inject_with_str_type_annotation_raise_type_error(self):
+    def test_inject_with_str_type_annotation(self):
         @inject
         def my_function(instance: "SomeInjectable"):
+            assert isinstance(instance, SomeInjectable)
+
+        my_function()
+
+    def test_inject_with_non_existent_str_type_annotation_raise_type_error(self):
+        @inject
+        def my_function(instance: "123"):
             raise NotImplementedError
 
         with pytest.raises(TypeError):

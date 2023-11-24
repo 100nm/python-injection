@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import suppress
 from dataclasses import dataclass, field
 from weakref import WeakSet
 
@@ -17,7 +18,7 @@ class EventListener(ABC):
         raise NotImplementedError
 
 
-@dataclass(repr=False, frozen=True, slots=True)
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
 class EventChannel:
     __listeners: WeakSet[EventListener] = field(default_factory=WeakSet, init=False)
 
@@ -29,4 +30,10 @@ class EventChannel:
 
     def add_listener(self, listener: EventListener):
         self.__listeners.add(listener)
+        return self
+
+    def remove_listener(self, listener: EventListener):
+        with suppress(KeyError):
+            self.__listeners.remove(listener)
+
         return self

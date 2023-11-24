@@ -90,12 +90,12 @@ class C(B):
 ## Recipes
 
 A recipe is a function that tells the injector how to construct the instance to be injected. It is important to specify 
-the reference class(es) when defining the recipe.
+the return type annotation when defining the recipe.
 
 ```python
 from injection import singleton
 
-@singleton(on=Singleton)
+@singleton
 def my_recipe() -> Singleton:
     """ recipe implementation """
 ```
