@@ -1,6 +1,7 @@
-from .core import Module, ModulePriorities
+from .core import Injectable, Module, ModulePriorities
 
 __all__ = (
+    "Injectable",
     "Module",
     "ModulePriorities",
     "default_module",
@@ -10,7 +11,7 @@ __all__ = (
     "singleton",
 )
 
-default_module = Module()
+default_module = Module(f"{__name__}:default_module")
 
 get_instance = default_module.get_instance
 inject = default_module.inject

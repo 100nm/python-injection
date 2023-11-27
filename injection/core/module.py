@@ -128,7 +128,8 @@ class Module(EventListener):
     Object with isolated injection environment.
     """
 
-    __container: Container = field(default_factory=Container)
+    name: str = field(default=None)
+    __container: Container = field(default_factory=Container, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
     __modules: OrderedDict[Module, None] = field(
         default_factory=OrderedDict,
@@ -144,6 +145,9 @@ class Module(EventListener):
     def __setitem__(self, on: type | Iterable[type], injectable: Injectable, /):
         references = on if isinstance(on, Iterable) else (on,)
         self.__container.set_multiple(references, injectable)
+
+    def __str__(self) -> str:
+        return self.name or "Unnamed Injection Module"
 
     @property
     def inject(self) -> InjectDecorator:
