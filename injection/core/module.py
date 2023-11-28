@@ -104,6 +104,18 @@ class ModuleRemoved(ModuleEvent):
         return f"`{self.on_module}` no longer uses `{self.module_removed}`."
 
 
+@dataclass(slots=True)
+class ModulePriorityUpdated(ModuleEvent):
+    module_updated: Module
+    priority: ModulePriorities
+
+    def __str__(self) -> str:
+        return (
+            f"In `{self.on_module}`, the priority `{self.priority.name}` "
+            f"has been applied to `{self.module_updated}`."
+        )
+
+
 """
 Injectables
 """
@@ -285,10 +297,7 @@ class Module(EventListener):
             raise ModuleError(f"`{self}` already uses `{module}`.")
 
         self.__modules[module] = None
-
-        if priority == ModulePriorities.HIGH:
-            self.__modules.move_to_end(module, last=False)
-
+        self.__move_module(module, priority)
         module.add_listener(self)
         event = ModuleAdded(self, module)
         self.notify(event)
@@ -316,6 +325,13 @@ class Module(EventListener):
         yield
         self.stop_using(module)
 
+    def change_priority(self, module: Module, priority: ModulePriorities):
+        if self.__move_module(module, priority):
+            event = ModulePriorityUpdated(self, module, priority)
+            self.notify(event)
+
+        return self
+
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
         return self
@@ -332,6 +348,16 @@ class Module(EventListener):
         _logger.debug(f"{event}")
         self.__channel.dispatch(event)
         return self
+
+    def __move_module(self, module: Module, priority: ModulePriorities) -> bool:
+        last = priority == ModulePriorities.LOW
+
+        try:
+            self.__modules.move_to_end(module, last=last)
+        except KeyError:
+            return False
+
+        return True
 
 
 """
