@@ -329,7 +329,7 @@ class Module(EventListener):
         self.notify(self_event)
 
     def notify(self, event: Event):
-        _logger.debug(str(event))
+        _logger.debug(f"{event}")
         self.__channel.dispatch(event)
         return self
 

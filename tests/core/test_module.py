@@ -41,6 +41,19 @@ class TestModule:
 
         event_history.assert_length(0)
 
+    def test_use_with_module_already_in_use_raise_module_error(
+        self,
+        module,
+        event_history,
+    ):
+        second_module = Module()
+        module.use(second_module)
+
+        with pytest.raises(ModuleError):
+            module.use(second_module)
+
+        event_history.assert_length(1)
+
     """
     stop_using
     """

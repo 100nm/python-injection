@@ -6,7 +6,7 @@ from tests.helpers import EventHistory
 
 @pytest.fixture(scope="function")
 def module() -> Module:
-    return Module()
+    return Module(f"{__name__}:test_module")
 
 
 @pytest.fixture(scope="function")
