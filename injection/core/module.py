@@ -33,6 +33,60 @@ __all__ = ("Injectable", "Module", "ModulePriorities")
 T = TypeVar("T")
 
 
+def _format_type(cls: type) -> str:
+    try:
+        return f"{cls.__module__}.{cls.__qualname__}"
+    except AttributeError:
+        return str(cls)
+
+
+"""
+Events
+"""
+
+
+@dataclass(slots=True)
+class ContainerEvent(Event, ABC):
+    on_container: Container
+
+
+@dataclass(slots=True)
+class ContainerDependenciesUpdated(ContainerEvent):
+    references: set[type]
+
+
+@dataclass(slots=True)
+class ModuleEvent(Event, ABC):
+    on_module: Module
+
+
+@dataclass(slots=True)
+class ModuleEventProxy(ModuleEvent):
+    event: Event
+
+    @property
+    def origin(self) -> Event:
+        if isinstance(self.event, ModuleEventProxy):
+            return self.event.origin
+
+        return self.event
+
+
+@dataclass(slots=True)
+class ModuleAdded(ModuleEvent):
+    module_added: Module
+
+
+@dataclass(slots=True)
+class ModuleRemoved(ModuleEvent):
+    module_removed: Module
+
+
+"""
+Injectables
+"""
+
+
 @runtime_checkable
 class Injectable(Protocol[T]):
     __slots__ = ()
@@ -63,6 +117,11 @@ class SingletonInjectable(_BaseInjectable[T]):
         return self.__instance
 
 
+"""
+Container
+"""
+
+
 @dataclass(repr=False, frozen=True, slots=True)
 class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
@@ -74,23 +133,25 @@ class Container:
         try:
             return self.__data[cls]
         except KeyError as exc:
-            raise NoInjectable(
-                f"No injectable for `{self.__format_type(cls)}`."
-            ) from exc
+            raise NoInjectable(f"No injectable for `{_format_type(cls)}`.") from exc
 
     def set_multiple(self, references: Iterable[type], injectable: Injectable):
+        if not isinstance(references, set):
+            references = set(references)
+
         new_values = (
             (self.check_if_exists(reference), injectable) for reference in references
         )
         self.__data.update(new_values)
-        self.notify()
+        event = ContainerDependenciesUpdated(self, references)
+        self.notify(event)
         return self
 
     def check_if_exists(self, reference: type) -> type:
         if reference in self.__data:
             raise RuntimeError(
                 "An injectable already exists for the reference "
-                f"class `{self.__format_type(reference)}`."
+                f"class `{_format_type(reference)}`."
             )
 
         return reference
@@ -99,27 +160,19 @@ class Container:
         self.__channel.add_listener(listener)
         return self
 
-    def notify(self):
-        event = ContainerUpdated(self)
+    def notify(self, event: Event):
         self.__channel.dispatch(event)
         return self
 
-    @staticmethod
-    def __format_type(cls: type) -> str:
-        try:
-            return f"{cls.__module__}.{cls.__qualname__}"
-        except AttributeError:
-            return str(cls)
 
-
-@dataclass(repr=False, eq=False, frozen=True, slots=True)
-class ContainerUpdated(Event):
-    container: Container
+"""
+Module
+"""
 
 
 class ModulePriorities(Enum):
     HIGH = auto()
-    DEFAULT = auto()
+    LOW = auto()
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
@@ -147,7 +200,7 @@ class Module(EventListener):
         self.__container.set_multiple(references, injectable)
 
     def __str__(self) -> str:
-        return self.name or "Unnamed Injection Module"
+        return self.name or super().__str__()
 
     @property
     def inject(self) -> InjectDecorator:
@@ -198,10 +251,13 @@ class Module(EventListener):
     def use(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.DEFAULT,
+        priority: ModulePriorities = ModulePriorities.LOW,
     ):
         if module is self:
             raise ModuleError("Module can't be used by itself.")
+
+        if module in self.__modules:
+            raise ModuleError(f"`{self}` already uses `{module}`.")
 
         self.__modules[module] = None
 
@@ -209,7 +265,8 @@ class Module(EventListener):
             self.__modules.move_to_end(module, last=False)
 
         module.add_listener(self)
-        self.notify()
+        event = ModuleAdded(self, module)
+        self.notify(event)
         return self
 
     def stop_using(self, module: Module):
@@ -219,7 +276,8 @@ class Module(EventListener):
             ...
         else:
             module.remove_listener(self)
-            self.notify()
+            event = ModuleRemoved(self, module)
+            self.notify(event)
 
         return self
 
@@ -227,7 +285,7 @@ class Module(EventListener):
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.DEFAULT,
+        priority: ModulePriorities = ModulePriorities.LOW,
     ) -> ContextDecorator:
         self.use(module, priority)
         yield
@@ -242,17 +300,17 @@ class Module(EventListener):
         return self
 
     def on_event(self, event: Event, /):
-        self.notify()
+        self_event = ModuleEventProxy(self, event)
+        self.notify(self_event)
 
-    def notify(self):
-        event = ModuleNotification(self)
+    def notify(self, event: Event):
         self.__channel.dispatch(event)
         return self
 
 
-@dataclass(repr=False, eq=False, frozen=True, slots=True)
-class ModuleNotification(Event):
-    module: Module
+"""
+Binder
+"""
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -327,8 +385,13 @@ class Binder(EventListener):
         ...
 
     @on_event.register
-    def _(self, event: ModuleNotification, /):
-        self.update(event.module)
+    def _(self, event: ModuleEvent, /):
+        self.update(event.on_module)
+
+
+"""
+Decorators
+"""
 
 
 @final
@@ -383,7 +446,7 @@ class InjectableDecorator:
             if auto_inject:
                 wp = self.__module.inject(wp)
 
-            @lambda function: set(function())
+            @lambda function: function()
             def references():
                 if reference := self.__get_reference(wp):
                     yield reference
