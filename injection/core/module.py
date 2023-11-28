@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import cached_property, singledispatchmethod, wraps
 from inspect import Signature, get_annotations
+from logging import getLogger
 from types import MappingProxyType
 from typing import (
     Any,
@@ -29,6 +30,8 @@ from injection.common.lazy import LazyMapping
 from injection.exceptions import ModuleError, NoInjectable
 
 __all__ = ("Injectable", "Module", "ModulePriorities")
+
+_logger = getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -54,6 +57,16 @@ class ContainerEvent(Event, ABC):
 class ContainerDependenciesUpdated(ContainerEvent):
     references: set[type]
 
+    def __str__(self) -> str:
+        length = len(self.references)
+        formatted_references = ", ".join(
+            f"`{_format_type(reference)}`" for reference in self.references
+        )
+        return (
+            f"{length} container dependenc{'ies' if length > 1 else 'y'} have been "
+            f"updated{f': {formatted_references}' if formatted_references else ''}."
+        )
+
 
 @dataclass(slots=True)
 class ModuleEvent(Event, ABC):
@@ -63,6 +76,9 @@ class ModuleEvent(Event, ABC):
 @dataclass(slots=True)
 class ModuleEventProxy(ModuleEvent):
     event: Event
+
+    def __str__(self) -> str:
+        return f"`{self.on_module}` has propagated an event: {self.origin}"
 
     @property
     def origin(self) -> Event:
@@ -76,10 +92,16 @@ class ModuleEventProxy(ModuleEvent):
 class ModuleAdded(ModuleEvent):
     module_added: Module
 
+    def __str__(self) -> str:
+        return f"`{self.on_module}` now uses `{self.module_added}`."
+
 
 @dataclass(slots=True)
 class ModuleRemoved(ModuleEvent):
     module_removed: Module
+
+    def __str__(self) -> str:
+        return f"`{self.on_module}` no longer uses `{self.module_removed}`."
 
 
 """
@@ -139,12 +161,15 @@ class Container:
         if not isinstance(references, set):
             references = set(references)
 
-        new_values = (
-            (self.check_if_exists(reference), injectable) for reference in references
-        )
-        self.__data.update(new_values)
-        event = ContainerDependenciesUpdated(self, references)
-        self.notify(event)
+        if references:
+            new_values = (
+                (self.check_if_exists(reference), injectable)
+                for reference in references
+            )
+            self.__data.update(new_values)
+            event = ContainerDependenciesUpdated(self, references)
+            self.notify(event)
+
         return self
 
     def check_if_exists(self, reference: type) -> type:
@@ -200,7 +225,7 @@ class Module(EventListener):
         self.__container.set_multiple(references, injectable)
 
     def __str__(self) -> str:
-        return self.name or super().__str__()
+        return self.name or object.__str__(self)
 
     @property
     def inject(self) -> InjectDecorator:
@@ -304,6 +329,7 @@ class Module(EventListener):
         self.notify(self_event)
 
     def notify(self, event: Event):
+        _logger.debug(str(event))
         self.__channel.dispatch(event)
         return self
 
