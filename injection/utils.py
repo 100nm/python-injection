@@ -6,6 +6,10 @@ __all__ = ("load_package",)
 
 
 def load_package(package: Package):
+    """
+    Function for importing all modules in a Python package.
+    """
+
     try:
         path = package.__path__
     except AttributeError as exc:

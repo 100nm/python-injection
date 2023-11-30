@@ -1,4 +1,4 @@
-__all__ = ("InjectionError", "NoInjectable")
+__all__ = ("InjectionError", "ModuleError", "NoInjectable")
 
 
 class InjectionError(Exception):
@@ -6,4 +6,8 @@ class InjectionError(Exception):
 
 
 class NoInjectable(KeyError, InjectionError):
+    ...
+
+
+class ModuleError(InjectionError):
     ...

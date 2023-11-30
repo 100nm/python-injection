@@ -22,7 +22,7 @@ class Lazy(Generic[T]):
 
     def __setattr__(self, name: str, value: Any):
         if self.is_set:
-            raise TypeError(f"`{repr(self)}` is frozen.")  # pragma: no cover
+            raise TypeError(f"`{repr(self)}` is frozen.")
 
         return super().__setattr__(name, value)
 

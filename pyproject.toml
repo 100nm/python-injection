@@ -6,8 +6,8 @@ authors = ["remimd"]
 keywords = ["dependencies", "inject", "injection"]
 license = "MIT"
 packages = [{ include = "injection" }]
-readme = "documentation/how-to-use.md"
-repository = "https://github.com/soon-app/python-injection"
+readme = "documentation/basic-usage.md"
+repository = "https://github.com/simplysquare/python-injection"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4"
