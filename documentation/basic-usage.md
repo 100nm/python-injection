@@ -1,4 +1,4 @@
-# How to use?
+# Basic usage
 
 ## Create an injectable
 

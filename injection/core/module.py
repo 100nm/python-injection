@@ -216,6 +216,10 @@ class ModulePriorities(Enum):
 class Module(EventListener):
     """
     Object with isolated injection environment.
+
+    Modules have been designed to simplify unit test writing. So think carefully before
+    instantiating a new one. They could increase complexity unnecessarily if used
+    extensively.
     """
 
     name: str = field(default=None)
@@ -290,6 +294,12 @@ class Module(EventListener):
         module: Module,
         priority: ModulePriorities = ModulePriorities.LOW,
     ):
+        """
+        Function for using another module. Using another module replaces the module's
+        dependencies with those of the module used. If the dependency is not found, it
+        will be searched for in the module's dependency container.
+        """
+
         if module is self:
             raise ModuleError("Module can't be used by itself.")
 
@@ -304,6 +314,10 @@ class Module(EventListener):
         return self
 
     def stop_using(self, module: Module):
+        """
+        Function to remove a module in use.
+        """
+
         try:
             self.__modules.pop(module)
         except KeyError:
@@ -321,11 +335,23 @@ class Module(EventListener):
         module: Module,
         priority: ModulePriorities = ModulePriorities.LOW,
     ) -> ContextDecorator:
+        """
+        Context manager or decorator for temporary use of a module.
+        """
+
         self.use(module, priority)
         yield
         self.stop_using(module)
 
     def change_priority(self, module: Module, priority: ModulePriorities):
+        """
+        Function for changing the priority of a module in use.
+        There are two priority values:
+
+        * **LOW**: The module concerned becomes the least important of the modules used.
+        * **HIGH**: The module concerned becomes the most important of the modules used.
+        """
+
         if self.__move_module(module, priority):
             event = ModulePriorityUpdated(self, module, priority)
             self.notify(event)
