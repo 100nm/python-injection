@@ -48,12 +48,12 @@ Events
 """
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ContainerEvent(Event, ABC):
     on_container: Container
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
     references: set[type]
 
@@ -68,27 +68,39 @@ class ContainerDependenciesUpdated(ContainerEvent):
         )
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModuleEvent(Event, ABC):
     on_module: Module
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class ModuleEventProxy(ModuleEvent):
     event: Event
 
     def __str__(self) -> str:
         return f"`{self.on_module}` has propagated an event: {self.origin}"
 
-    @property
+    @cached_property
     def origin(self) -> Event:
         if isinstance(self.event, ModuleEventProxy):
             return self.event.origin
 
         return self.event
 
+    @property
+    def is_circular(self) -> bool:
+        origin = self.origin
+        return isinstance(origin, ModuleEvent) and origin.on_module is self.on_module
 
-@dataclass(slots=True)
+    @property
+    def previous_module(self) -> Module | None:
+        if isinstance(self.event, ModuleEvent):
+            return self.event.on_module
+
+        return None
+
+
+@dataclass(frozen=True, slots=True)
 class ModuleAdded(ModuleEvent):
     module_added: Module
 
@@ -96,7 +108,7 @@ class ModuleAdded(ModuleEvent):
         return f"`{self.on_module}` now uses `{self.module_added}`."
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModuleRemoved(ModuleEvent):
     module_removed: Module
 
@@ -104,7 +116,7 @@ class ModuleRemoved(ModuleEvent):
         return f"`{self.on_module}` no longer uses `{self.module_removed}`."
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModulePriorityUpdated(ModuleEvent):
     module_updated: Module
     priority: ModulePriorities
@@ -352,10 +364,9 @@ class Module(EventListener):
         * **HIGH**: The module concerned becomes the most important of the modules used.
         """
 
-        if self.__move_module(module, priority):
-            event = ModulePriorityUpdated(self, module, priority)
-            self.notify(event)
-
+        self.__move_module(module, priority)
+        event = ModulePriorityUpdated(self, module, priority)
+        self.notify(event)
         return self
 
     def add_listener(self, listener: EventListener):
@@ -368,6 +379,13 @@ class Module(EventListener):
 
     def on_event(self, event: Event, /):
         self_event = ModuleEventProxy(self, event)
+
+        if self_event.is_circular:
+            raise ModuleError(
+                "Circular dependency between two modules: "
+                f"`{self_event.previous_module}` and `{self}`."
+            )
+
         self.notify(self_event)
 
     def notify(self, event: Event):
@@ -375,15 +393,15 @@ class Module(EventListener):
         self.__channel.dispatch(event)
         return self
 
-    def __move_module(self, module: Module, priority: ModulePriorities) -> bool:
+    def __move_module(self, module: Module, priority: ModulePriorities):
         last = priority == ModulePriorities.LOW
 
         try:
             self.__modules.move_to_end(module, last=last)
-        except KeyError:
-            return False
-
-        return True
+        except KeyError as exc:
+            raise ModuleError(
+                f"`{module}` can't be found in the modules used by `{self}`."
+            ) from exc
 
 
 """

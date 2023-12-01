@@ -86,6 +86,13 @@ class TestModule:
 
         event_history.assert_length(0)
 
+    def test_use_with_circular_dependency_raise_module_error(self, module):
+        second_module = Module()
+        module.use(second_module)
+
+        with pytest.raises(ModuleError):
+            second_module.use(module)
+
     def test_use_with_module_already_in_use_raise_module_error(
         self,
         module,
@@ -170,5 +177,6 @@ class TestModule:
 
     def test_change_priority_with_module_not_found(self, module, event_history):
         second_module = Module()
-        module.change_priority(second_module, ModulePriorities.HIGH)
-        event_history.assert_length(0)
+
+        with pytest.raises(ModuleError):
+            module.change_priority(second_module, ModulePriorities.HIGH)
