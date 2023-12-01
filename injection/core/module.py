@@ -48,12 +48,12 @@ Events
 """
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ContainerEvent(Event, ABC):
     on_container: Container
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
     references: set[type]
 
@@ -68,12 +68,12 @@ class ContainerDependenciesUpdated(ContainerEvent):
         )
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModuleEvent(Event, ABC):
     on_module: Module
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModuleEventProxy(ModuleEvent):
     event: Event
 
@@ -100,7 +100,7 @@ class ModuleEventProxy(ModuleEvent):
         return None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModuleAdded(ModuleEvent):
     module_added: Module
 
@@ -108,7 +108,7 @@ class ModuleAdded(ModuleEvent):
         return f"`{self.on_module}` now uses `{self.module_added}`."
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModuleRemoved(ModuleEvent):
     module_removed: Module
 
@@ -116,7 +116,7 @@ class ModuleRemoved(ModuleEvent):
         return f"`{self.on_module}` no longer uses `{self.module_removed}`."
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ModulePriorityUpdated(ModuleEvent):
     module_updated: Module
     priority: ModulePriorities
