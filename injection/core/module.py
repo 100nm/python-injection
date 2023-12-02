@@ -27,7 +27,12 @@ from typing import (
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import LazyMapping
-from injection.exceptions import ModuleError, NoInjectable
+from injection.exceptions import (
+    ModuleCircularUseError,
+    ModuleError,
+    ModuleNotUsedError,
+    NoInjectable,
+)
 
 __all__ = ("Injectable", "Module", "ModulePriorities")
 
@@ -73,24 +78,29 @@ class ModuleEvent(Event, ABC):
     on_module: Module
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ModuleEventProxy(ModuleEvent):
     event: Event
 
     def __str__(self) -> str:
         return f"`{self.on_module}` has propagated an event: {self.origin}"
 
-    @cached_property
-    def origin(self) -> Event:
+    def __iter__(self) -> Iterator[Event]:
         if isinstance(self.event, ModuleEventProxy):
-            return self.event.origin
+            yield from self.event
 
-        return self.event
+        yield self.event
+
+    @property
+    def origin(self) -> Event:
+        return next(self.__iter__())
 
     @property
     def is_circular(self) -> bool:
-        origin = self.origin
-        return isinstance(origin, ModuleEvent) and origin.on_module is self.on_module
+        return any(
+            isinstance(event, ModuleEvent) and event.on_module is self.on_module
+            for event in self
+        )
 
     @property
     def previous_module(self) -> Module | None:
@@ -381,7 +391,7 @@ class Module(EventListener):
         self_event = ModuleEventProxy(self, event)
 
         if self_event.is_circular:
-            raise ModuleError(
+            raise ModuleCircularUseError(
                 "Circular dependency between two modules: "
                 f"`{self_event.previous_module}` and `{self}`."
             )
@@ -399,7 +409,7 @@ class Module(EventListener):
         try:
             self.__modules.move_to_end(module, last=last)
         except KeyError as exc:
-            raise ModuleError(
+            raise ModuleNotUsedError(
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
 

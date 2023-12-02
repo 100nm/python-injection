@@ -1,10 +1,11 @@
+from contextlib import suppress
 from typing import Any
 
 import pytest
 
 from injection import Module, ModulePriorities
 from injection.core import Injectable
-from injection.exceptions import ModuleError
+from injection.exceptions import ModuleCircularUseError, ModuleError, ModuleNotUsedError
 
 
 class SomeClass:
@@ -86,12 +87,27 @@ class TestModule:
 
         event_history.assert_length(0)
 
-    def test_use_with_circular_dependency_raise_module_error(self, module):
+    def test_use_with_circular_dependency_raise_module_circular_use_error(self, module):
         second_module = Module()
         module.use(second_module)
 
-        with pytest.raises(ModuleError):
+        with pytest.raises(ModuleCircularUseError):
             second_module.use(module)
+
+    def test_use_with_deep_circular_dependency_raise_module_circular_use_error(
+        self,
+        module,
+    ):
+        second_module = Module()
+        third_module = Module()
+
+        module.use(second_module)
+
+        with suppress(ModuleCircularUseError):
+            second_module.use(module)
+
+        with pytest.raises(ModuleCircularUseError):
+            module.use(third_module)
 
     def test_use_with_module_already_in_use_raise_module_error(
         self,
@@ -178,5 +194,5 @@ class TestModule:
     def test_change_priority_with_module_not_found(self, module, event_history):
         second_module = Module()
 
-        with pytest.raises(ModuleError):
+        with pytest.raises(ModuleNotUsedError):
             module.change_priority(second_module, ModulePriorities.HIGH)
