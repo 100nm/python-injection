@@ -26,7 +26,7 @@ from typing import (
 )
 
 from injection.common.event import Event, EventChannel, EventListener
-from injection.common.lazy import LazyMapping
+from injection.common.lazy import Lazy, LazyMapping
 from injection.exceptions import (
     ModuleCircularUseError,
     ModuleError,
@@ -515,13 +515,11 @@ class InjectDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     def __decorator(self, function: Callable[..., Any], /) -> Callable[..., Any]:
-        signature = inspect.signature(function, eval_str=True)
-        binder = Binder(signature).update(self.__module)
-        self.__module.add_listener(binder)
+        lazy_binder = Lazy[Binder](lambda: self.__new_binder(function))
 
         @wraps(function)
         def wrapper(*args, **kwargs):
-            arguments = binder.bind(*args, **kwargs)
+            arguments = lazy_binder.value.bind(*args, **kwargs)
             return function(*arguments.args, **arguments.kwargs)
 
         return wrapper
@@ -530,6 +528,12 @@ class InjectDecorator:
         init_function = type.__getattribute__(cls, "__init__")
         type.__setattr__(cls, "__init__", self.__decorator(init_function))
         return cls
+
+    def __new_binder(self, function: Callable[..., Any]) -> Binder:
+        signature = inspect.signature(function, eval_str=True)
+        binder = Binder(signature).update(self.__module)
+        self.__module.add_listener(binder)
+        return binder
 
 
 @final
@@ -552,7 +556,7 @@ class InjectableDecorator:
             if auto_inject:
                 wp = self.__module.inject(wp)
 
-            @lambda function: function()
+            @lambda fn: fn()
             def references():
                 if reference := self.__get_reference(wp):
                     yield reference
