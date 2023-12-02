@@ -3,8 +3,6 @@ from typing import Iterator
 
 from injection.common.event import Event, EventListener
 
-__all__ = ("EventHistory",)
-
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class EventHistory(EventListener):
