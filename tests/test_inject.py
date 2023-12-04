@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 import pytest
 
@@ -26,6 +26,13 @@ class TestInject:
     def test_inject_with_success(self):
         @inject
         def my_function(instance: SomeInjectable):
+            assert isinstance(instance, SomeInjectable)
+
+        my_function()
+
+    def test_inject_with_annotated(self):
+        @inject
+        def my_function(instance: Annotated[SomeInjectable, "metadata"]):
             assert isinstance(instance, SomeInjectable)
 
         my_function()

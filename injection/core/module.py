@@ -21,7 +21,6 @@ from typing import (
     TypeVar,
     cast,
     final,
-    get_origin,
     runtime_checkable,
 )
 
@@ -93,7 +92,7 @@ class ModuleEventProxy(ModuleEvent):
 
     @property
     def origin(self) -> Event:
-        return next(self.__iter__())
+        return next(iter(self))
 
     @property
     def is_circular(self) -> bool:
@@ -224,10 +223,7 @@ class Container:
 
     @staticmethod
     def __get_origin(cls: type) -> type:
-        if origin := get_origin(cls):
-            return origin
-
-        return cls
+        return getattr(cls, "__origin__", cls)
 
 
 """
