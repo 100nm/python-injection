@@ -184,7 +184,7 @@ class Container:
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__(self, reference: type[T]) -> Injectable[T]:
-        cls = origin if (origin := get_origin(reference)) else reference
+        cls = self.__get_origin(reference)
 
         try:
             return self.__data[cls]
@@ -192,8 +192,7 @@ class Container:
             raise NoInjectable(f"No injectable for `{_format_type(cls)}`.") from exc
 
     def set_multiple(self, references: Iterable[type], injectable: Injectable):
-        if not isinstance(references, set):
-            references = set(references)
+        references = set(self.__get_origin(reference) for reference in references)
 
         if references:
             new_values = (
@@ -222,6 +221,13 @@ class Container:
     def notify(self, event: Event):
         self.__channel.dispatch(event)
         return self
+
+    @staticmethod
+    def __get_origin(cls: type) -> type:
+        if origin := get_origin(cls):
+            return origin
+
+        return cls
 
 
 """
