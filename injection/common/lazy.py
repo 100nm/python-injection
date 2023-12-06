@@ -1,8 +1,5 @@
-from functools import partial
-from types import new_class
+from types import MappingProxyType, new_class
 from typing import Any, Callable, Generic, Iterator, Mapping, TypeVar
-
-from frozendict import frozendict
 
 __all__ = ("Lazy", "LazyMapping")
 
@@ -22,7 +19,7 @@ class Lazy(Generic[T]):
 
     def __setattr__(self, name: str, value: Any):
         if self.is_set:
-            raise TypeError(f"`{repr(self)}` is frozen.")
+            raise TypeError(f"`{self}` is frozen.")
 
         return super().__setattr__(name, value)
 
@@ -47,11 +44,10 @@ class Lazy(Generic[T]):
 class LazyMapping(Mapping[K, V]):
     __slots__ = ("__lazy",)
 
-    __lazy: Lazy[frozendict[K, V]]
+    __lazy: Lazy[MappingProxyType[K, V]]
 
     def __init__(self, iterator: Iterator[tuple[K, V]]):
-        factory = partial(frozendict, iterator)
-        self.__lazy = Lazy(factory)
+        self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
     def __getitem__(self, key: K) -> V:
         return self.__lazy.value[key]

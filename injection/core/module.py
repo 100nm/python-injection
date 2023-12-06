@@ -84,29 +84,37 @@ class ModuleEventProxy(ModuleEvent):
     def __str__(self) -> str:
         return f"`{self.on_module}` has propagated an event: {self.origin}"
 
-    def __iter__(self) -> Iterator[Event]:
+    @property
+    def history(self) -> Iterator[Event]:
         if isinstance(self.event, ModuleEventProxy):
-            yield from self.event
+            yield from self.event.history
 
         yield self.event
 
     @property
     def origin(self) -> Event:
-        return next(iter(self))
+        return next(self.history)
 
-    @property
-    def is_circular(self) -> bool:
-        return any(
-            isinstance(event, ModuleEvent) and event.on_module is self.on_module
-            for event in self
-        )
+    def check_recursion(self):
+        last_module = None
+        found = False
 
-    @property
-    def previous_module(self) -> Module | None:
-        if isinstance(self.event, ModuleEvent):
-            return self.event.on_module
+        for event in self.history:
+            if not isinstance(event, ModuleEvent):
+                continue
 
-        return None
+            last_module = event.on_module
+
+            if found is False:
+                found = last_module is self.on_module
+
+        if found:
+            raise ModuleCircularUseError(
+                "Circular dependency between two modules: "
+                f"`{self.on_module}` and `{last_module}`."
+            )
+
+        return self
 
 
 @dataclass(frozen=True, slots=True)
@@ -390,14 +398,7 @@ class Module(EventListener):
         return self
 
     def on_event(self, event: Event, /):
-        self_event = ModuleEventProxy(self, event)
-
-        if self_event.is_circular:
-            raise ModuleCircularUseError(
-                "Circular dependency between two modules: "
-                f"`{self_event.previous_module}` and `{self}`."
-            )
-
+        self_event = ModuleEventProxy(self, event).check_recursion()
         self.notify(self_event)
 
     def notify(self, event: Event):
