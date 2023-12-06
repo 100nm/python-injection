@@ -100,7 +100,7 @@ class ModuleEventProxy(ModuleEvent):
         found = False
 
         for event in self.history:
-            if not isinstance(event, ModuleEvent):
+            if isinstance(event, ModuleEvent) is False:
                 continue
 
             last_module = event.on_module
@@ -160,18 +160,18 @@ class Injectable(Protocol[T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class _BaseInjectable(Injectable[T], ABC):
+class BaseInjectable(Injectable[T], ABC):
     factory: Callable[[], T]
 
 
-class NewInjectable(_BaseInjectable[T]):
+class NewInjectable(BaseInjectable[T]):
     __slots__ = ()
 
     def get_instance(self) -> T:
         return self.factory()
 
 
-class SingletonInjectable(_BaseInjectable[T]):
+class SingletonInjectable(BaseInjectable[T]):
     @cached_property
     def __instance(self) -> T:
         return self.factory()
@@ -434,7 +434,7 @@ class Dependencies:
             yield name, injectable.get_instance()
 
     @property
-    def arguments(self) -> Mapping[str, Any]:
+    def arguments(self) -> dict[str, Any]:
         return dict(self)
 
     @classmethod
@@ -543,10 +543,10 @@ class InjectDecorator:
 @dataclass(repr=False, frozen=True, slots=True)
 class InjectableDecorator:
     __module: Module
-    __class: type[_BaseInjectable]
+    __injectable_type: type[BaseInjectable]
 
     def __repr__(self) -> str:
-        return f"<{self.__class.__qualname__} decorator>"
+        return f"<{self.__injectable_type.__qualname__} decorator>"
 
     def __call__(
         self,
@@ -571,7 +571,7 @@ class InjectableDecorator:
                 else:
                     yield on
 
-            self.__module[references] = self.__class(wp)
+            self.__module[references] = self.__injectable_type(wp)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
