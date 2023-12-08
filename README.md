@@ -1,6 +1,6 @@
 # python-injection
 
-[![CI](https://github.com/simplysquare/python-injection/actions/workflows/ci.yml/badge.svg)](https://github.com/simplysquare/python-injection)
+[![CI](https://github.com/100nm/python-injection/actions/workflows/ci.yml/badge.svg)](https://github.com/100nm/python-injection)
 [![PyPI](https://badge.fury.io/py/python-injection.svg)](https://pypi.org/project/python-injection/)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 

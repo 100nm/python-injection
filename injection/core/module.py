@@ -190,7 +190,7 @@ class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, reference: type[T]) -> Injectable[T]:
+    def __getitem__(self, reference: type[T], /) -> Injectable[T]:
         cls = self.__get_origin(reference)
 
         try:

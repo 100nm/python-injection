@@ -17,7 +17,7 @@ class Lazy(Generic[T]):
         self.__factory = factory
         self.__value = _sentinel
 
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any, /):
         if self.is_set:
             raise TypeError(f"`{self}` is frozen.")
 
@@ -49,7 +49,7 @@ class LazyMapping(Mapping[K, V]):
     def __init__(self, iterator: Iterator[tuple[K, V]]):
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
-    def __getitem__(self, key: K) -> V:
+    def __getitem__(self, key: K, /) -> V:
         return self.__lazy.value[key]
 
     def __iter__(self) -> Iterator[K]:
