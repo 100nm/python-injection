@@ -7,7 +7,7 @@ keywords = ["dependencies", "inject", "injection"]
 license = "MIT"
 packages = [{ include = "injection" }]
 readme = "documentation/basic-usage.md"
-repository = "https://github.com/simplysquare/python-injection"
+repository = "https://github.com/100nm/python-injection"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4"
