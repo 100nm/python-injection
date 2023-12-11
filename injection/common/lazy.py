@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterator, Mapping
 from types import MappingProxyType, new_class
-from typing import Any, Callable, Generic, Iterator, Mapping, TypeVar
+from typing import Any, Generic, TypeVar
 
 __all__ = ("Lazy", "LazyMapping")
 

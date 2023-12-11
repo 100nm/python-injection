@@ -2,29 +2,19 @@ from __future__ import annotations
 
 import inspect
 from abc import ABC, abstractmethod
-from collections import ChainMap, OrderedDict
-from contextlib import ContextDecorator, contextmanager
+from collections import OrderedDict
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import cached_property, singledispatchmethod, wraps
 from inspect import Signature, get_annotations
 from logging import getLogger
 from types import MappingProxyType
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Mapping,
-    NamedTuple,
-    Protocol,
-    TypeVar,
-    cast,
-    final,
-    runtime_checkable,
-)
+from typing import Any, NamedTuple, Protocol, TypeVar, cast, final, runtime_checkable
 
 from injection.common.event import Event, EventChannel, EventListener
+from injection.common.formatting import format_type
 from injection.common.lazy import Lazy, LazyMapping
 from injection.exceptions import (
     ModuleCircularUseError,
@@ -38,13 +28,6 @@ __all__ = ("Injectable", "Module", "ModulePriorities")
 _logger = getLogger(__name__)
 
 T = TypeVar("T")
-
-
-def _format_type(cls: type) -> str:
-    try:
-        return f"{cls.__module__}.{cls.__qualname__}"
-    except AttributeError:
-        return str(cls)
 
 
 """
@@ -64,7 +47,7 @@ class ContainerDependenciesUpdated(ContainerEvent):
     def __str__(self) -> str:
         length = len(self.references)
         formatted_references = ", ".join(
-            f"`{_format_type(reference)}`" for reference in self.references
+            f"`{format_type(reference)}`" for reference in self.references
         )
         return (
             f"{length} container dependenc{'ies' if length > 1 else 'y'} have been "
@@ -196,7 +179,7 @@ class Container:
         try:
             return self.__data[cls]
         except KeyError as exc:
-            raise NoInjectable(f"No injectable for `{_format_type(cls)}`.") from exc
+            raise NoInjectable(reference) from exc
 
     def set_multiple(self, references: Iterable[type], injectable: Injectable):
         references = set(self.__get_origin(reference) for reference in references)
@@ -216,7 +199,7 @@ class Container:
         if reference in self.__data:
             raise RuntimeError(
                 "An injectable already exists for the reference "
-                f"class `{_format_type(reference)}`."
+                f"class `{format_type(reference)}`."
             )
 
         return reference
@@ -266,7 +249,11 @@ class Module(EventListener):
         self.__container.add_listener(self)
 
     def __getitem__(self, reference: type[T], /) -> Injectable[T]:
-        return ChainMap(*self.__modules, self.__container)[reference]
+        for getter in *self.__modules, self.__container:
+            with suppress(KeyError):
+                return getter[reference]
+
+        raise NoInjectable(reference)
 
     def __setitem__(self, on: type | Iterable[type], injectable: Injectable, /):
         references = on if isinstance(on, Iterable) else (on,)
