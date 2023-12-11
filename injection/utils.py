@@ -1,11 +1,11 @@
 from importlib import import_module
 from pkgutil import walk_packages
-from types import ModuleType as Package
+from types import ModuleType
 
 __all__ = ("load_package",)
 
 
-def load_package(package: Package):
+def load_package(package: ModuleType):
     """
     Function for importing all modules in a Python package.
     """

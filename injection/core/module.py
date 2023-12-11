@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from abc import ABC, abstractmethod
 from collections import ChainMap, OrderedDict
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import ContextDecorator, contextmanager
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -10,19 +11,7 @@ from functools import cached_property, singledispatchmethod, wraps
 from inspect import Signature, get_annotations
 from logging import getLogger
 from types import MappingProxyType
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Mapping,
-    NamedTuple,
-    Protocol,
-    TypeVar,
-    cast,
-    final,
-    runtime_checkable,
-)
+from typing import Any, NamedTuple, Protocol, TypeVar, cast, final, runtime_checkable
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
