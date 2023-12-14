@@ -37,7 +37,7 @@ class TestInjectable:
 
         assert get_instance(SomeClass) is None
 
-    def test_injectable_with_reference(self):
+    def test_injectable_with_on(self):
         class A:
             ...
 
@@ -48,7 +48,7 @@ class TestInjectable:
         a = get_instance(A)
         assert isinstance(a, B)
 
-    def test_injectable_with_references(self):
+    def test_injectable_with_on_and_several_classes(self):
         class A:
             ...
 

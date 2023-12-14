@@ -58,7 +58,7 @@ classes.
 **Warning: if the child class is in another file, make sure that file is imported before injection.**
 [_See `load_package` function._](utils.md#load_package)
 
-_Example with a reference class:_
+_Example with one class:_
 
 ```python
 from injection import singleton
@@ -71,7 +71,7 @@ class B(A):
     ...
 ```
 
-_Example with several reference classes:_
+_Example with several classes:_
 
 ```python
 from injection import singleton

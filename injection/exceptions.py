@@ -14,15 +14,15 @@ class InjectionError(Exception):
 
 
 class NoInjectable(KeyError, InjectionError):
-    __slots__ = ("__reference",)
+    __slots__ = ("__class",)
 
-    def __init__(self, reference: type):
-        super().__init__(f"No injectable for `{format_type(reference)}`.")
-        self.__reference = reference
+    def __init__(self, cls: type):
+        super().__init__(f"No injectable for `{format_type(cls)}`.")
+        self.__class = cls
 
     @property
-    def reference(self) -> type:
-        return self.__reference
+    def cls(self) -> type:
+        return self.__class
 
 
 class ModuleError(InjectionError):

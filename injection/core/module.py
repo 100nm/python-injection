@@ -42,16 +42,14 @@ class ContainerEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
-    references: set[type]
+    classes: set[type]
 
     def __str__(self) -> str:
-        length = len(self.references)
-        formatted_references = ", ".join(
-            f"`{format_type(reference)}`" for reference in self.references
-        )
+        length = len(self.classes)
+        formatted_classes = ", ".join(f"`{format_type(cls)}`" for cls in self.classes)
         return (
             f"{length} container dependenc{'ies' if length > 1 else 'y'} have been "
-            f"updated{f': {formatted_references}' if formatted_references else ''}."
+            f"updated{f': {formatted_classes}' if formatted_classes else ''}."
         )
 
 
@@ -83,12 +81,12 @@ class ModuleEventProxy(ModuleEvent):
         found = False
 
         for event in self.history:
-            if isinstance(event, ModuleEvent) is False:
+            if not isinstance(event, ModuleEvent):
                 continue
 
             last_module = event.on_module
 
-            if found is False:
+            if not found:
                 found = last_module is self.on_module
 
         if found:
@@ -173,36 +171,32 @@ class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, reference: type[T], /) -> Injectable[T]:
-        cls = self.__get_origin(reference)
+    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
+        origin = self.__get_origin(cls)
 
         try:
-            return self.__data[cls]
+            return self.__data[origin]
         except KeyError as exc:
-            raise NoInjectable(reference) from exc
+            raise NoInjectable(cls) from exc
 
-    def set_multiple(self, references: Iterable[type], injectable: Injectable):
-        references = set(self.__get_origin(reference) for reference in references)
+    def set_multiple(self, classes: Iterable[type], injectable: Injectable):
+        classes = set(self.__get_origin(cls) for cls in classes)
 
-        if references:
-            new_values = (
-                (self.check_if_exists(reference), injectable)
-                for reference in references
-            )
+        if classes:
+            new_values = ((self.check_if_exists(cls), injectable) for cls in classes)
             self.__data.update(new_values)
-            event = ContainerDependenciesUpdated(self, references)
+            event = ContainerDependenciesUpdated(self, classes)
             self.notify(event)
 
         return self
 
-    def check_if_exists(self, reference: type) -> type:
-        if reference in self.__data:
+    def check_if_exists(self, cls: type) -> type:
+        if cls in self.__data:
             raise RuntimeError(
-                "An injectable already exists for the reference "
-                f"class `{format_type(reference)}`."
+                f"An injectable already exists for the class `{format_type(cls)}`."
             )
 
-        return reference
+        return cls
 
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
@@ -248,16 +242,16 @@ class Module(EventListener):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-    def __getitem__(self, reference: type[T], /) -> Injectable[T]:
+    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
         for getter in *self.__modules, self.__container:
             with suppress(KeyError):
-                return getter[reference]
+                return getter[cls]
 
-        raise NoInjectable(reference)
+        raise NoInjectable(cls)
 
     def __setitem__(self, on: type | Iterable[type], injectable: Injectable, /):
-        references = on if isinstance(on, Iterable) else (on,)
-        self.__container.set_multiple(references, injectable)
+        classes = on if isinstance(on, Iterable) else (on,)
+        self.__container.set_multiple(classes, injectable)
 
     def __str__(self) -> str:
         return self.name or object.__str__(self)
@@ -294,19 +288,19 @@ class Module(EventListener):
 
         return InjectableDecorator(self, SingletonInjectable)
 
-    def get_instance(self, reference: type[T]) -> T | None:
+    def get_instance(self, cls: type[T]) -> T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
         """
 
         try:
-            injectable = self[reference]
+            injectable = self[cls]
         except KeyError:
             return None
 
         instance = injectable.get_instance()
-        return cast(reference, instance)
+        return cast(cls, instance)
 
     def use(
         self,
@@ -547,9 +541,9 @@ class InjectableDecorator:
                 wp = self.__module.inject(wp)
 
             @lambda fn: fn()
-            def references():
-                if reference := self.__get_reference(wp):
-                    yield reference
+            def classes():
+                if cls := self.__get_target_class(wp):
+                    yield cls
 
                 if on is None:
                     return
@@ -558,17 +552,17 @@ class InjectableDecorator:
                 else:
                     yield on
 
-            self.__module[references] = self.__injectable_type(wp)
+            self.__module[classes] = self.__injectable_type(wp)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
 
     @staticmethod
-    def __get_reference(wrapped: Callable[..., Any], /) -> type | None:
+    def __get_target_class(wrapped: Callable[..., Any], /) -> type | None:
         if isinstance(wrapped, type):
             return wrapped
 
-        elif callable(wrapped):
+        if callable(wrapped):
             return_type = get_annotations(wrapped, eval_str=True).get("return")
 
             if isinstance(return_type, type):
