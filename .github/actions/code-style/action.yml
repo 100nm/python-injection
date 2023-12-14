@@ -1,5 +1,6 @@
 name: Code Style
 description: Check code style
+
 runs:
   using: "composite"
   steps:

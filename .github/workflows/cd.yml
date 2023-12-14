@@ -12,13 +12,14 @@ jobs:
 
     steps:
       - name: Run checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up environment
         uses: ./.github/actions/environment
 
       - name: Deploy
         uses: ./.github/actions/deploy
+        with:
+          version: ${{ github.ref_name }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-          VERSION: ${{ github.ref_name }}
