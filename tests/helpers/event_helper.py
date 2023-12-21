@@ -17,5 +17,8 @@ class EventHistory(EventListener):
     def assert_length(self, length: int):
         assert len(self) == length
 
+    def on_prevent(self, event: Event, /):
+        ...
+
     def on_event(self, event: Event, /):
         self.__history.append(event)

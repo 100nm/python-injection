@@ -1,10 +1,10 @@
 from collections.abc import Callable, Iterator, Mapping
-from types import MappingProxyType, new_class
+from types import MappingProxyType
 from typing import Any, Generic, TypeVar
 
 __all__ = ("Lazy", "LazyMapping")
 
-_sentinel = new_class("sentinel")()
+_sentinel = object()
 
 T = TypeVar("T")
 K = TypeVar("K")
