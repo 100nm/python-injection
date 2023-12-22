@@ -55,11 +55,11 @@ module_x, module_y = Module(), Module()
 class A:
     ...
     
-@module_x.singleton(on=A)
+@module_x.injectable(on=A)
 class B(A):
     ...
 
-@module_y.singleton(on=A)
+@module_y.injectable(on=A)
 class C(A):
     ...
 
@@ -124,6 +124,42 @@ Change the priority of a used module:
 
 ```python
 module_1.change_priority(module_2, ModulePriorities.LOW)
+```
+
+### Understand `ModuleLockError`
+
+> **Reason**: If a module is updated while a singleton is already instantiated, this error will be raised.
+
+#### Why?
+
+This error exists because there's a problem with singletons. If a module is updated while a singleton is instantiated, 
+there may be a problem with this instance. It may contain an obsolete dependency.
+
+#### How to avoid it?
+
+_First of all, make sure that all scripts containing injectables have been imported before executing the main function._
+
+> **Tips**
+> * Avoid local imports
+> * Avoid singletons if not necessary 
+> * Try grouping dependencies in different injection modules.
+
+#### Unlock method
+
+If you know what you're doing, you can delete the cached instances of all singletons using the `unlock` method:
+
+```python
+my_module.unlock()
+```
+
+#### Disable it
+
+This exception can be a real constraint, so it can be disabled when a module is instantiated:
+
+```python
+from injection import Module
+
+my_module = Module(ignore_lock=True)
 ```
 
 ### Logging

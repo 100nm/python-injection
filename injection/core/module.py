@@ -51,7 +51,7 @@ class ContainerEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
-    classes: set[type]
+    classes: frozenset[type]
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -204,11 +204,11 @@ class Container:
         return any(injectable.is_locked for injectable in self.__injectables)
 
     @property
-    def __injectables(self) -> set[Injectable]:
-        return set(self.__data.values())
+    def __injectables(self) -> frozenset[Injectable]:
+        return frozenset(self.__data.values())
 
     def set_multiple(self, classes: Iterable[type], injectable: Injectable):
-        classes = set(self.__get_origin(cls) for cls in classes)
+        classes = frozenset(self.__get_origin(cls) for cls in classes)
 
         if classes:
             event = ContainerDependenciesUpdated(self, classes)
@@ -253,6 +253,10 @@ class ModulePriorities(Enum):
     HIGH = auto()
     LOW = auto()
 
+    @classmethod
+    def get_default(cls):
+        return cls.LOW
+
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class Module(EventListener):
@@ -265,6 +269,7 @@ class Module(EventListener):
     """
 
     name: str = field(default=None)
+    ignore_lock: bool = field(default=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
     __container: Container = field(default_factory=Container, init=False)
     __modules: OrderedDict[Module, None] = field(
@@ -323,6 +328,9 @@ class Module(EventListener):
 
     @property
     def is_locked(self) -> bool:
+        if self.ignore_lock:
+            return False
+
         return any(broker.is_locked for broker in self.__brokers)
 
     @property
@@ -347,7 +355,7 @@ class Module(EventListener):
     def use(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.LOW,
+        priority: ModulePriorities = ModulePriorities.get_default(),
     ):
         """
         Function for using another module. Using another module replaces the module's
@@ -388,7 +396,7 @@ class Module(EventListener):
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.LOW,
+        priority: ModulePriorities = ModulePriorities.get_default(),
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
@@ -414,6 +422,10 @@ class Module(EventListener):
         return self
 
     def unlock(self):
+        """
+        Function to unlock the module by deleting cached instances of singletons.
+        """
+
         for broker in self.__brokers:
             broker.unlock()
 
