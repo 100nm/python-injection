@@ -15,11 +15,7 @@ class EventListener(ABC):
     __slots__ = ("__weakref__",)
 
     @abstractmethod
-    def on_prevent(self, event: Event, /) -> ContextManager | None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def on_event(self, event: Event, /):
+    def on_event(self, event: Event, /) -> ContextManager | None:
         raise NotImplementedError
 
 
@@ -29,11 +25,9 @@ class EventChannel:
 
     @contextmanager
     def dispatch(self, event: Event) -> ContextManager | ContextDecorator:
-        listeners = tuple(self.__listeners)
-
         with ExitStack() as stack:
-            for listener in listeners:
-                context_manager = listener.on_prevent(event)
+            for listener in self.__listeners:
+                context_manager = listener.on_event(event)
 
                 if context_manager is None:
                     continue
@@ -41,9 +35,6 @@ class EventChannel:
                 stack.enter_context(context_manager)
 
             yield
-
-            for listener in listeners:
-                listener.on_event(event)
 
     def add_listener(self, listener: EventListener):
         self.__listeners.add(listener)

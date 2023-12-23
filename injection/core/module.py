@@ -437,12 +437,9 @@ class Module(EventListener):
         self.__channel.remove_listener(listener)
         return self
 
-    def on_prevent(self, event: Event, /) -> ContextManager:
+    def on_event(self, event: Event, /) -> ContextManager:
         self_event = ModuleEventProxy(self, event)
         return self.notify(self_event)
-
-    def on_event(self, event: Event, /):
-        ...
 
     @contextmanager
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
@@ -536,15 +533,14 @@ class Binder(EventListener):
         self.__dependencies = Dependencies.resolve(self.__signature, module)
         return self
 
-    def on_prevent(self, event: Event, /):
-        ...
-
     @singledispatchmethod
     def on_event(self, event: Event, /):
         ...
 
     @on_event.register
-    def _(self, event: ModuleEvent, /):
+    @contextmanager
+    def _(self, event: ModuleEvent, /) -> ContextManager:
+        yield
         self.update(event.on_module)
 
 
