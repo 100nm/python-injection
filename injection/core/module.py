@@ -124,13 +124,11 @@ class Injectable(Protocol[T]):
     __slots__ = ()
 
     @property
-    @abstractmethod
     def is_locked(self) -> bool:
-        raise NotImplementedError
+        return False
 
-    @abstractmethod
     def unlock(self):
-        raise NotImplementedError
+        ...
 
     @abstractmethod
     def get_instance(self) -> T:
@@ -145,13 +143,6 @@ class BaseInjectable(Injectable[T], ABC):
 class NewInjectable(BaseInjectable[T]):
     __slots__ = ()
 
-    @property
-    def is_locked(self) -> bool:
-        return False
-
-    def unlock(self):
-        ...
-
     def get_instance(self) -> T:
         return self.factory()
 
@@ -159,7 +150,7 @@ class NewInjectable(BaseInjectable[T]):
 class SingletonInjectable(BaseInjectable[T]):
     __slots__ = ("__dict__",)
 
-    __KEY = "$instance"
+    __INSTANCE_KEY = "$instance"
 
     @property
     def cache(self) -> MutableMapping[str, Any]:
@@ -167,17 +158,17 @@ class SingletonInjectable(BaseInjectable[T]):
 
     @property
     def is_locked(self) -> bool:
-        return self.__KEY in self.cache
+        return self.__INSTANCE_KEY in self.cache
 
     def unlock(self):
-        self.cache.pop(self.__KEY, None)
+        self.cache.pop(self.__INSTANCE_KEY, None)
 
     def get_instance(self) -> T:
         with suppress(KeyError):
-            return self.cache[self.__KEY]
+            return self.cache[self.__INSTANCE_KEY]
 
         instance = self.factory()
-        self.cache[self.__KEY] = instance
+        self.cache[self.__INSTANCE_KEY] = instance
         return instance
 
 

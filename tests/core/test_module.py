@@ -17,13 +17,6 @@ class TestModule:
         class_ = type(instance)
 
         class TestInjectable(Injectable[class_]):
-            @property
-            def is_locked(self) -> bool:
-                return False
-
-            def unlock(self):
-                ...
-
             def get_instance(self) -> class_:
                 return instance
 
