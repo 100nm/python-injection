@@ -152,16 +152,6 @@ If you know what you're doing, you can delete the cached instances of all single
 my_module.unlock()
 ```
 
-#### Disable it
-
-This exception can be a real constraint, so it can be disabled when a module is instantiated:
-
-```python
-from injection import Module
-
-my_module = Module(ignore_lock=True)
-```
-
 ### Logging
 
 With a logging configuration that displays debug logs, you can observe everything that's happening in the modules.

@@ -18,6 +18,9 @@ class Lazy(Generic[T]):
         self.__factory = factory
         self.__value = _sentinel
 
+    def __invert__(self) -> T:
+        return self.value
+
     def __setattr__(self, name: str, value: Any, /):
         if self.is_set:
             raise TypeError(f"`{self}` is frozen.")
@@ -35,11 +38,9 @@ class Lazy(Generic[T]):
     @property
     def is_set(self) -> bool:
         try:
-            factory = self.__factory
+            return self.__factory is _sentinel
         except AttributeError:
             return False
-
-        return factory is _sentinel
 
 
 class LazyMapping(Mapping[K, V]):
@@ -51,13 +52,13 @@ class LazyMapping(Mapping[K, V]):
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
     def __getitem__(self, key: K, /) -> V:
-        return self.__lazy.value[key]
+        return (~self.__lazy)[key]
 
     def __iter__(self) -> Iterator[K]:
-        yield from self.__lazy.value
+        yield from ~self.__lazy
 
     def __len__(self) -> int:
-        return len(self.__lazy.value)
+        return len(~self.__lazy)
 
 
 del K, T, V

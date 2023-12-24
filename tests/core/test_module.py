@@ -175,23 +175,6 @@ class TestModule:
             module.change_priority(second_module, ModulePriorities.HIGH)
 
     """
-    ignore_lock
-    """
-
-    def test_ignore_lock_with_success(self):
-        module = Module(ignore_lock=True)
-
-        @module.singleton
-        class A:
-            ...
-
-        assert module.get_instance(A) is not None
-
-        @module.singleton
-        class B:
-            ...
-
-    """
     unlock
     """
 

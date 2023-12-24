@@ -260,7 +260,6 @@ class Module(EventListener):
     """
 
     name: str = field(default=None)
-    ignore_lock: bool = field(default=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
     __container: Container = field(default_factory=Container, init=False)
     __modules: OrderedDict[Module, None] = field(
@@ -319,9 +318,6 @@ class Module(EventListener):
 
     @property
     def is_locked(self) -> bool:
-        if self.ignore_lock:
-            return False
-
         return any(broker.is_locked for broker in self.__brokers)
 
     @property
@@ -405,6 +401,7 @@ class Module(EventListener):
         * **LOW**: The module concerned becomes the least important of the modules used.
         * **HIGH**: The module concerned becomes the most important of the modules used.
         """
+
         event = ModulePriorityUpdated(self, module, priority)
 
         with self.notify(event):
@@ -434,12 +431,15 @@ class Module(EventListener):
 
     @contextmanager
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
-        if self.is_locked:
-            raise ModuleLockError(f"`{self}` is locked.")
+        self.__check_locking()
 
         with self.__channel.dispatch(event):
             yield
             _logger.debug(f"{event}")
+
+    def __check_locking(self):
+        if self.is_locked:
+            raise ModuleLockError(f"`{self}` is locked.")
 
     def __move_module(self, module: Module, priority: ModulePriorities):
         last = priority == ModulePriorities.LOW
@@ -559,7 +559,7 @@ class InjectDecorator:
 
         @wraps(function)
         def wrapper(*args, **kwargs):
-            arguments = lazy_binder.value.bind(*args, **kwargs)
+            arguments = (~lazy_binder).bind(*args, **kwargs)
             return function(*arguments.args, **arguments.kwargs)
 
         return wrapper
