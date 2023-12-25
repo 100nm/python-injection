@@ -36,7 +36,7 @@ __all__ = ("Injectable", "Module", "ModulePriorities")
 
 _logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 """
@@ -120,7 +120,7 @@ Injectables
 
 
 @runtime_checkable
-class Injectable(Protocol[T]):
+class Injectable(Protocol[_T]):
     __slots__ = ()
 
     @property
@@ -131,23 +131,23 @@ class Injectable(Protocol[T]):
         ...
 
     @abstractmethod
-    def get_instance(self) -> T:
+    def get_instance(self) -> _T:
         raise NotImplementedError
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class BaseInjectable(Injectable[T], ABC):
-    factory: Callable[[], T]
+class BaseInjectable(Injectable[_T], ABC):
+    factory: Callable[[], _T]
 
 
-class NewInjectable(BaseInjectable[T]):
+class NewInjectable(BaseInjectable[_T]):
     __slots__ = ()
 
-    def get_instance(self) -> T:
+    def get_instance(self) -> _T:
         return self.factory()
 
 
-class SingletonInjectable(BaseInjectable[T]):
+class SingletonInjectable(BaseInjectable[_T]):
     __slots__ = ("__dict__",)
 
     __INSTANCE_KEY = "$instance"
@@ -163,7 +163,7 @@ class SingletonInjectable(BaseInjectable[T]):
     def unlock(self):
         self.cache.pop(self.__INSTANCE_KEY, None)
 
-    def get_instance(self) -> T:
+    def get_instance(self) -> _T:
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
@@ -182,7 +182,7 @@ class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
+    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
         origin = self.__get_origin(cls)
 
         try:
@@ -270,7 +270,7 @@ class Module(EventListener):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
+    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
         for broker in self.__brokers:
             with suppress(KeyError):
                 return broker[cls]
@@ -325,7 +325,7 @@ class Module(EventListener):
         yield from self.__modules
         yield self.__container
 
-    def get_instance(self, cls: type[T]) -> T | None:
+    def get_instance(self, cls: type[_T]) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
