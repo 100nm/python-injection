@@ -4,7 +4,7 @@ __all__ = (
     "InjectionError",
     "NoInjectable",
     "ModuleError",
-    "ModuleCircularUseError",
+    "ModuleLockError",
     "ModuleNotUsedError",
 )
 
@@ -29,7 +29,7 @@ class ModuleError(InjectionError):
     __slots__ = ()
 
 
-class ModuleCircularUseError(ModuleError):
+class ModuleLockError(ModuleError):
     __slots__ = ()
 
 

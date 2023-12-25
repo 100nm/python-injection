@@ -1,33 +1,42 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import cached_property, singledispatchmethod, wraps
+from functools import singledispatchmethod, wraps
 from inspect import Signature, get_annotations
-from logging import getLogger
 from types import MappingProxyType
-from typing import Any, NamedTuple, Protocol, TypeVar, cast, final, runtime_checkable
+from typing import (
+    Any,
+    ContextManager,
+    NamedTuple,
+    Protocol,
+    TypeVar,
+    cast,
+    final,
+    runtime_checkable,
+)
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.formatting import format_type
 from injection.common.lazy import Lazy, LazyMapping
 from injection.exceptions import (
-    ModuleCircularUseError,
     ModuleError,
+    ModuleLockError,
     ModuleNotUsedError,
     NoInjectable,
 )
 
 __all__ = ("Injectable", "Module", "ModulePriorities")
 
-_logger = getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 """
@@ -42,7 +51,7 @@ class ContainerEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
-    classes: set[type]
+    classes: frozenset[type]
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -75,27 +84,6 @@ class ModuleEventProxy(ModuleEvent):
     @property
     def origin(self) -> Event:
         return next(self.history)
-
-    def check_recursion(self):
-        last_module = None
-        found = False
-
-        for event in self.history:
-            if not isinstance(event, ModuleEvent):
-                continue
-
-            last_module = event.on_module
-
-            if not found:
-                found = last_module is self.on_module
-
-        if found:
-            raise ModuleCircularUseError(
-                "Circular dependency between two modules: "
-                f"`{self.on_module}` and `{last_module}`."
-            )
-
-        return self
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,33 +120,56 @@ Injectables
 
 
 @runtime_checkable
-class Injectable(Protocol[T]):
+class Injectable(Protocol[_T]):
     __slots__ = ()
 
+    @property
+    def is_locked(self) -> bool:
+        return False
+
+    def unlock(self):
+        ...
+
     @abstractmethod
-    def get_instance(self) -> T:
+    def get_instance(self) -> _T:
         raise NotImplementedError
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class BaseInjectable(Injectable[T], ABC):
-    factory: Callable[[], T]
+class BaseInjectable(Injectable[_T], ABC):
+    factory: Callable[[], _T]
 
 
-class NewInjectable(BaseInjectable[T]):
+class NewInjectable(BaseInjectable[_T]):
     __slots__ = ()
 
-    def get_instance(self) -> T:
+    def get_instance(self) -> _T:
         return self.factory()
 
 
-class SingletonInjectable(BaseInjectable[T]):
-    @cached_property
-    def __instance(self) -> T:
-        return self.factory()
+class SingletonInjectable(BaseInjectable[_T]):
+    __slots__ = ("__dict__",)
 
-    def get_instance(self) -> T:
-        return self.__instance
+    __INSTANCE_KEY = "$instance"
+
+    @property
+    def cache(self) -> MutableMapping[str, Any]:
+        return self.__dict__
+
+    @property
+    def is_locked(self) -> bool:
+        return self.__INSTANCE_KEY in self.cache
+
+    def unlock(self):
+        self.cache.pop(self.__INSTANCE_KEY, None)
+
+    def get_instance(self) -> _T:
+        with suppress(KeyError):
+            return self.cache[self.__INSTANCE_KEY]
+
+        instance = self.factory()
+        self.cache[self.__INSTANCE_KEY] = instance
+        return instance
 
 
 """
@@ -171,7 +182,7 @@ class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
+    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
         origin = self.__get_origin(cls)
 
         try:
@@ -179,14 +190,24 @@ class Container:
         except KeyError as exc:
             raise NoInjectable(cls) from exc
 
+    @property
+    def is_locked(self) -> bool:
+        return any(injectable.is_locked for injectable in self.__injectables)
+
+    @property
+    def __injectables(self) -> frozenset[Injectable]:
+        return frozenset(self.__data.values())
+
     def set_multiple(self, classes: Iterable[type], injectable: Injectable):
-        classes = set(self.__get_origin(cls) for cls in classes)
+        classes = frozenset(self.__get_origin(cls) for cls in classes)
 
         if classes:
-            new_values = ((self.check_if_exists(cls), injectable) for cls in classes)
-            self.__data.update(new_values)
             event = ContainerDependenciesUpdated(self, classes)
-            self.notify(event)
+
+            with self.notify(event):
+                self.__data.update(
+                    (self.check_if_exists(cls), injectable) for cls in classes
+                )
 
         return self
 
@@ -198,13 +219,16 @@ class Container:
 
         return cls
 
+    def unlock(self):
+        for injectable in self.__injectables:
+            injectable.unlock()
+
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
         return self
 
-    def notify(self, event: Event):
-        self.__channel.dispatch(event)
-        return self
+    def notify(self, event: Event) -> ContextManager | ContextDecorator:
+        return self.__channel.dispatch(event)
 
     @staticmethod
     def __get_origin(cls: type) -> type:
@@ -220,6 +244,10 @@ class ModulePriorities(Enum):
     HIGH = auto()
     LOW = auto()
 
+    @classmethod
+    def get_default(cls):
+        return cls.LOW
+
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class Module(EventListener):
@@ -232,8 +260,8 @@ class Module(EventListener):
     """
 
     name: str = field(default=None)
-    __container: Container = field(default_factory=Container, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
+    __container: Container = field(default_factory=Container, init=False)
     __modules: OrderedDict[Module, None] = field(
         default_factory=OrderedDict,
         init=False,
@@ -242,10 +270,10 @@ class Module(EventListener):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-    def __getitem__(self, cls: type[T], /) -> Injectable[T]:
-        for getter in *self.__modules, self.__container:
+    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
+        for broker in self.__brokers:
             with suppress(KeyError):
-                return getter[cls]
+                return broker[cls]
 
         raise NoInjectable(cls)
 
@@ -288,7 +316,16 @@ class Module(EventListener):
 
         return InjectableDecorator(self, SingletonInjectable)
 
-    def get_instance(self, cls: type[T]) -> T | None:
+    @property
+    def is_locked(self) -> bool:
+        return any(broker.is_locked for broker in self.__brokers)
+
+    @property
+    def __brokers(self) -> Iterator[Container | Module]:
+        yield from self.__modules
+        yield self.__container
+
+    def get_instance(self, cls: type[_T]) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
@@ -305,7 +342,7 @@ class Module(EventListener):
     def use(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.LOW,
+        priority: ModulePriorities = ModulePriorities.get_default(),
     ):
         """
         Function for using another module. Using another module replaces the module's
@@ -319,11 +356,13 @@ class Module(EventListener):
         if module in self.__modules:
             raise ModuleError(f"`{self}` already uses `{module}`.")
 
-        self.__modules[module] = None
-        self.__move_module(module, priority)
-        module.add_listener(self)
         event = ModuleAdded(self, module)
-        self.notify(event)
+
+        with self.notify(event):
+            self.__modules[module] = None
+            self.__move_module(module, priority)
+            module.add_listener(self)
+
         return self
 
     def stop_using(self, module: Module):
@@ -331,14 +370,12 @@ class Module(EventListener):
         Function to remove a module in use.
         """
 
-        try:
-            self.__modules.pop(module)
-        except KeyError:
-            ...
-        else:
-            module.remove_listener(self)
-            event = ModuleRemoved(self, module)
-            self.notify(event)
+        event = ModuleRemoved(self, module)
+
+        with suppress(KeyError):
+            with self.notify(event):
+                self.__modules.pop(module)
+                module.remove_listener(self)
 
         return self
 
@@ -346,8 +383,8 @@ class Module(EventListener):
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.LOW,
-    ) -> ContextDecorator:
+        priority: ModulePriorities = ModulePriorities.get_default(),
+    ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
@@ -365,10 +402,20 @@ class Module(EventListener):
         * **HIGH**: The module concerned becomes the most important of the modules used.
         """
 
-        self.__move_module(module, priority)
         event = ModulePriorityUpdated(self, module, priority)
-        self.notify(event)
+
+        with self.notify(event):
+            self.__move_module(module, priority)
+
         return self
+
+    def unlock(self):
+        """
+        Function to unlock the module by deleting cached instances of singletons.
+        """
+
+        for broker in self.__brokers:
+            broker.unlock()
 
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
@@ -378,14 +425,21 @@ class Module(EventListener):
         self.__channel.remove_listener(listener)
         return self
 
-    def on_event(self, event: Event, /):
-        self_event = ModuleEventProxy(self, event).check_recursion()
-        self.notify(self_event)
+    def on_event(self, event: Event, /) -> ContextManager:
+        self_event = ModuleEventProxy(self, event)
+        return self.notify(self_event)
 
-    def notify(self, event: Event):
-        _logger.debug(f"{event}")
-        self.__channel.dispatch(event)
-        return self
+    @contextmanager
+    def notify(self, event: Event) -> ContextManager | ContextDecorator:
+        self.__check_locking()
+
+        with self.__channel.dispatch(event):
+            yield
+            _logger.debug(f"{event}")
+
+    def __check_locking(self):
+        if self.is_locked:
+            raise ModuleLockError(f"`{self}` is locked.")
 
     def __move_module(self, module: Module, priority: ModulePriorities):
         last = priority == ModulePriorities.LOW
@@ -475,7 +529,9 @@ class Binder(EventListener):
         ...
 
     @on_event.register
-    def _(self, event: ModuleEvent, /):
+    @contextmanager
+    def _(self, event: ModuleEvent, /) -> ContextManager:
+        yield
         self.update(event.on_module)
 
 
@@ -503,7 +559,7 @@ class InjectDecorator:
 
         @wraps(function)
         def wrapper(*args, **kwargs):
-            arguments = lazy_binder.value.bind(*args, **kwargs)
+            arguments = (~lazy_binder).bind(*args, **kwargs)
             return function(*arguments.args, **arguments.kwargs)
 
         return wrapper

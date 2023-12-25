@@ -1,11 +1,10 @@
-from contextlib import suppress
 from typing import Any
 
 import pytest
 
 from injection import Module, ModulePriorities
 from injection.core import Injectable
-from injection.exceptions import ModuleCircularUseError, ModuleError, ModuleNotUsedError
+from injection.exceptions import ModuleError, ModuleLockError, ModuleNotUsedError
 
 
 class SomeClass:
@@ -86,28 +85,6 @@ class TestModule:
             module.use(module)
 
         event_history.assert_length(0)
-
-    def test_use_with_circular_dependency_raise_module_circular_use_error(self, module):
-        second_module = Module()
-        module.use(second_module)
-
-        with pytest.raises(ModuleCircularUseError):
-            second_module.use(module)
-
-    def test_use_with_deep_circular_dependency_raise_module_circular_use_error(
-        self,
-        module,
-    ):
-        second_module = Module()
-        third_module = Module()
-
-        module.use(second_module)
-
-        with suppress(ModuleCircularUseError):
-            second_module.use(module)
-
-        with pytest.raises(ModuleCircularUseError):
-            module.use(third_module)
 
     def test_use_with_module_already_in_use_raise_module_error(
         self,
@@ -196,3 +173,37 @@ class TestModule:
 
         with pytest.raises(ModuleNotUsedError):
             module.change_priority(second_module, ModulePriorities.HIGH)
+
+    """
+    unlock
+    """
+
+    def test_unlock_with_success(self, module):
+        second_module = Module()
+
+        @module.singleton
+        class A:
+            ...
+
+        @module.singleton
+        class B:
+            def __init__(self, a: A):
+                self.a = a
+
+        @second_module.singleton(on=A)
+        class C(A):
+            ...
+
+        b1: B = module.get_instance(B)
+
+        with pytest.raises(ModuleLockError):
+            module.use(second_module)
+
+        module.unlock()
+
+        module.use(second_module)
+        b2: B = module.get_instance(B)
+
+        assert b1 is not b2
+        assert isinstance(b1.a, A)
+        assert isinstance(b2.a, C)

@@ -1,7 +1,13 @@
 import pytest
 
-from injection import Module
+from injection import Module, default_module
 from tests.helpers import EventHistory
+
+
+@pytest.fixture(scope="function", autouse=True)
+def unlock():
+    yield
+    default_module.unlock()
 
 
 @pytest.fixture(scope="function")

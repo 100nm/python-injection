@@ -1,22 +1,25 @@
 from collections.abc import Callable, Iterator, Mapping
-from types import MappingProxyType, new_class
+from types import MappingProxyType
 from typing import Any, Generic, TypeVar
 
 __all__ = ("Lazy", "LazyMapping")
 
-_sentinel = new_class("sentinel")()
+_sentinel = object()
 
-T = TypeVar("T")
-K = TypeVar("K")
-V = TypeVar("V")
+_T = TypeVar("_T")
+_K = TypeVar("_K")
+_V = TypeVar("_V")
 
 
-class Lazy(Generic[T]):
+class Lazy(Generic[_T]):
     __slots__ = ("__factory", "__value")
 
-    def __init__(self, factory: Callable[[], T]):
+    def __init__(self, factory: Callable[[], _T]):
         self.__factory = factory
         self.__value = _sentinel
+
+    def __invert__(self) -> _T:
+        return self.value
 
     def __setattr__(self, name: str, value: Any, /):
         if self.is_set:
@@ -25,7 +28,7 @@ class Lazy(Generic[T]):
         return super().__setattr__(name, value)
 
     @property
-    def value(self) -> T:
+    def value(self) -> _T:
         if not self.is_set:
             self.__value = self.__factory()
             self.__factory = _sentinel
@@ -35,29 +38,24 @@ class Lazy(Generic[T]):
     @property
     def is_set(self) -> bool:
         try:
-            factory = self.__factory
+            return self.__factory is _sentinel
         except AttributeError:
             return False
 
-        return factory is _sentinel
 
-
-class LazyMapping(Mapping[K, V]):
+class LazyMapping(Mapping[_K, _V]):
     __slots__ = ("__lazy",)
 
-    __lazy: Lazy[MappingProxyType[K, V]]
+    __lazy: Lazy[MappingProxyType[_K, _V]]
 
-    def __init__(self, iterator: Iterator[tuple[K, V]]):
+    def __init__(self, iterator: Iterator[tuple[_K, _V]]):
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
-    def __getitem__(self, key: K, /) -> V:
-        return self.__lazy.value[key]
+    def __getitem__(self, key: _K, /) -> _V:
+        return (~self.__lazy)[key]
 
-    def __iter__(self) -> Iterator[K]:
-        yield from self.__lazy.value
+    def __iter__(self) -> Iterator[_K]:
+        yield from ~self.__lazy
 
     def __len__(self) -> int:
-        return len(self.__lazy.value)
-
-
-del K, T, V
+        return len(~self.__lazy)
