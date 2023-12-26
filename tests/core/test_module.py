@@ -54,6 +54,22 @@ class TestModule:
             module[SomeClass]
 
     """
+    __contains__
+    """
+
+    def test_contains_with_success_return_bool(self, module):
+        class A:
+            ...
+
+        class B:
+            ...
+
+        module[A] = self.get_test_injectable(A())
+
+        assert A in module
+        assert B not in module
+
+    """
     get_instance
     """
 
