@@ -3,14 +3,7 @@ reset=$(tput sgr0)
 cyan=$(tput setaf 6)
 
 title() {
-  if [ "$1" ]
-  then
-    entitled=$1
-  else
-    entitled="PLEASE PASS A TITLE"
-  fi
-
-  echo "${cyan}${bold}### $entitled ###${reset}"
+  echo "${cyan}${bold}### $1 ###${reset}"
 }
 
 set -e
