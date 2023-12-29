@@ -190,7 +190,7 @@ class Container:
         except KeyError as exc:
             raise NoInjectable(cls) from exc
 
-    def __contains__(self, cls: type[_T], /) -> bool:
+    def __contains__(self, cls: type, /) -> bool:
         return self.__get_origin(cls) in self.__data
 
     @property
@@ -284,7 +284,7 @@ class Module(EventListener):
         classes = on if isinstance(on, Iterable) else (on,)
         self.__container.set_multiple(classes, injectable)
 
-    def __contains__(self, cls: type[_T], /) -> bool:
+    def __contains__(self, cls: type, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     def __str__(self) -> str:
