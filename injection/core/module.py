@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import singledispatchmethod, wraps
 from inspect import Signature, get_annotations
+from threading import RLock
 from types import MappingProxyType
 from typing import (
     Any,
@@ -42,6 +43,7 @@ from injection.exceptions import (
 __all__ = ("Injectable", "Module", "ModulePriorities")
 
 _logger = logging.getLogger(__name__)
+_thread_lock = RLock()
 
 _T = TypeVar("_T")
 
@@ -174,8 +176,10 @@ class SingletonInjectable(BaseInjectable[_T]):
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
-        instance = self.factory()
-        self.cache[self.__INSTANCE_KEY] = instance
+        with _thread_lock:
+            instance = self.factory()
+            self.cache[self.__INSTANCE_KEY] = instance
+
         return instance
 
 
@@ -334,7 +338,7 @@ class Module(EventListener):
 
     @property
     def __brokers(self) -> Iterator[Container | Module]:
-        yield from self.__modules
+        yield from tuple(self.__modules)
         yield self.__container
 
     def get_instance(self, cls: type[_T]) -> _T | None:
