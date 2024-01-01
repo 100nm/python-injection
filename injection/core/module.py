@@ -4,7 +4,14 @@ import inspect
 import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
+from collections.abc import (
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+)
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -51,7 +58,7 @@ class ContainerEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
-    classes: frozenset[type]
+    classes: Collection[type]
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -161,7 +168,7 @@ class SingletonInjectable(BaseInjectable[_T]):
         return self.__INSTANCE_KEY in self.cache
 
     def unlock(self):
-        self.cache.pop(self.__INSTANCE_KEY, None)
+        self.cache.clear()
 
     def get_instance(self) -> _T:
         with suppress(KeyError):
@@ -201,7 +208,7 @@ class Container:
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
-    def set_multiple(self, classes: Iterable[type], injectable: Injectable):
+    def update(self, classes: Iterable[type], injectable: Injectable):
         classes = frozenset(self.__get_origin(cls) for cls in classes)
 
         if classes:
@@ -280,9 +287,8 @@ class Module(EventListener):
 
         raise NoInjectable(cls)
 
-    def __setitem__(self, on: type | Iterable[type], injectable: Injectable, /):
-        classes = on if isinstance(on, Iterable) else (on,)
-        self.__container.set_multiple(classes, injectable)
+    def __setitem__(self, cls: type, injectable: Injectable, /):
+        self.update((cls,), injectable)
 
     def __contains__(self, cls: type, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
@@ -344,6 +350,10 @@ class Module(EventListener):
 
         instance = injectable.get_instance()
         return cast(cls, instance)
+
+    def update(self, classes: Iterable[type], injectable: Injectable):
+        self.__container.update(classes, injectable)
+        return self
 
     def use(
         self,
@@ -614,7 +624,9 @@ class InjectableDecorator:
                 else:
                     yield on
 
-            self.__module[classes] = self.__injectable_type(wp)
+            injectable = self.__injectable_type(wp)
+            self.__module.update(classes, injectable)
+
             return wp
 
         return decorator(wrapped) if wrapped else decorator
