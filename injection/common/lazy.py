@@ -1,10 +1,12 @@
 from collections.abc import Callable, Iterator, Mapping
+from threading import RLock
 from types import MappingProxyType
 from typing import Any, Generic, TypeVar
 
 __all__ = ("Lazy", "LazyMapping")
 
 _sentinel = object()
+_thread_lock = RLock()
 
 _T = TypeVar("_T")
 _K = TypeVar("_K")
@@ -19,21 +21,18 @@ class Lazy(Generic[_T]):
         self.__value = _sentinel
 
     def __invert__(self) -> _T:
-        return self.value
+        if not self.is_set:
+            with _thread_lock:
+                self.__value = self.__factory()
+                self.__factory = _sentinel
+
+        return self.__value
 
     def __setattr__(self, name: str, value: Any, /):
         if self.is_set:
             raise TypeError(f"`{self}` is frozen.")
 
         return super().__setattr__(name, value)
-
-    @property
-    def value(self) -> _T:
-        if not self.is_set:
-            self.__value = self.__factory()
-            self.__factory = _sentinel
-
-        return self.__value
 
     @property
     def is_set(self) -> bool:

@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import singledispatchmethod, wraps
 from inspect import Signature, get_annotations
+from threading import RLock
 from types import MappingProxyType
 from typing import (
     Any,
@@ -30,8 +31,8 @@ from typing import (
 )
 
 from injection.common.event import Event, EventChannel, EventListener
-from injection.common.formatting import format_type
 from injection.common.lazy import Lazy, LazyMapping
+from injection.common.tools import format_type, get_origin
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -42,6 +43,7 @@ from injection.exceptions import (
 __all__ = ("Injectable", "Module", "ModulePriorities")
 
 _logger = logging.getLogger(__name__)
+_thread_lock = RLock()
 
 _T = TypeVar("_T")
 
@@ -174,8 +176,10 @@ class SingletonInjectable(BaseInjectable[_T]):
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
-        instance = self.factory()
-        self.cache[self.__INSTANCE_KEY] = instance
+        with _thread_lock:
+            instance = self.factory()
+            self.cache[self.__INSTANCE_KEY] = instance
+
         return instance
 
 
@@ -190,7 +194,7 @@ class Container:
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
-        origin = self.__get_origin(cls)
+        origin = get_origin(cls)
 
         try:
             return self.__data[origin]
@@ -198,7 +202,7 @@ class Container:
             raise NoInjectable(cls) from exc
 
     def __contains__(self, cls: type, /) -> bool:
-        return self.__get_origin(cls) in self.__data
+        return get_origin(cls) in self.__data
 
     @property
     def is_locked(self) -> bool:
@@ -209,7 +213,7 @@ class Container:
         return frozenset(self.__data.values())
 
     def update(self, classes: Iterable[type], injectable: Injectable):
-        classes = frozenset(self.__get_origin(cls) for cls in classes)
+        classes = frozenset(get_origin(cls) for cls in classes)
 
         if classes:
             event = ContainerDependenciesUpdated(self, classes)
@@ -239,10 +243,6 @@ class Container:
 
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
         return self.__channel.dispatch(event)
-
-    @staticmethod
-    def __get_origin(cls: type) -> type:
-        return getattr(cls, "__origin__", cls)
 
 
 """
@@ -334,7 +334,7 @@ class Module(EventListener):
 
     @property
     def __brokers(self) -> Iterator[Container | Module]:
-        yield from self.__modules
+        yield from tuple(self.__modules)
         yield self.__container
 
     def get_instance(self, cls: type[_T]) -> _T | None:
