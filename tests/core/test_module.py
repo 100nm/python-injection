@@ -2,8 +2,7 @@ from typing import Any
 
 import pytest
 
-from injection import Module, ModulePriorities
-from injection.core import Injectable
+from injection.core import Injectable, Module, ModulePriorities
 from injection.exceptions import ModuleError, ModuleLockError, ModuleNotUsedError
 
 

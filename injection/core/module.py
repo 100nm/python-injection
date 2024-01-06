@@ -261,14 +261,6 @@ class ModulePriorities(Enum):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class Module(EventListener):
-    """
-    Object with isolated injection environment.
-
-    Modules have been designed to simplify unit test writing. So think carefully before
-    instantiating a new one. They could increase complexity unnecessarily if used
-    extensively.
-    """
-
     name: str = field(default=None)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
     __container: Container = field(default_factory=Container, init=False)
@@ -298,34 +290,14 @@ class Module(EventListener):
 
     @property
     def inject(self) -> InjectDecorator:
-        """
-        Decorator applicable to a class or function. Inject function dependencies using
-        parameter type annotations. If applied to a class, the dependencies resolved
-        will be those of the `__init__` method.
-        """
-
         return InjectDecorator(self)
 
     @property
     def injectable(self) -> InjectableDecorator:
-        """
-        Decorator applicable to a class or function. It is used to indicate how the
-        injectable will be constructed. At injection time, a new instance will be
-        injected each time. Automatically injects constructor dependencies, can be
-        disabled with `auto_inject=False`.
-        """
-
         return InjectableDecorator(self, NewInjectable)
 
     @property
     def singleton(self) -> InjectableDecorator:
-        """
-        Decorator applicable to a class or function. It is used to indicate how the
-        singleton will be constructed. At injection time, the injected instance will
-        always be the same. Automatically injects constructor dependencies, can be
-        disabled with `auto_inject=False`.
-        """
-
         return InjectableDecorator(self, SingletonInjectable)
 
     @property
@@ -338,11 +310,6 @@ class Module(EventListener):
         yield self.__container
 
     def get_instance(self, cls: type[_T]) -> _T | None:
-        """
-        Function used to retrieve an instance associated with the type passed in
-        parameter or return `None`.
-        """
-
         try:
             injectable = self[cls]
         except KeyError:
@@ -360,12 +327,6 @@ class Module(EventListener):
         module: Module,
         priority: ModulePriorities = ModulePriorities.get_default(),
     ):
-        """
-        Function for using another module. Using another module replaces the module's
-        dependencies with those of the module used. If the dependency is not found, it
-        will be searched for in the module's dependency container.
-        """
-
         if module is self:
             raise ModuleError("Module can't be used by itself.")
 
@@ -382,10 +343,6 @@ class Module(EventListener):
         return self
 
     def stop_using(self, module: Module):
-        """
-        Function to remove a module in use.
-        """
-
         event = ModuleRemoved(self, module)
 
         with suppress(KeyError):
@@ -401,23 +358,11 @@ class Module(EventListener):
         module: Module,
         priority: ModulePriorities = ModulePriorities.get_default(),
     ) -> ContextManager | ContextDecorator:
-        """
-        Context manager or decorator for temporary use of a module.
-        """
-
         self.use(module, priority)
         yield
         self.stop_using(module)
 
     def change_priority(self, module: Module, priority: ModulePriorities):
-        """
-        Function for changing the priority of a module in use.
-        There are two priority values:
-
-        * **LOW**: The module concerned becomes the least important of the modules used.
-        * **HIGH**: The module concerned becomes the most important of the modules used.
-        """
-
         event = ModulePriorityUpdated(self, module, priority)
 
         with self.notify(event):
@@ -426,10 +371,6 @@ class Module(EventListener):
         return self
 
     def unlock(self):
-        """
-        Function to unlock the module by deleting cached instances of singletons.
-        """
-
         for broker in self.__brokers:
             broker.unlock()
 
@@ -581,8 +522,7 @@ class InjectDecorator:
         return wrapper
 
     def __class_decorator(self, cls: type, /) -> type:
-        init_function = type.__getattribute__(cls, "__init__")
-        type.__setattr__(cls, "__init__", self.__decorator(init_function))
+        cls.__init__ = self.__decorator(cls.__init__)
         return cls
 
     def __new_binder(self, function: Callable[..., Any]) -> Binder:
@@ -605,6 +545,7 @@ class InjectableDecorator:
         self,
         wrapped: Callable[..., Any] = None,
         /,
+        *,
         on: type | Iterable[type] = None,
         auto_inject: bool = True,
     ):
@@ -632,7 +573,7 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     @staticmethod
-    def __get_target_class(wrapped: Callable[..., Any], /) -> type | None:
+    def __get_target_class(wrapped: Callable[..., Any]) -> type | None:
         if isinstance(wrapped, type):
             return wrapped
 

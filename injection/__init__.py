@@ -1,7 +1,6 @@
-from .core import Injectable, Module, ModulePriorities
+from .core import Module, ModulePriorities
 
 __all__ = (
-    "Injectable",
     "Module",
     "ModulePriorities",
     "default_module",

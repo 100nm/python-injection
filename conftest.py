@@ -1,6 +1,7 @@
 import pytest
 
-from injection import Module, default_module
+from injection import default_module
+from injection.core import Module
 from tests.helpers import EventHistory
 
 
