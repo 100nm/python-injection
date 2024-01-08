@@ -21,4 +21,4 @@ title "FLAKE"
 flake8
 
 title "PYTEST"
-pytest --cov=./ --cov-report term-missing:skip-covered
+pytest
