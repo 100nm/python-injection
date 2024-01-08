@@ -19,3 +19,4 @@ pip install python-injection
 * [**Basic usage**](documentation/basic-usage.md)
 * [**Advanced usage**](documentation/advanced-usage.md)
 * [**Utils**](documentation/utils.md)
+* [**Integrations**](documentation/integrations.md)

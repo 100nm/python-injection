@@ -6,7 +6,9 @@ from blacksheep.testing import TestClient
 from injection import singleton
 from injection.integrations.blacksheep import InjectionServices
 
-application = Application(services=InjectionServices())
+application = Application(
+    services=InjectionServices(),
+)
 
 
 @singleton
