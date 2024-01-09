@@ -36,13 +36,11 @@ class Module:
         /,
         *,
         on: type | Iterable[type] = ...,
-        auto_inject: bool = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
         injectable will be constructed. At injection time, a new instance will be
-        injected each time. Automatically injects constructor dependencies, can be
-        disabled with `auto_inject=False`.
+        injected each time.
         """
     def singleton(
         self,
@@ -50,13 +48,11 @@ class Module:
         /,
         *,
         on: type | Iterable[type] = ...,
-        auto_inject: bool = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
         singleton will be constructed. At injection time, the injected instance will
-        always be the same. Automatically injects constructor dependencies, can be
-        disabled with `auto_inject=False`.
+        always be the same.
         """
     def get_instance(self, cls: type[_T]) -> _T | None:
         """

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import pytest
+from pydantic import BaseModel
 
 from injection import get_instance, singleton
 
@@ -65,25 +66,12 @@ class TestSingleton:
         assert isinstance(b, C)
         assert a is b
 
-    def test_injectable_without_auto_inject_raise_type_error(self):
+    def test_singleton_with_inject(self):
         @singleton
         class A:
             ...
 
-        @singleton(auto_inject=False)
-        class B:
-            def __init__(self, a: A):
-                raise NotImplementedError
-
-        with pytest.raises(TypeError):
-            get_instance(B)
-
-    def test_singleton_with_auto_inject(self):
         @singleton
-        class A:
-            ...
-
-        @singleton(auto_inject=True)
         class B:
             def __init__(self, __a: A):
                 self.a = __a
@@ -95,12 +83,12 @@ class TestSingleton:
         assert isinstance(b.a, A)
         assert a is b.a
 
-    def test_singleton_with_dataclass_and_auto_inject(self):
+    def test_singleton_with_dataclass_and_inject(self):
         @singleton
         class A:
             ...
 
-        @singleton(auto_inject=True)
+        @singleton
         @dataclass(frozen=True, slots=True)
         class B:
             a: A
@@ -112,7 +100,23 @@ class TestSingleton:
         assert isinstance(b.a, A)
         assert a is b.a
 
-    def test_singleton_with_recipe_and_auto_inject(self):
+    def test_singleton_with_pydantic_model_and_inject(self):
+        @singleton
+        class A(BaseModel):
+            ...
+
+        @singleton
+        class B(BaseModel):
+            a: A
+
+        a = get_instance(A)
+        b = get_instance(B)
+        assert isinstance(a, A)
+        assert isinstance(b, B)
+        assert isinstance(b.a, A)
+        assert a is b.a
+
+    def test_singleton_with_recipe_and_inject(self):
         @singleton
         class A:
             ...
@@ -120,7 +124,7 @@ class TestSingleton:
         class B:
             ...
 
-        @singleton(auto_inject=True)
+        @singleton
         def recipe(__a: A) -> B:
             assert isinstance(__a, A)
             assert __a is a

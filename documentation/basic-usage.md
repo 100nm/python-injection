@@ -17,11 +17,12 @@ If you wish to inject a new instance each time, use `injectable` decorator.
 ```python
 from injection import injectable
 
-
 @injectable
 class Injectable:
     """ class implementation """
 ```
+
+> **Note**: If the class needs dependencies, these will be resolved when the instance is retrieved.
 
 ## Inject an instance
 
@@ -49,6 +50,9 @@ from injection import inject
 class DataClass:
     instance: Injectable = ...
 ```
+
+> **Note**: Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
+> dependencies.
 
 ## Inheritance
 
@@ -98,17 +102,4 @@ from injection import singleton
 @singleton
 def my_recipe() -> Singleton:
     """ recipe implementation """
-```
-
-## Auto inject
-
-By default, `injectable` and `singleton` decorators will automatically apply `@inject` to the decorated class or 
-function. To disable it, set the `auto_inject` parameter to `False`.
-
-```python
-from injection import singleton
-
-@singleton(auto_inject=False)
-class Singleton:
-    """ class implementation """
 ```

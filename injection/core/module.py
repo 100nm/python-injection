@@ -547,12 +547,8 @@ class InjectableDecorator:
         /,
         *,
         on: type | Iterable[type] = None,
-        auto_inject: bool = True,
     ):
         def decorator(wp):
-            if auto_inject:
-                wp = self.__module.inject(wp)
-
             @lambda fn: fn()
             def classes():
                 if cls := self.__get_target_class(wp):
@@ -565,7 +561,12 @@ class InjectableDecorator:
                 else:
                     yield on
 
-            injectable = self.__injectable_type(wp)
+            @self.__module.inject
+            @wraps(wp, updated=())
+            def factory(*args, **kwargs):
+                return wp(*args, **kwargs)
+
+            injectable = self.__injectable_type(factory)
             self.__module.update(classes, injectable)
 
             return wp
