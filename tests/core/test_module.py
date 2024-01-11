@@ -83,6 +83,24 @@ class TestModule:
         assert instance is None
 
     """
+    get_lazy_instance
+    """
+
+    def test_get_lazy_instance_with_success_return_lazy_instance(self, module):
+        module[SomeClass] = self.get_test_injectable(SomeClass())
+
+        lazy_instance = module.get_lazy_instance(SomeClass)
+        assert not lazy_instance.is_set
+        assert isinstance(~lazy_instance, SomeClass)
+        assert lazy_instance.is_set
+
+    def test_get_lazy_instance_with_no_injectable_return_lazy_none(self, module):
+        lazy_instance = module.get_lazy_instance(SomeClass)
+        assert not lazy_instance.is_set
+        assert ~lazy_instance is None
+        assert lazy_instance.is_set
+
+    """
     use
     """
 

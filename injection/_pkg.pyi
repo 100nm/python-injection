@@ -3,11 +3,15 @@ from contextlib import ContextDecorator
 from enum import Enum
 from typing import Any, ContextManager, Final, TypeVar, final
 
+from injection.common.lazy import Lazy
+
 _T = TypeVar("_T")
 
 default_module: Final[Module] = ...
 
 get_instance = default_module.get_instance
+get_lazy_instance = default_module.get_lazy_instance
+
 inject = default_module.inject
 injectable = default_module.injectable
 singleton = default_module.singleton
@@ -58,6 +62,14 @@ class Module:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
+        """
+    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
+        """
+        Function used to retrieve an instance associated with the type passed in
+        parameter or `None`. Return a `Lazy` object. To access the instance contained
+        in a lazy object, simply use a wavy line (~).
+
+        Example: instance = ~lazy_instance
         """
     def use(self, module: Module, priority: ModulePriorities = ...):
         """
