@@ -54,6 +54,26 @@ class DataClass:
 > **Note**: Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
 > dependencies.
 
+## Get an instance
+
+_Example with `get_instance` function:_
+
+```python
+from injection import get_instance
+
+instance = get_instance(Injectable)
+```
+
+_Example with `get_lazy_instance` function:_
+
+```python
+from injection import get_lazy_instance
+
+lazy_instance = get_lazy_instance(Injectable)
+# ...
+instance = ~lazy_instance
+```
+
 ## Inheritance
 
 In the case of inheritance, you can use the decorator parameter `on` to link the injection to one or several other

@@ -318,6 +318,9 @@ class Module(EventListener):
         instance = injectable.get_instance()
         return cast(cls, instance)
 
+    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
+        return Lazy(lambda: self.get_instance(cls))
+
     def update(self, classes: Iterable[type], injectable: Injectable):
         self.__container.update(classes, injectable)
         return self
@@ -556,10 +559,10 @@ class InjectableDecorator:
 
                 if on is None:
                     return
-                elif isinstance(on, Iterable):
-                    yield from on
-                else:
+                elif isinstance(on, type | str):
                     yield on
+                else:
+                    yield from on
 
             @self.__module.inject
             @wraps(wp, updated=())
