@@ -16,7 +16,7 @@ from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import singledispatchmethod, wraps
-from inspect import Signature, get_annotations
+from inspect import Signature, get_annotations, isfunction
 from threading import RLock
 from types import MappingProxyType
 from typing import (
@@ -32,7 +32,7 @@ from typing import (
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
-from injection.common.tools import format_type, get_origin
+from injection.common.tools import format_type, get_origins
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -194,15 +194,14 @@ class Container:
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
-        origin = get_origin(cls)
+        for origin in get_origins(cls):
+            with suppress(KeyError):
+                return self.__data[origin]
 
-        try:
-            return self.__data[origin]
-        except KeyError as exc:
-            raise NoInjectable(cls) from exc
+        raise NoInjectable(cls)
 
     def __contains__(self, cls: type, /) -> bool:
-        return get_origin(cls) in self.__data
+        return any(origin in self.__data for origin in get_origins(cls))
 
     @property
     def is_locked(self) -> bool:
@@ -213,7 +212,7 @@ class Container:
         return frozenset(self.__data.values())
 
     def update(self, classes: Iterable[type], injectable: Injectable):
-        classes = frozenset(get_origin(cls) for cls in classes)
+        classes = frozenset(get_origins(*classes))
 
         if classes:
             event = ContainerDependenciesUpdated(self, classes)
@@ -395,7 +394,7 @@ class Module(EventListener):
 
         with self.__channel.dispatch(event):
             yield
-            _logger.debug(f"{event}")
+            _logger.debug(event)
 
     def __check_locking(self):
         if self.is_locked:
@@ -554,7 +553,7 @@ class InjectableDecorator:
         def decorator(wp):
             @lambda fn: fn()
             def classes():
-                if cls := self.__get_target_class(wp):
+                if cls := self.__get_target(wp):
                     yield cls
 
                 if on is None:
@@ -577,14 +576,11 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     @staticmethod
-    def __get_target_class(wrapped: Callable[..., Any]) -> type | None:
+    def __get_target(wrapped: Callable[..., Any]) -> type | None:
         if isinstance(wrapped, type):
             return wrapped
 
-        if callable(wrapped):
-            return_type = get_annotations(wrapped, eval_str=True).get("return")
-
-            if isinstance(return_type, type):
-                return return_type
+        if isfunction(wrapped):
+            return get_annotations(wrapped, eval_str=True).get("return")
 
         return None
