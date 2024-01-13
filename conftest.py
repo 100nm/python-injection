@@ -1,8 +1,12 @@
+import logging
+
 import pytest
 
 from injection import default_module
 from injection.core import Module
 from tests.helpers import EventHistory
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 @pytest.fixture(scope="function", autouse=True)

@@ -16,9 +16,9 @@ from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import singledispatchmethod, wraps
-from inspect import Signature, get_annotations
+from inspect import Signature, get_annotations, isclass, isfunction
 from threading import RLock
-from types import MappingProxyType
+from types import MappingProxyType, UnionType
 from typing import (
     Any,
     ContextManager,
@@ -32,7 +32,7 @@ from typing import (
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
-from injection.common.tools import format_type, get_origin
+from injection.common.tools import format_type, get_origins
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -193,16 +193,15 @@ class Container:
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
-        origin = get_origin(cls)
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
+        for origin in get_origins(cls):
+            with suppress(KeyError):
+                return self.__data[origin]
 
-        try:
-            return self.__data[origin]
-        except KeyError as exc:
-            raise NoInjectable(cls) from exc
+        raise NoInjectable(cls)
 
-    def __contains__(self, cls: type, /) -> bool:
-        return get_origin(cls) in self.__data
+    def __contains__(self, cls: type | UnionType, /) -> bool:
+        return any(origin in self.__data for origin in get_origins(cls))
 
     @property
     def is_locked(self) -> bool:
@@ -212,8 +211,8 @@ class Container:
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
-    def update(self, classes: Iterable[type], injectable: Injectable):
-        classes = frozenset(get_origin(cls) for cls in classes)
+    def update(self, classes: Iterable[type] | UnionType, injectable: Injectable):
+        classes = frozenset(get_origins(*classes))
 
         if classes:
             event = ContainerDependenciesUpdated(self, classes)
@@ -272,17 +271,17 @@ class Module(EventListener):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-    def __getitem__(self, cls: type[_T], /) -> Injectable[_T]:
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
         for broker in self.__brokers:
             with suppress(KeyError):
                 return broker[cls]
 
         raise NoInjectable(cls)
 
-    def __setitem__(self, cls: type, injectable: Injectable, /):
+    def __setitem__(self, cls: type | UnionType, injectable: Injectable, /):
         self.update((cls,), injectable)
 
-    def __contains__(self, cls: type, /) -> bool:
+    def __contains__(self, cls: type | UnionType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     def __str__(self) -> str:
@@ -309,7 +308,7 @@ class Module(EventListener):
         yield from tuple(self.__modules)
         yield self.__container
 
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance(self, cls: type[_T] | UnionType) -> _T | None:
         try:
             injectable = self[cls]
         except KeyError:
@@ -318,10 +317,10 @@ class Module(EventListener):
         instance = injectable.get_instance()
         return cast(cls, instance)
 
-    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
+    def get_lazy_instance(self, cls: type[_T] | UnionType) -> Lazy[_T | None]:
         return Lazy(lambda: self.get_instance(cls))
 
-    def update(self, classes: Iterable[type], injectable: Injectable):
+    def update(self, classes: Iterable[type] | UnionType, injectable: Injectable):
         self.__container.update(classes, injectable)
         return self
 
@@ -395,7 +394,7 @@ class Module(EventListener):
 
         with self.__channel.dispatch(event):
             yield
-            _logger.debug(f"{event}")
+            _logger.debug(event)
 
     def __check_locking(self):
         if self.is_locked:
@@ -507,7 +506,7 @@ class InjectDecorator:
 
     def __call__(self, wrapped: Callable[..., Any] = None, /):
         def decorator(wp):
-            if isinstance(wp, type):
+            if isclass(wp):
                 return self.__class_decorator(wp)
 
             return self.__decorator(wp)
@@ -549,12 +548,12 @@ class InjectableDecorator:
         wrapped: Callable[..., Any] = None,
         /,
         *,
-        on: type | Iterable[type] = None,
+        on: type | Iterable[type] | UnionType = None,
     ):
         def decorator(wp):
             @lambda fn: fn()
             def classes():
-                if cls := self.__get_target_class(wp):
+                if cls := self.__get_class(wp):
                     yield cls
 
                 if on is None:
@@ -577,14 +576,11 @@ class InjectableDecorator:
         return decorator(wrapped) if wrapped else decorator
 
     @staticmethod
-    def __get_target_class(wrapped: Callable[..., Any]) -> type | None:
-        if isinstance(wrapped, type):
+    def __get_class(wrapped: Callable[..., Any]) -> type | None:
+        if isclass(wrapped):
             return wrapped
 
-        if callable(wrapped):
-            return_type = get_annotations(wrapped, eval_str=True).get("return")
-
-            if isinstance(return_type, type):
-                return return_type
+        if isfunction(wrapped):
+            return get_annotations(wrapped, eval_str=True).get("return")
 
         return None
