@@ -68,6 +68,15 @@ class TestModule:
         assert A in module
         assert B not in module
 
+    def test_contains_with_union_return_bool(self, module):
+        class T:
+            ...
+
+        module[T] = self.get_test_injectable(T())
+
+        assert T | None in module
+        assert str | None not in module
+
     """
     get_instance
     """

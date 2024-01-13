@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 import pytest
 
@@ -23,19 +23,34 @@ class SomeClass:
 
 
 class TestInject:
-    def test_inject_with_success(self):
+    @classmethod
+    def assert_inject(cls, annotation: Any):
         @inject
-        def my_function(instance: SomeInjectable):
+        def my_function(instance: annotation):
             assert isinstance(instance, SomeInjectable)
 
         my_function()
+
+    def test_inject_with_success(self):
+        self.assert_inject(SomeInjectable)
 
     def test_inject_with_annotated(self):
-        @inject
-        def my_function(instance: Annotated[SomeInjectable, "metadata"]):
-            assert isinstance(instance, SomeInjectable)
+        self.assert_inject(Annotated[SomeInjectable, "metadata"])
 
-        my_function()
+    def test_inject_with_union(self):
+        self.assert_inject(Union[T, SomeInjectable])
+
+    def test_inject_with_new_union(self):
+        self.assert_inject(T | SomeInjectable)
+
+    def test_inject_with_union_and_none(self):
+        self.assert_inject(None | SomeInjectable)
+
+    def test_inject_with_annotated_and_union(self):
+        self.assert_inject(Annotated[T | SomeInjectable, "metadata"])
+
+    def test_inject_with_optional(self):
+        self.assert_inject(Optional[SomeInjectable])
 
     def test_inject_with_positional_only_parameter(self):
         @inject

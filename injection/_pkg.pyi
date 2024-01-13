@@ -1,6 +1,7 @@
 from collections.abc import Callable, Iterable
 from contextlib import ContextDecorator
 from enum import Enum
+from types import UnionType
 from typing import Any, ContextManager, Final, TypeVar, final
 
 from injection.common.lazy import Lazy
@@ -27,7 +28,7 @@ class Module:
     """
 
     def __init__(self, name: str = ...): ...
-    def __contains__(self, cls: type, /) -> bool: ...
+    def __contains__(self, cls: type | UnionType, /) -> bool: ...
     def inject(self, wrapped: Callable[..., Any] = ..., /):
         """
         Decorator applicable to a class or function. Inject function dependencies using
@@ -39,7 +40,7 @@ class Module:
         wrapped: Callable[..., Any] = ...,
         /,
         *,
-        on: type | Iterable[type] = ...,
+        on: type | Iterable[type] | UnionType = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -51,19 +52,19 @@ class Module:
         wrapped: Callable[..., Any] = ...,
         /,
         *,
-        on: type | Iterable[type] = ...,
+        on: type | Iterable[type] | UnionType = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
         singleton will be constructed. At injection time, the injected instance will
         always be the same.
         """
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance(self, cls: type[_T] | UnionType) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
         """
-    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
+    def get_lazy_instance(self, cls: type[_T] | UnionType) -> Lazy[_T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Lazy` object. To access the instance contained

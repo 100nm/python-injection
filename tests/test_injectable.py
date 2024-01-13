@@ -28,6 +28,24 @@ class TestInjectable:
         instance_2 = get_instance(SomeClass)
         assert instance_1 is not instance_2
 
+    def test_injectable_with_recipe_and_union(self):
+        class A:
+            ...
+
+        class B(A):
+            ...
+
+        @injectable
+        def recipe() -> A | B:
+            return B()
+
+        a = get_instance(A)
+        b = get_instance(B)
+        assert isinstance(a, B)
+        assert isinstance(b, B)
+        assert a is not get_instance(A)
+        assert b is not get_instance(B)
+
     def test_injectable_with_recipe_and_no_return_type(self):
         class SomeClass:
             ...
