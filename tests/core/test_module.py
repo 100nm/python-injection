@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 
@@ -89,6 +89,10 @@ class TestModule:
 
     def test_get_instance_with_no_injectable_return_none(self, module):
         instance = module.get_instance(SomeClass)
+        assert instance is None
+
+    def test_get_instance_with_empty_annotated_return_none(self, module):
+        instance = module.get_instance(Annotated)
         assert instance is None
 
     """

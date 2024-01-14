@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from types import NoneType, UnionType
-from typing import Any, Iterator, Union, get_args
+from typing import Annotated, Any, Union, get_args, get_origin
 
 __all__ = ("format_type", "get_origins")
 
@@ -11,25 +12,25 @@ def format_type(cls: type | Any) -> str:
         return str(cls)
 
 
-def get_full_origin(cls: type | Any) -> type | Any:
-    try:
-        origin = cls.__origin__
-    except AttributeError:
-        return cls
-
-    return get_full_origin(origin)
-
-
 def get_origins(*classes: type | Any) -> Iterator[type | Any]:
     for cls in classes:
-        if cls in (None, NoneType):
+        origin = get_origin(cls) or cls
+
+        if origin in (None, NoneType):
             continue
 
-        origin = get_full_origin(cls)
+        arguments = get_args(cls)
 
-        if origin is Union or isinstance(cls, UnionType):
-            for argument in get_args(cls):
-                yield from get_origins(argument)
+        if origin in (Union, UnionType):
+            yield from get_origins(*arguments)
+
+        elif origin is Annotated:
+            try:
+                annotated = arguments[0]
+            except IndexError:
+                continue
+
+            yield from get_origins(annotated)
 
         else:
             yield origin
