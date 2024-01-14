@@ -46,6 +46,7 @@ _logger = logging.getLogger(__name__)
 _thread_lock = RLock()
 
 _T = TypeVar("_T")
+Types = Iterable[type] | UnionType
 
 
 """
@@ -211,7 +212,7 @@ class Container:
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
-    def update(self, classes: Iterable[type] | UnionType, injectable: Injectable):
+    def update(self, classes: Types, injectable: Injectable):
         classes = frozenset(get_origins(*classes))
 
         if classes:
@@ -308,7 +309,16 @@ class Module(EventListener):
         yield from tuple(self.__modules)
         yield self.__container
 
-    def get_instance(self, cls: type[_T] | UnionType) -> _T | None:
+    def constant(self, instance: _T, on: type | Types = None) -> _T:
+        cls = type(instance)
+
+        @self.injectable(on=(cls, on))
+        def get_constant():
+            return instance
+
+        return instance
+
+    def get_instance(self, cls: type[_T]) -> _T | None:
         try:
             injectable = self[cls]
         except KeyError:
@@ -317,10 +327,10 @@ class Module(EventListener):
         instance = injectable.get_instance()
         return cast(cls, instance)
 
-    def get_lazy_instance(self, cls: type[_T] | UnionType) -> Lazy[_T | None]:
+    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
         return Lazy(lambda: self.get_instance(cls))
 
-    def update(self, classes: Iterable[type] | UnionType, injectable: Injectable):
+    def update(self, classes: Types, injectable: Injectable):
         self.__container.update(classes, injectable)
         return self
 
@@ -548,39 +558,29 @@ class InjectableDecorator:
         wrapped: Callable[..., Any] = None,
         /,
         *,
-        on: type | Iterable[type] | UnionType = None,
+        on: type | Types = None,
     ):
         def decorator(wp):
-            @lambda fn: fn()
-            def classes():
-                if cls := self.__get_class(wp):
-                    yield cls
-
-                if on is None:
-                    return
-                elif isinstance(on, type | str):
-                    yield on
-                else:
-                    yield from on
-
             @self.__module.inject
             @wraps(wp, updated=())
             def factory(*args, **kwargs):
                 return wp(*args, **kwargs)
 
             injectable = self.__injectable_type(factory)
+            classes = self.__get_classes(wp, on)
             self.__module.update(classes, injectable)
-
             return wp
 
         return decorator(wrapped) if wrapped else decorator
 
-    @staticmethod
-    def __get_class(wrapped: Callable[..., Any]) -> type | None:
-        if isclass(wrapped):
-            return wrapped
+    @classmethod
+    def __get_classes(cls, *objects: Any) -> Iterator[type | UnionType]:
+        for obj in objects:
+            if isinstance(obj, Iterable) and not isinstance(obj, type | str):
+                yield from cls.__get_classes(*obj)
 
-        if isfunction(wrapped):
-            return get_annotations(wrapped, eval_str=True).get("return")
+            elif isfunction(obj):
+                yield get_annotations(obj, eval_str=True).get("return")
 
-        return None
+            else:
+                yield obj

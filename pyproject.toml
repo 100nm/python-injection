@@ -14,7 +14,7 @@ python = ">=3.10, <4"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
-blacksheep = "^2.0.4"
+blacksheep = "^2.0.5"
 flake8 = "*"
 isort = "*"
 pydantic = "^2.5.3"
