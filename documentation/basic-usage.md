@@ -2,6 +2,8 @@
 
 ## Create an injectable
 
+> **Note**: If the class needs dependencies, these will be resolved when the instance is retrieved.
+
 If you wish to inject a singleton, use `singleton` decorator.
 
 ```python
@@ -22,7 +24,13 @@ class Injectable:
     """ class implementation """
 ```
 
-> **Note**: If the class needs dependencies, these will be resolved when the instance is retrieved.
+If you have a constant (such as a global variable) and wish to register it as an injectable, use `constant` function.
+
+```python
+from injection import constant
+
+app = constant(Application())
+```
 
 ## Inject an instance
 
@@ -40,6 +48,9 @@ def my_function(instance: Injectable):
 If `inject` decorates a class, it will be applied to the `__init__` method.
 _Especially useful for dataclasses:_
 
+> **Note**: Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
+> dependencies.
+
 ```python
 from dataclasses import dataclass
 
@@ -50,9 +61,6 @@ from injection import inject
 class DataClass:
     instance: Injectable = ...
 ```
-
-> **Note**: Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
-> dependencies.
 
 ## Get an instance
 

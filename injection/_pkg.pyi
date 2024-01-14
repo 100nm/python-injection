@@ -10,6 +10,7 @@ _T = TypeVar("_T")
 
 default_module: Final[Module] = ...
 
+constant = default_module.constant
 get_instance = default_module.get_instance
 get_lazy_instance = default_module.get_lazy_instance
 
@@ -59,12 +60,22 @@ class Module:
         singleton will be constructed. At injection time, the injected instance will
         always be the same.
         """
-    def get_instance(self, cls: type[_T] | UnionType) -> _T | None:
+    def constant(
+        self,
+        instance: _T,
+        on: type | Iterable[type] | UnionType = ...,
+    ) -> _T:
+        """
+        Function for registering a specific instance to be injected. This is useful for
+        registering global variables. The difference with the singleton decorator is
+        that no dependencies are resolved, so the module doesn't need to be locked.
+        """
+    def get_instance(self, cls: type[_T]) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
         """
-    def get_lazy_instance(self, cls: type[_T] | UnionType) -> Lazy[_T | None]:
+    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Lazy` object. To access the instance contained

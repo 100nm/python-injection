@@ -114,6 +114,23 @@ class TestModule:
         assert lazy_instance.is_set
 
     """
+    constant
+    """
+
+    def test_constant_with_success_return_instance(self, module):
+        instance = SomeClass()
+        return_value = module.constant(instance)
+        assert instance is return_value is module.get_instance(SomeClass)
+
+    def test_constant_with_on_return_instance(self, module):
+        class Class(SomeClass):
+            ...
+
+        instance = Class()
+        module.constant(instance, on=SomeClass)
+        assert instance is module.get_instance(Class) is module.get_instance(SomeClass)
+
+    """
     use
     """
 

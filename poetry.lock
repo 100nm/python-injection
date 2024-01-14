@@ -59,27 +59,27 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "blacksheep"
-version = "2.0.4"
+version = "2.0.5"
 description = "Fast web framework for Python asyncio"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "blacksheep-2.0.4-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:ad3cda1a727cae4f08308246aec8d77e379df8e128b34a6d36e977125a5aec66"},
-    {file = "blacksheep-2.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d1b6af9e6b3b66bbf02f1be72e46e116fca726b46ace43b3b4e3a7a766afd65d"},
-    {file = "blacksheep-2.0.4-cp310-cp310-win_amd64.whl", hash = "sha256:026dbb857f702696f6f4ed6ff535925dea4b4ca6003e217f046f1da4faec545c"},
-    {file = "blacksheep-2.0.4-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:fff95fc531861e313a1eacac2b86e215661d3724f42712ead3a8be5d59b5c5fb"},
-    {file = "blacksheep-2.0.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:56addef8028d7d51be76d1575740fc5fb3eb141e18d5b091af45169656c27c31"},
-    {file = "blacksheep-2.0.4-cp311-cp311-win_amd64.whl", hash = "sha256:792af3170476a5a9a013e60bea5b8aafa9b0e697217b36e396d1458900d0cafe"},
-    {file = "blacksheep-2.0.4-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:c9a26a9fa68872e66d2342675684d8c6413d82f4ba333a907c899017549f839a"},
-    {file = "blacksheep-2.0.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ea0d6ed6a6368f16f38a0a626844bd68fa0e213088c1eaa04eba902080c87a5b"},
-    {file = "blacksheep-2.0.4-cp312-cp312-win_amd64.whl", hash = "sha256:8a821527ad372facf928b405e624114cef422a46129542e72fee1d69aec5b977"},
-    {file = "blacksheep-2.0.4-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:e288bd2e1fe538ef3be9f4e14d15336be92d5fe7d93dd2482d0b7ff71119c541"},
-    {file = "blacksheep-2.0.4-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8a9886326e63d76e9678bf6c81de98b51ca7c1c48fe30da815cd4c8af0b45fa5"},
-    {file = "blacksheep-2.0.4-cp38-cp38-win_amd64.whl", hash = "sha256:e7960431e97c228342dbc34de5712680bd8157d16ab42d991dbd2870e8e1db55"},
-    {file = "blacksheep-2.0.4-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:3a796ec16c1f1b39c5c5f9e8378f16b81c9e2cbc7e243ca16e56d600b69c2810"},
-    {file = "blacksheep-2.0.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:06e5788b47f869c016314499a14af58bd5186906954ac21d99723ece12c03860"},
-    {file = "blacksheep-2.0.4-cp39-cp39-win_amd64.whl", hash = "sha256:ae9e51ec523678cff55e6c18bd321e34062d7e6648e3eee65a029850bcb984c0"},
-    {file = "blacksheep-2.0.4.tar.gz", hash = "sha256:72044b848d86d36d7b43acf680e4936bb0d027ba91cb5ae3490d61edeba0bc28"},
+    {file = "blacksheep-2.0.5-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:f29bc8b069890ff05e6000174273e89df3113795dde03246659099f33622283e"},
+    {file = "blacksheep-2.0.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:26bfdd65be992f1321bbf641242ae2331017d59c8fd91373e3b7261300384fcb"},
+    {file = "blacksheep-2.0.5-cp310-cp310-win_amd64.whl", hash = "sha256:b2cb27f26ff1c92fbc09acd548ccc376de8af65097439bc477503cebf0a50f1d"},
+    {file = "blacksheep-2.0.5-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:7a0135d6ee5d97ebd10868d36a6ae6f4f9911b500f2c5ecccd6e977f104b4562"},
+    {file = "blacksheep-2.0.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2423d91808e5bcc87f8ebbc12b1f2086a28afd40303cdd633a9a5e4fa6bf600d"},
+    {file = "blacksheep-2.0.5-cp311-cp311-win_amd64.whl", hash = "sha256:830a032abd3bcab0b1f92700811ed79dc44dc8fd4d35d6c6954bde402a788154"},
+    {file = "blacksheep-2.0.5-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:29508fe5e9dffad5453cd4ab4dc34d1c697bcfb782e16330d5de234f84a61a3d"},
+    {file = "blacksheep-2.0.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b6a42421a8465680c568ae3d52e95e241496f4ca6674a44ba28f24a5b5b65fd6"},
+    {file = "blacksheep-2.0.5-cp312-cp312-win_amd64.whl", hash = "sha256:0a06f67d7dcf43dc661b7d208f32c5851d2ade84fed40f2da5c106b60fac9f05"},
+    {file = "blacksheep-2.0.5-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:2222f8c8aae48fe7fc027d4dbac145870d325dc043abf188999e7c02bef23691"},
+    {file = "blacksheep-2.0.5-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0fa58505b68a3be7b3c01ad93235fcb9b2375b70f480db90618991b0da09de84"},
+    {file = "blacksheep-2.0.5-cp38-cp38-win_amd64.whl", hash = "sha256:2ebbee060832de9d0fc16f9dfee64829ce3e25996de5119dbe9cb1f23405bc94"},
+    {file = "blacksheep-2.0.5-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:4bf32ec1cdda2bfce75e4f69218de1a87b71a3d1af4e7ca653fba44549b27211"},
+    {file = "blacksheep-2.0.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2f13d104c8570e0f4aad1b3ab235ef5304b8625dbea5cc4321ee599dab132539"},
+    {file = "blacksheep-2.0.5-cp39-cp39-win_amd64.whl", hash = "sha256:c309ac921c9ca3db710f8a6109efbdf926ce389cc5d8fb2ce91c4f616a6b8272"},
+    {file = "blacksheep-2.0.5.tar.gz", hash = "sha256:f4a70add521c6967394059cf9b50d11695168e343cbaa9bb9db5b16b87d6e7f8"},
 ]
 
 [package.dependencies]
@@ -904,4 +904,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <4"
-content-hash = "fd1e18e34fa7b4ebcc8383137ba9bd5136fa0ac813dd64c4b96e8fc2ccdb0d4f"
+content-hash = "609fd838cb2f1b7f753777a2426eed60d5d651ca4852bcc71ea1fea37b403eec"
