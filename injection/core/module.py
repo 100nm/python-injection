@@ -309,7 +309,7 @@ class Module(EventListener):
         yield from tuple(self.__modules)
         yield self.__container
 
-    def constant(self, instance: _T, on: type | Types = None) -> _T:
+    def set_constant(self, instance: _T, on: type | Types = None) -> _T:
         cls = type(instance)
 
         @self.injectable(on=(cls, on))

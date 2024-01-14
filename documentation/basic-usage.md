@@ -24,12 +24,13 @@ class Injectable:
     """ class implementation """
 ```
 
-If you have a constant (such as a global variable) and wish to register it as an injectable, use `constant` function.
+If you have a constant (such as a global variable) and wish to register it as an injectable, use `set_constant`
+function.
 
 ```python
-from injection import constant
+from injection import set_constant
 
-app = constant(Application())
+app = set_constant(Application())
 ```
 
 ## Inject an instance

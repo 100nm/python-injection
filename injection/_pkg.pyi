@@ -10,13 +10,14 @@ _T = TypeVar("_T")
 
 default_module: Final[Module] = ...
 
-constant = default_module.constant
 get_instance = default_module.get_instance
 get_lazy_instance = default_module.get_lazy_instance
 
 inject = default_module.inject
 injectable = default_module.injectable
 singleton = default_module.singleton
+
+set_constant = default_module.set_constant
 
 @final
 class Module:
@@ -60,7 +61,7 @@ class Module:
         singleton will be constructed. At injection time, the injected instance will
         always be the same.
         """
-    def constant(
+    def set_constant(
         self,
         instance: _T,
         on: type | Iterable[type] | UnionType = ...,
