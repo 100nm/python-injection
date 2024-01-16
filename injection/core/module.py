@@ -15,8 +15,8 @@ from collections.abc import (
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import singledispatchmethod, wraps
-from inspect import Signature, get_annotations, isclass, isfunction
+from functools import partialmethod, singledispatchmethod, wraps
+from inspect import Signature, isclass
 from threading import RLock
 from types import MappingProxyType, UnionType
 from typing import (
@@ -26,13 +26,12 @@ from typing import (
     Protocol,
     TypeVar,
     cast,
-    final,
     runtime_checkable,
 )
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
-from injection.common.tools import format_type, get_origins
+from injection.common.tools import find_types, format_type, get_origins
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -132,6 +131,9 @@ Injectables
 @runtime_checkable
 class Injectable(Protocol[_T]):
     __slots__ = ()
+
+    def __init__(self, factory: Callable[[], _T], *args, **kwargs):
+        ...
 
     @property
     def is_locked(self) -> bool:
@@ -289,18 +291,6 @@ class Module(EventListener):
         return self.name or object.__str__(self)
 
     @property
-    def inject(self) -> InjectDecorator:
-        return InjectDecorator(self)
-
-    @property
-    def injectable(self) -> InjectableDecorator:
-        return InjectableDecorator(self, NewInjectable)
-
-    @property
-    def singleton(self) -> InjectableDecorator:
-        return InjectableDecorator(self, SingletonInjectable)
-
-    @property
     def is_locked(self) -> bool:
         return any(broker.is_locked for broker in self.__brokers)
 
@@ -308,6 +298,25 @@ class Module(EventListener):
     def __brokers(self) -> Iterator[Container | Module]:
         yield from tuple(self.__modules)
         yield self.__container
+
+    def injectable(
+        self,
+        wrapped: Callable[..., Any] = None,
+        /,
+        *,
+        cls: type[Injectable] = NewInjectable,
+        on: type | Types = None,
+    ):
+        def decorator(wp):
+            factory = self.inject(wp, return_factory=True)
+            injectable = cls(factory)
+            classes = find_types(wp, on)
+            self.update(classes, injectable)
+            return wp
+
+        return decorator(wrapped) if wrapped else decorator
+
+    singleton = partialmethod(injectable, cls=SingletonInjectable)
 
     def set_constant(self, instance: _T, on: type | Types = None) -> _T:
         cls = type(instance)
@@ -317,6 +326,29 @@ class Module(EventListener):
             return instance
 
         return instance
+
+    def inject(
+        self,
+        wrapped: Callable[..., Any] = None,
+        /,
+        *,
+        return_factory: bool = False,
+    ):
+        def decorator(wp):
+            if not return_factory and isclass(wp):
+                wp.__init__ = decorator(wp.__init__)
+                return wp
+
+            lazy_binder = Lazy[Binder](lambda: self.__new_binder(wp))
+
+            @wraps(wp)
+            def wrapper(*args, **kwargs):
+                arguments = (~lazy_binder).bind(*args, **kwargs)
+                return wp(*arguments.args, **arguments.kwargs)
+
+            return wrapper
+
+        return decorator(wrapped) if wrapped else decorator
 
     def get_instance(self, cls: type[_T]) -> _T | None:
         try:
@@ -420,6 +452,12 @@ class Module(EventListener):
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
 
+    def __new_binder(self, target: Callable[..., Any]) -> Binder:
+        signature = inspect.signature(target, eval_str=True)
+        binder = Binder(signature).update(self)
+        self.add_listener(binder)
+        return binder
+
 
 """
 Binder
@@ -502,85 +540,3 @@ class Binder(EventListener):
     def _(self, event: ModuleEvent, /) -> ContextManager:
         yield
         self.update(event.on_module)
-
-
-"""
-Decorators
-"""
-
-
-@final
-@dataclass(repr=False, frozen=True, slots=True)
-class InjectDecorator:
-    __module: Module
-
-    def __call__(self, wrapped: Callable[..., Any] = None, /):
-        def decorator(wp):
-            if isclass(wp):
-                return self.__class_decorator(wp)
-
-            return self.__decorator(wp)
-
-        return decorator(wrapped) if wrapped else decorator
-
-    def __decorator(self, function: Callable[..., Any], /) -> Callable[..., Any]:
-        lazy_binder = Lazy[Binder](lambda: self.__new_binder(function))
-
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            arguments = (~lazy_binder).bind(*args, **kwargs)
-            return function(*arguments.args, **arguments.kwargs)
-
-        return wrapper
-
-    def __class_decorator(self, cls: type, /) -> type:
-        cls.__init__ = self.__decorator(cls.__init__)
-        return cls
-
-    def __new_binder(self, function: Callable[..., Any]) -> Binder:
-        signature = inspect.signature(function, eval_str=True)
-        binder = Binder(signature).update(self.__module)
-        self.__module.add_listener(binder)
-        return binder
-
-
-@final
-@dataclass(repr=False, frozen=True, slots=True)
-class InjectableDecorator:
-    __module: Module
-    __injectable_type: type[BaseInjectable]
-
-    def __repr__(self) -> str:
-        return f"<{self.__injectable_type.__qualname__} decorator>"
-
-    def __call__(
-        self,
-        wrapped: Callable[..., Any] = None,
-        /,
-        *,
-        on: type | Types = None,
-    ):
-        def decorator(wp):
-            @self.__module.inject
-            @wraps(wp, updated=())
-            def factory(*args, **kwargs):
-                return wp(*args, **kwargs)
-
-            injectable = self.__injectable_type(factory)
-            classes = self.__get_classes(wp, on)
-            self.__module.update(classes, injectable)
-            return wp
-
-        return decorator(wrapped) if wrapped else decorator
-
-    @classmethod
-    def __get_classes(cls, *objects: Any) -> Iterator[type | UnionType]:
-        for obj in objects:
-            if isinstance(obj, Iterable) and not isinstance(obj, type | str):
-                yield from cls.__get_classes(*obj)
-
-            elif isfunction(obj):
-                yield get_annotations(obj, eval_str=True).get("return")
-
-            else:
-                yield obj

@@ -1,8 +1,17 @@
+from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from contextlib import ContextDecorator
 from enum import Enum
 from types import UnionType
-from typing import Any, ContextManager, Final, TypeVar, final
+from typing import (
+    Any,
+    ContextManager,
+    Final,
+    Protocol,
+    TypeVar,
+    final,
+    runtime_checkable,
+)
 
 from injection.common.lazy import Lazy
 
@@ -12,12 +21,10 @@ default_module: Final[Module] = ...
 
 get_instance = default_module.get_instance
 get_lazy_instance = default_module.get_lazy_instance
-
 inject = default_module.inject
 injectable = default_module.injectable
-singleton = default_module.singleton
-
 set_constant = default_module.set_constant
+singleton = default_module.singleton
 
 @final
 class Module:
@@ -42,6 +49,7 @@ class Module:
         wrapped: Callable[..., Any] = ...,
         /,
         *,
+        cls: type[Injectable] = ...,
         on: type | Iterable[type] | UnionType = ...,
     ):
         """
@@ -119,3 +127,12 @@ class Module:
 class ModulePriorities(Enum):
     HIGH = ...
     LOW = ...
+
+@runtime_checkable
+class Injectable(Protocol[_T]):
+    def __init__(self, factory: Callable[[], _T], *args, **kwargs): ...
+    @property
+    def is_locked(self) -> bool: ...
+    def unlock(self): ...
+    @abstractmethod
+    def get_instance(self) -> _T: ...
