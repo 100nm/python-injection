@@ -1,8 +1,9 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
+from inspect import get_annotations, isfunction
 from types import NoneType, UnionType
 from typing import Annotated, Any, Union, get_args, get_origin
 
-__all__ = ("format_type", "get_origins")
+__all__ = ("find_types", "format_type", "get_origins")
 
 
 def format_type(cls: type | Any) -> str:
@@ -12,25 +13,36 @@ def format_type(cls: type | Any) -> str:
         return str(cls)
 
 
-def get_origins(*classes: type | Any) -> Iterator[type | Any]:
-    for cls in classes:
-        origin = get_origin(cls) or cls
+def get_origins(*types: type | Any) -> Iterator[type | Any]:
+    for tp in types:
+        origin = get_origin(tp) or tp
 
         if origin in (None, NoneType):
             continue
 
-        arguments = get_args(cls)
+        elif origin in (Union, UnionType):
+            args = get_args(tp)
 
-        if origin in (Union, UnionType):
-            yield from get_origins(*arguments)
-
-        elif origin is Annotated:
-            try:
-                annotated = arguments[0]
-            except IndexError:
-                continue
-
-            yield from get_origins(annotated)
+        elif origin is Annotated is not tp:
+            args = (tp.__origin__,)
 
         else:
             yield origin
+            continue
+
+        yield from get_origins(*args)
+
+
+def find_types(*args: Any) -> Iterator[type | UnionType]:
+    for argument in args:
+        if isinstance(argument, Iterable) and not isinstance(argument, type | str):
+            arguments = argument
+
+        elif isfunction(argument):
+            arguments = (get_annotations(argument, eval_str=True).get("return"),)
+
+        else:
+            yield argument
+            continue
+
+        yield from find_types(*arguments)

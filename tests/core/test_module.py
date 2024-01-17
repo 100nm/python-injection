@@ -25,7 +25,7 @@ class TestModule:
     __getitem__
     """
 
-    def test_getitem_with_success_injectable(self, module):
+    def test_getitem_with_success_return_injectable(self, module):
         injectable_w = self.get_test_injectable(SomeClass())
         module[SomeClass] = injectable_w
         assert module[SomeClass] is injectable_w
