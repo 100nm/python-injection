@@ -132,7 +132,7 @@ Injectables
 class Injectable(Protocol[_T]):
     __slots__ = ()
 
-    def __init__(self, factory: Callable[[], _T], *args, **kwargs):
+    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs):
         ...
 
     @property
