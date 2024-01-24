@@ -19,6 +19,17 @@ class TestLoadPackage:
         for module in modules:
             assert module in sys.modules
 
+    def test_load_package_with_str(self):
+        load_package("tests.utils.package")
+
+        modules = (
+            "tests.utils.package.module1",
+            "tests.utils.package.sub_package.module2",
+        )
+
+        for module in modules:
+            assert module in sys.modules
+
     def test_load_package_with_module_raise_type_error(self):
         from tests.utils.package import module1
 
