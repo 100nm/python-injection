@@ -30,3 +30,18 @@ app = Application(
     services=InjectionServices(custom_module),
 )
 ```
+
+## [Typer](https://github.com/tiangolo/typer)
+
+Example:
+
+```python
+from injection.integrations.typer import injected
+from typer import Typer
+
+app = Typer()
+
+@app.command()
+def my_command(dependency: injected(Dependency)):
+    """ command implementation """
+```
