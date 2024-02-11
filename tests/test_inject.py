@@ -10,16 +10,16 @@ T = TypeVar("T")
 
 @injectable
 class SomeGenericInjectable(Generic[T]):
-    ...
+    pass
 
 
 @injectable
 class SomeInjectable:
-    ...
+    pass
 
 
 class SomeClass:
-    ...
+    pass
 
 
 class TestInject:
@@ -106,7 +106,7 @@ class TestInject:
 
     def test_inject_with_register_injectable_after_injected_function(self):
         class LateInjectable:
-            ...
+            pass
 
         @inject
         def my_function(instance: LateInjectable):

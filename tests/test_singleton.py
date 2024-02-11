@@ -10,7 +10,7 @@ class TestSingleton:
     def test_singleton_with_success(self):
         @singleton
         class SomeInjectable:
-            ...
+            pass
 
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
@@ -18,7 +18,7 @@ class TestSingleton:
 
     def test_singleton_with_recipe(self):
         class SomeClass:
-            ...
+            pass
 
         @singleton
         def recipe() -> SomeClass:
@@ -30,10 +30,10 @@ class TestSingleton:
 
     def test_injectable_with_recipe_and_union(self):
         class A:
-            ...
+            pass
 
         class B(A):
-            ...
+            pass
 
         @singleton
         def recipe() -> A | B:
@@ -46,7 +46,7 @@ class TestSingleton:
 
     def test_singleton_with_recipe_and_no_return_type(self):
         class SomeClass:
-            ...
+            pass
 
         @singleton
         def recipe():
@@ -56,25 +56,25 @@ class TestSingleton:
 
     def test_singleton_with_on(self):
         class A:
-            ...
+            pass
 
         @singleton(on=A)
         class B(A):
-            ...
+            pass
 
         a = get_instance(A)
         assert isinstance(a, B)
 
     def test_singleton_with_on_and_several_classes(self):
         class A:
-            ...
+            pass
 
         class B(A):
-            ...
+            pass
 
         @singleton(on=(A, B))
         class C(B):
-            ...
+            pass
 
         a = get_instance(A)
         b = get_instance(B)
@@ -85,7 +85,7 @@ class TestSingleton:
     def test_singleton_with_inject(self):
         @singleton
         class A:
-            ...
+            pass
 
         @singleton
         class B:
@@ -102,7 +102,7 @@ class TestSingleton:
     def test_singleton_with_dataclass_and_inject(self):
         @singleton
         class A:
-            ...
+            pass
 
         @singleton
         @dataclass(frozen=True, slots=True)
@@ -119,7 +119,7 @@ class TestSingleton:
     def test_singleton_with_pydantic_model_and_inject(self):
         @singleton
         class A(BaseModel):
-            ...
+            pass
 
         @singleton
         class B(BaseModel):
@@ -135,10 +135,10 @@ class TestSingleton:
     def test_singleton_with_recipe_and_inject(self):
         @singleton
         class A:
-            ...
+            pass
 
         class B:
-            ...
+            pass
 
         @singleton
         def recipe(__a: A) -> B:
@@ -153,14 +153,14 @@ class TestSingleton:
 
     def test_singleton_with_injectable_already_exist_raise_runtime_error(self):
         class A:
-            ...
+            pass
 
         @singleton(on=A)
         class B(A):
-            ...
+            pass
 
         with pytest.raises(RuntimeError):
 
             @singleton(on=A)
             class C(A):
-                ...
+                pass

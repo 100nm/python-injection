@@ -132,15 +132,13 @@ Injectables
 class Injectable(Protocol[_T]):
     __slots__ = ()
 
-    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs):
-        ...
+    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs): ...
 
     @property
     def is_locked(self) -> bool:
         return False
 
-    def unlock(self):
-        ...
+    def unlock(self): ...
 
     @abstractmethod
     def get_instance(self) -> _T:
@@ -532,8 +530,7 @@ class Binder(EventListener):
         return self
 
     @singledispatchmethod
-    def on_event(self, event: Event, /):
-        ...
+    def on_event(self, event: Event, /): ...
 
     @on_event.register
     @contextmanager

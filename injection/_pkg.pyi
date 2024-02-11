@@ -44,6 +44,7 @@ class Module:
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
         """
+
     def injectable(
         self,
         wrapped: Callable[..., Any] = ...,
@@ -57,6 +58,7 @@ class Module:
         injectable will be constructed. At injection time, a new instance will be
         injected each time.
         """
+
     def singleton(
         self,
         wrapped: Callable[..., Any] = ...,
@@ -69,6 +71,7 @@ class Module:
         singleton will be constructed. At injection time, the injected instance will
         always be the same.
         """
+
     def set_constant(
         self,
         instance: _T,
@@ -79,11 +82,13 @@ class Module:
         registering global variables. The difference with the singleton decorator is
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
+
     def get_instance(self, cls: type[_T]) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
         """
+
     def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
@@ -92,16 +97,19 @@ class Module:
 
         Example: instance = ~lazy_instance
         """
+
     def use(self, module: Module, priority: ModulePriorities = ...):
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
         will be searched for in the module's dependency container.
         """
+
     def stop_using(self, module: Module):
         """
         Function to remove a module in use.
         """
+
     def use_temporarily(
         self,
         module: Module,
@@ -110,6 +118,7 @@ class Module:
         """
         Context manager or decorator for temporary use of a module.
         """
+
     def change_priority(self, module: Module, priority: ModulePriorities):
         """
         Function for changing the priority of a module in use.
@@ -118,6 +127,7 @@ class Module:
         * **LOW**: The module concerned becomes the least important of the modules used.
         * **HIGH**: The module concerned becomes the most important of the modules used.
         """
+
     def unlock(self):
         """
         Function to unlock the module by deleting cached instances of singletons.
