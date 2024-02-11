@@ -8,8 +8,8 @@ _T = TypeVar("_T")
 
 
 def injected(cls: type[_T], module: Module = default_module) -> type[_T]:
-    def parser(value: _T | str):
-        if isinstance(value, str):
+    def parser(value: str | None):
+        if value:
             message = style(
                 "Injected options don't support custom input.",
                 fg=colors.RED,
@@ -18,12 +18,12 @@ def injected(cls: type[_T], module: Module = default_module) -> type[_T]:
             echo(message)
             raise Exit(code=1)
 
-        return value
+        return module.get_instance(cls, none=False)
 
     return Annotated[
         cls,
         Option(
-            default_factory=lambda: module.get_instance(cls),
+            default_factory=lambda: "",
             parser=parser,
             hidden=True,
         ),

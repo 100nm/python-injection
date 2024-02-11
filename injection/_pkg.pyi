@@ -83,7 +83,7 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance(self, cls: type[_T], none: bool = ...) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.

@@ -348,11 +348,14 @@ class Module(EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance(self, cls: type[_T], none: bool = True) -> _T | None:
         try:
             injectable = self[cls]
-        except KeyError:
-            return None
+        except KeyError as exc:
+            if none:
+                return None
+
+            raise exc
 
         instance = injectable.get_instance()
         return cast(cls, instance)
