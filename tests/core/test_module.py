@@ -7,7 +7,7 @@ from injection.exceptions import ModuleError, ModuleLockError, ModuleNotUsedErro
 
 
 class SomeClass:
-    ...
+    pass
 
 
 class TestModule:
@@ -58,10 +58,10 @@ class TestModule:
 
     def test_contains_with_success_return_bool(self, module):
         class A:
-            ...
+            pass
 
         class B:
-            ...
+            pass
 
         module[A] = self.get_test_injectable(A())
 
@@ -70,7 +70,7 @@ class TestModule:
 
     def test_contains_with_union_return_bool(self, module):
         class T:
-            ...
+            pass
 
         module[T] = self.get_test_injectable(T())
 
@@ -124,13 +124,13 @@ class TestModule:
 
     def test_set_constant_with_on_return_instance(self, module):
         class A:
-            ...
+            pass
 
         class B(A):
-            ...
+            pass
 
         class C(B):
-            ...
+            pass
 
         instance = C()
         module.set_constant(instance, on=(A, B))
@@ -257,7 +257,7 @@ class TestModule:
 
         @module.singleton
         class A:
-            ...
+            pass
 
         @module.singleton
         class B:
@@ -266,7 +266,7 @@ class TestModule:
 
         @second_module.singleton(on=A)
         class C(A):
-            ...
+            pass
 
         b1: B = module.get_instance(B)
 

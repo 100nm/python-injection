@@ -132,15 +132,13 @@ Injectables
 class Injectable(Protocol[_T]):
     __slots__ = ()
 
-    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs):
-        ...
+    def __init__(self, __factory: Callable[[], _T] = ..., /): ...
 
     @property
     def is_locked(self) -> bool:
         return False
 
-    def unlock(self):
-        ...
+    def unlock(self): ...
 
     @abstractmethod
     def get_instance(self) -> _T:
@@ -332,29 +330,33 @@ class Module(EventListener):
         wrapped: Callable[..., Any] = None,
         /,
         *,
+        force: bool = False,
         return_factory: bool = False,
     ):
         def decorator(wp):
             if not return_factory and isclass(wp):
-                wp.__init__ = decorator(wp.__init__)
+                wp.__init__ = self.inject(wp.__init__, force=force)
                 return wp
 
             lazy_binder = Lazy[Binder](lambda: self.__new_binder(wp))
 
             @wraps(wp)
             def wrapper(*args, **kwargs):
-                arguments = (~lazy_binder).bind(*args, **kwargs)
+                arguments = (~lazy_binder).bind(args, kwargs, force)
                 return wp(*arguments.args, **arguments.kwargs)
 
             return wrapper
 
         return decorator(wrapped) if wrapped else decorator
 
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance(self, cls: type[_T], none: bool = True) -> _T | None:
         try:
             injectable = self[cls]
-        except KeyError:
-            return None
+        except KeyError as exc:
+            if none:
+                return None
+
+            raise exc from exc
 
         instance = injectable.get_instance()
         return cast(cls, instance)
@@ -476,8 +478,8 @@ class Dependencies:
             yield name, injectable.get_instance()
 
     @property
-    def arguments(self) -> dict[str, Any]:
-        return dict(self)
+    def arguments(self) -> OrderedDict[str, Any]:
+        return OrderedDict(self)
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, Injectable]):
@@ -519,12 +521,26 @@ class Binder(EventListener):
         self.__signature = signature
         self.__dependencies = Dependencies.empty()
 
-    def bind(self, /, *args, **kwargs) -> Arguments:
+    def bind(
+        self,
+        args: Iterable[Any] = (),
+        kwargs: Mapping[str, Any] = None,
+        force: bool = False,
+    ) -> Arguments:
+        if kwargs is None:
+            kwargs = {}
+
         if not self.__dependencies:
             return Arguments(args, kwargs)
 
         bound = self.__signature.bind_partial(*args, **kwargs)
-        bound.arguments = self.__dependencies.arguments | bound.arguments
+        dependencies = self.__dependencies.arguments
+
+        if force:
+            bound.arguments |= dependencies
+        else:
+            bound.arguments = dependencies | bound.arguments
+
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
@@ -532,8 +548,7 @@ class Binder(EventListener):
         return self
 
     @singledispatchmethod
-    def on_event(self, event: Event, /):
-        ...
+    def on_event(self, event: Event, /): ...
 
     @on_event.register
     @contextmanager

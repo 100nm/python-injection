@@ -13,7 +13,7 @@ application = Application(
 
 @singleton
 class Dependency:
-    ...
+    pass
 
 
 class TestController(APIController):

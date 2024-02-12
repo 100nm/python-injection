@@ -1,7 +1,8 @@
 from typing import Any, TypeVar
 
 from injection import Module, default_module
-from injection.exceptions import NoInjectable
+
+__all__ = ("InjectionServices",)
 
 _T = TypeVar("_T")
 
@@ -24,9 +25,4 @@ class InjectionServices:
         return self
 
     def resolve(self, cls: type[_T] | Any, *__args, **__kwargs) -> _T:
-        instance = self.__module.get_instance(cls)
-
-        if instance is None:
-            raise NoInjectable(cls)
-
-        return instance
+        return self.__module.get_instance(cls, none=False)
