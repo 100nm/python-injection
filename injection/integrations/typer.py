@@ -1,30 +1,16 @@
-from typing import Annotated, TypeVar
+from typing import TypeVar
 
-from typer import Exit, Option, colors, echo, style
-
-from injection import Module, default_module
+from typer import Option
 
 _T = TypeVar("_T")
 
 
-def injected(cls: type[_T], module: Module = default_module) -> type[_T]:
-    def parser(value: str | None):
-        if value:
-            message = style(
-                "Injected options don't support custom input.",
-                fg=colors.RED,
-                bold=True,
-            )
-            echo(message)
-            raise Exit(code=1)
+def skip():
+    def get_none(*__args):
+        return None
 
-        return module.get_instance(cls, none=False)
-
-    return Annotated[
-        cls,
-        Option(
-            default_factory=lambda: "",
-            parser=parser,
-            hidden=True,
-        ),
-    ]
+    return Option(
+        default_factory=get_none,
+        parser=get_none,
+        hidden=True,
+    )

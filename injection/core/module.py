@@ -330,18 +330,19 @@ class Module(EventListener):
         wrapped: Callable[..., Any] = None,
         /,
         *,
+        force: bool = False,
         return_factory: bool = False,
     ):
         def decorator(wp):
             if not return_factory and isclass(wp):
-                wp.__init__ = decorator(wp.__init__)
+                wp.__init__ = self.inject(wp.__init__, force=force)
                 return wp
 
             lazy_binder = Lazy[Binder](lambda: self.__new_binder(wp))
 
             @wraps(wp)
             def wrapper(*args, **kwargs):
-                arguments = (~lazy_binder).bind(*args, **kwargs)
+                arguments = (~lazy_binder).bind(args, kwargs, force)
                 return wp(*arguments.args, **arguments.kwargs)
 
             return wrapper
@@ -520,12 +521,27 @@ class Binder(EventListener):
         self.__signature = signature
         self.__dependencies = Dependencies.empty()
 
-    def bind(self, /, *args, **kwargs) -> Arguments:
+    def bind(
+        self,
+        args: Iterable[Any] = (),
+        kwargs: Mapping[str, Any] = None,
+        force: bool = False,
+    ) -> Arguments:
+        if kwargs is None:
+            kwargs = {}
+
         if not self.__dependencies:
             return Arguments(args, kwargs)
 
         bound = self.__signature.bind_partial(*args, **kwargs)
-        bound.arguments = self.__dependencies.arguments | bound.arguments
+        dependencies = self.__dependencies.arguments
+
+        if force:
+            arguments = bound.arguments | dependencies
+        else:
+            arguments = dependencies | bound.arguments
+
+        bound.arguments = arguments
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):

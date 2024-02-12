@@ -36,12 +36,15 @@ app = Application(
 Example:
 
 ```python
-from injection.integrations.typer import injected
+from injection import inject
+from injection.integrations.typer import skip
 from typer import Typer
 
 app = Typer()
 
+
 @app.command()
-def my_command(dependency: injected(Dependency)):
+@inject(force=True)
+def my_command(dependency: Dependency = skip()):
     """ command implementation """
 ```

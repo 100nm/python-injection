@@ -2,8 +2,8 @@ import pytest
 from typer import Typer
 from typer.testing import CliRunner
 
-from injection import singleton
-from injection.integrations.typer import injected
+from injection import inject, singleton
+from injection.integrations.typer import skip
 
 
 @singleton
@@ -15,7 +15,8 @@ app = Typer()
 
 
 @app.command()
-def integration(dependency: injected(Dependency)):
+@inject(force=True)
+def integration(dependency: Dependency = skip()):
     assert isinstance(dependency, Dependency)
 
 
@@ -30,4 +31,4 @@ class TestInjected:
 
     def test_injected_with_custom_input(self, runner):
         result = runner.invoke(app, ["--dependency", "input"])
-        assert result.exit_code == 1
+        assert result.exit_code == 0
