@@ -1,16 +1,13 @@
-from typing import TypeVar
-
 from typer import Option
 
-_T = TypeVar("_T")
+__all__ = ("ignore",)
 
 
-def skip():
-    def get_none(*__args):
-        return None
+def ignore():
+    """Typer option for the CLI to ignore this option and replace it with `None`."""
 
     return Option(
-        default_factory=get_none,
-        parser=get_none,
+        default_factory=str,
+        parser=lambda _: None,
         hidden=True,
     )

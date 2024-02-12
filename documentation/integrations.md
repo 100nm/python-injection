@@ -36,8 +36,10 @@ app = Application(
 Example:
 
 ```python
+from typing import Annotated
+
 from injection import inject
-from injection.integrations.typer import skip
+from injection.integrations.typer import ignore
 from typer import Typer
 
 app = Typer()
@@ -45,6 +47,6 @@ app = Typer()
 
 @app.command()
 @inject(force=True)
-def my_command(dependency: Dependency = skip()):
+def my_command(dependency: Annotated[Dependency, ignore()]):
     """ command implementation """
 ```

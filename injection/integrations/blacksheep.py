@@ -2,6 +2,8 @@ from typing import Any, TypeVar
 
 from injection import Module, default_module
 
+__all__ = ("InjectionServices",)
+
 _T = TypeVar("_T")
 
 

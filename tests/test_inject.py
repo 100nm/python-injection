@@ -59,6 +59,13 @@ class TestInject:
 
         my_function()
 
+    def test_inject_with_positional_only_parameter_and_force(self):
+        @inject(force=True)
+        def my_function(instance: SomeInjectable, /, **kw):
+            assert isinstance(instance, SomeInjectable)
+
+        my_function()
+
     def test_inject_with_keyword_variable(self):
         kwargs = {"key": "value"}
 
@@ -69,10 +76,30 @@ class TestInject:
 
         my_function(**kwargs)
 
+    def test_inject_with_keyword_variable_and_force(self):
+        kwargs = {"key": "value"}
+
+        @inject(force=True)
+        def my_function(instance: SomeInjectable, **kw):
+            assert kw == kwargs
+            assert isinstance(instance, SomeInjectable)
+
+        my_function(**kwargs)
+
     def test_inject_with_positional_variable(self):
         arguments = ("value",)
 
         @inject
+        def my_function(*args, instance: SomeInjectable = ...):
+            assert args == arguments
+            assert isinstance(instance, SomeInjectable)
+
+        my_function(*arguments)
+
+    def test_inject_with_positional_variable_and_force(self):
+        arguments = ("value",)
+
+        @inject(force=True)
         def my_function(*args, instance: SomeInjectable = ...):
             assert args == arguments
             assert isinstance(instance, SomeInjectable)

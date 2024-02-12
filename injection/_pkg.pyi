@@ -44,12 +44,13 @@ class Module:
         /,
         *,
         force: bool = ...,
-        return_factory: bool = ...,
     ):
         """
         Decorator applicable to a class or function. Inject function dependencies using
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
+
+        With `force=True`, parameters passed to replace dependencies will be ignored.
         """
 
     def injectable(
@@ -93,7 +94,8 @@ class Module:
     def get_instance(self, cls: type[_T], none: bool = ...) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or return `None`.
+        parameter or return `None` but if `none` parameter is `False` an exception
+        will be raised.
         """
 
     def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:

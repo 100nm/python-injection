@@ -132,7 +132,7 @@ Injectables
 class Injectable(Protocol[_T]):
     __slots__ = ()
 
-    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs): ...
+    def __init__(self, __factory: Callable[[], _T] = ..., /): ...
 
     @property
     def is_locked(self) -> bool:
@@ -356,7 +356,7 @@ class Module(EventListener):
             if none:
                 return None
 
-            raise exc
+            raise exc from exc
 
         instance = injectable.get_instance()
         return cast(cls, instance)
@@ -478,8 +478,8 @@ class Dependencies:
             yield name, injectable.get_instance()
 
     @property
-    def arguments(self) -> dict[str, Any]:
-        return dict(self)
+    def arguments(self) -> OrderedDict[str, Any]:
+        return OrderedDict(self)
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, Injectable]):
@@ -537,11 +537,10 @@ class Binder(EventListener):
         dependencies = self.__dependencies.arguments
 
         if force:
-            arguments = bound.arguments | dependencies
+            bound.arguments |= dependencies
         else:
-            arguments = dependencies | bound.arguments
+            bound.arguments = dependencies | bound.arguments
 
-        bound.arguments = arguments
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):

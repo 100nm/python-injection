@@ -1,9 +1,11 @@
+from typing import Annotated
+
 import pytest
 from typer import Typer
 from typer.testing import CliRunner
 
 from injection import inject, singleton
-from injection.integrations.typer import skip
+from injection.integrations.typer import ignore
 
 
 @singleton
@@ -16,7 +18,7 @@ app = Typer()
 
 @app.command()
 @inject(force=True)
-def integration(dependency: Dependency = skip()):
+def integration(dependency: Annotated[Dependency, ignore()]):
     assert isinstance(dependency, Dependency)
 
 
