@@ -60,6 +60,7 @@ class Module:
         *,
         cls: type[Injectable] = ...,
         on: type | Iterable[type] | UnionType = ...,
+        override: bool = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -73,6 +74,7 @@ class Module:
         /,
         *,
         on: type | Iterable[type] | UnionType = ...,
+        override: bool = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -84,6 +86,8 @@ class Module:
         self,
         instance: _T,
         on: type | Iterable[type] | UnionType = ...,
+        *,
+        override: bool = ...,
     ) -> _T:
         """
         Function for registering a specific instance to be injected. This is useful for
@@ -149,7 +153,7 @@ class ModulePriorities(Enum):
 
 @runtime_checkable
 class Injectable(Protocol[_T]):
-    def __init__(self, factory: Callable[[], _T] = ..., *args, **kwargs): ...
+    def __init__(self, factory: Callable[[], _T] = ..., /): ...
     @property
     def is_locked(self) -> bool: ...
     def unlock(self): ...

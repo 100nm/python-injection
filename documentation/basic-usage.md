@@ -120,6 +120,20 @@ class C(B):
     ...
 ```
 
+If a class is registered in a package and you want to override it, there is the `override` parameter:
+
+```python
+@singleton
+class A:
+    ...
+
+# ...
+
+@singleton(on=A, override=True)
+class B(A):
+    ...
+```
+
 ## Recipes
 
 A recipe is a function that tells the injector how to construct the instance to be injected. It is important to specify 
