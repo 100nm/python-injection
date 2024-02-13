@@ -214,7 +214,9 @@ class Container:
         return frozenset(self.__data.values())
 
     def update(self, classes: Types, injectable: Injectable, override: bool):
-        values = {origin: injectable for origin in get_origins(*classes)}
+        values = MappingProxyType(
+            {origin: injectable for origin in get_origins(*classes)}
+        )
 
         if values:
             event = ContainerDependenciesUpdated(self, values, override)
@@ -326,11 +328,11 @@ class Module(EventListener):
         override: bool = False,
     ) -> _T:
         cls = type(instance)
-
-        @self.injectable(on=(cls, on), override=override)
-        def get_constant():
-            return instance
-
+        self.injectable(
+            lambda: instance,
+            on=(cls, on),
+            override=override,
+        )
         return instance
 
     def inject(

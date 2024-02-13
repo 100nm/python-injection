@@ -16,7 +16,7 @@ class Dependency:
     pass
 
 
-class TestController(APIController):
+class Controller(APIController):
     def __init__(self, dependency: Dependency):
         self.__dependency = dependency
 
