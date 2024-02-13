@@ -61,6 +61,7 @@ class ContainerEvent(Event, ABC):
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
     classes: Collection[type]
+    override: bool
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -212,26 +213,19 @@ class Container:
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
-    def update(self, classes: Types, injectable: Injectable):
-        classes = frozenset(get_origins(*classes))
+    def update(self, classes: Types, injectable: Injectable, override: bool):
+        values = {origin: injectable for origin in get_origins(*classes)}
 
-        if classes:
-            event = ContainerDependenciesUpdated(self, classes)
+        if values:
+            event = ContainerDependenciesUpdated(self, values, override)
 
             with self.notify(event):
-                self.__data.update(
-                    (self.check_if_exists(cls), injectable) for cls in classes
-                )
+                if not override:
+                    self.__check_if_exists(*values)
+
+                self.__data.update(values)
 
         return self
-
-    def check_if_exists(self, cls: type) -> type:
-        if cls in self.__data:
-            raise RuntimeError(
-                f"An injectable already exists for the class `{format_type(cls)}`."
-            )
-
-        return cls
 
     def unlock(self):
         for injectable in self.__injectables:
@@ -243,6 +237,13 @@ class Container:
 
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
         return self.__channel.dispatch(event)
+
+    def __check_if_exists(self, *classes: type):
+        for cls in classes:
+            if cls in self.__data:
+                raise RuntimeError(
+                    f"An injectable already exists for the class `{format_type(cls)}`."
+                )
 
 
 """
@@ -280,7 +281,7 @@ class Module(EventListener):
         raise NoInjectable(cls)
 
     def __setitem__(self, cls: type | UnionType, injectable: Injectable, /):
-        self.update((cls,), injectable)
+        self.update((cls,), injectable, override=True)
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
@@ -304,22 +305,29 @@ class Module(EventListener):
         *,
         cls: type[Injectable] = NewInjectable,
         on: type | Types = None,
+        override: bool = False,
     ):
         def decorator(wp):
             factory = self.inject(wp, return_factory=True)
             injectable = cls(factory)
             classes = find_types(wp, on)
-            self.update(classes, injectable)
+            self.update(classes, injectable, override)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
 
     singleton = partialmethod(injectable, cls=SingletonInjectable)
 
-    def set_constant(self, instance: _T, on: type | Types = None) -> _T:
+    def set_constant(
+        self,
+        instance: _T,
+        on: type | Types = None,
+        *,
+        override: bool = False,
+    ) -> _T:
         cls = type(instance)
 
-        @self.injectable(on=(cls, on))
+        @self.injectable(on=(cls, on), override=override)
         def get_constant():
             return instance
 
@@ -364,8 +372,8 @@ class Module(EventListener):
     def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
         return Lazy(lambda: self.get_instance(cls))
 
-    def update(self, classes: Types, injectable: Injectable):
-        self.__container.update(classes, injectable)
+    def update(self, classes: Types, injectable: Injectable, override: bool = False):
+        self.__container.update(classes, injectable, override)
         return self
 
     def use(
