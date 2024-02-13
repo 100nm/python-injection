@@ -4,7 +4,9 @@ __all__ = ("ignore",)
 
 
 def ignore():
-    """Typer option for the CLI to ignore this option and replace it with `None`."""
+    """
+    Typer option for the CLI to ignore this option and replace it with `None`.
+    """
 
     return Option(
         default_factory=str,
