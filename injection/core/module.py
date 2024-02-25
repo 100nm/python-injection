@@ -23,6 +23,7 @@ from typing import (
     Any,
     ContextManager,
     NamedTuple,
+    NoReturn,
     Protocol,
     TypeVar,
     cast,
@@ -33,6 +34,7 @@ from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
 from injection.common.tools import find_types, format_type, get_origins
 from injection.exceptions import (
+    InjectionError,
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
@@ -185,13 +187,67 @@ class SingletonInjectable(BaseInjectable[_T]):
         return instance
 
 
+class InjectableWarning(BaseInjectable[_T], ABC):
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return False
+
+    @property
+    def formatted_type(self) -> str:
+        return format_type(self.factory)
+
+    @property
+    @abstractmethod
+    def exception(self) -> BaseException:
+        raise NotImplementedError
+
+    def get_instance(self) -> NoReturn:
+        raise self.exception
+
+
+class ShouldBeInjectable(InjectableWarning[_T]):
+    __slots__ = ()
+
+    @property
+    def exception(self) -> BaseException:
+        return InjectionError(f"`{self.formatted_type}` should be an injectable.")
+
+
+"""
+Broker
+"""
+
+
+@runtime_checkable
+class Broker(Protocol):
+    __slots__ = ()
+
+    @abstractmethod
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __contains__(self, cls: type | UnionType, /) -> bool:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def is_locked(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def unlock(self):
+        raise NotImplementedError
+
+
 """
 Container
 """
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class Container:
+class Container(Broker):
     __data: dict[type, Injectable] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
@@ -242,7 +298,7 @@ class Container:
 
     def __check_if_exists(self, *classes: type):
         for cls in classes:
-            if cls in self.__data:
+            if self.__data.get(cls):
                 raise RuntimeError(
                     f"An injectable already exists for the class `{format_type(cls)}`."
                 )
@@ -263,7 +319,7 @@ class ModulePriorities(Enum):
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
-class Module(EventListener):
+class Module(EventListener, Broker):
     name: str = field(default=None)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
     __container: Container = field(default_factory=Container, init=False)
@@ -296,7 +352,7 @@ class Module(EventListener):
         return any(broker.is_locked for broker in self.__brokers)
 
     @property
-    def __brokers(self) -> Iterator[Container | Module]:
+    def __brokers(self) -> Iterator[Broker]:
         yield from tuple(self.__modules)
         yield self.__container
 
@@ -306,11 +362,12 @@ class Module(EventListener):
         /,
         *,
         cls: type[Injectable] = NewInjectable,
+        inject: bool = True,
         on: type | Types = None,
         override: bool = False,
     ):
         def decorator(wp):
-            factory = self.inject(wp, return_factory=True)
+            factory = self.inject(wp, return_factory=True) if inject else wp
             injectable = cls(factory)
             classes = find_types(wp, on)
             self.update(classes, injectable, override)
@@ -319,6 +376,11 @@ class Module(EventListener):
         return decorator(wrapped) if wrapped else decorator
 
     singleton = partialmethod(injectable, cls=SingletonInjectable)
+    should_be_injectable = partialmethod(
+        injectable,
+        cls=ShouldBeInjectable,
+        inject=False,
+    )
 
     def set_constant(
         self,
@@ -330,6 +392,7 @@ class Module(EventListener):
         cls = type(instance)
         self.injectable(
             lambda: instance,
+            inject=False,
             on=(cls, on),
             override=override,
         )
@@ -366,7 +429,7 @@ class Module(EventListener):
             if none:
                 return None
 
-            raise exc from exc
+            raise exc
 
         instance = injectable.get_instance()
         return cast(cls, instance)

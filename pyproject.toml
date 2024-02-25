@@ -14,10 +14,10 @@ python = ">=3.10, <4"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
-blacksheep = "^2.0.6"
+blacksheep = "^2.0.7"
 flake8 = "*"
 isort = "*"
-pydantic = "^2.6.1"
+pydantic = "^2.6.2"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
