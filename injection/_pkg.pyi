@@ -24,6 +24,7 @@ get_lazy_instance = default_module.get_lazy_instance
 inject = default_module.inject
 injectable = default_module.injectable
 set_constant = default_module.set_constant
+should_be_injectable = default_module.should_be_injectable
 singleton = default_module.singleton
 
 @final
@@ -59,6 +60,7 @@ class Module:
         /,
         *,
         cls: type[Injectable] = ...,
+        inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
         override: bool = ...,
     ):
@@ -73,6 +75,7 @@ class Module:
         wrapped: Callable[..., Any] = ...,
         /,
         *,
+        inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
         override: bool = ...,
     ):
@@ -80,6 +83,20 @@ class Module:
         Decorator applicable to a class or function. It is used to indicate how the
         singleton will be constructed. At injection time, the injected instance will
         always be the same.
+        """
+
+    def should_be_injectable(
+        self,
+        wrapped: Callable[..., Any] = ...,
+        /,
+        *,
+        on: type | Iterable[type] | UnionType = ...,
+        override: bool = ...,
+    ):
+        """
+        Decorator applicable to a class. It is used to specify whether an injectable
+        should be registered. Raise an exception at injection time if the class isn't
+        registered.
         """
 
     def set_constant(
