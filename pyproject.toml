@@ -17,11 +17,10 @@ black = "*"
 blacksheep = "^2.0.7"
 flake8 = "*"
 isort = "*"
-pydantic = "^2.6.2"
+pydantic = "^2.6.3"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
-typer = "^0.9.0"
 
 [build-system]
 requires = ["poetry-core"]
