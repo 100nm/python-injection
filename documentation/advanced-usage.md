@@ -106,24 +106,24 @@ The default priority is **`LOW`**.
 Apply priority with `use` method:
 
 ```python
-from injection import Module, ModulePriorities
+from injection import Module, ModulePriority
 
 module_1, module_2 = Module(), Module()
 
-module_1.use(module_2, ModulePriorities.HIGH)
+module_1.use(module_2, ModulePriority.HIGH)
 ```
 
 Apply priority with `use_temporarily` method:
 
 ```python
-with module_1.use_temporarily(module_2, ModulePriorities.HIGH):
+with module_1.use_temporarily(module_2, ModulePriority.HIGH):
     ...
 ```
 
 Change the priority of a used module:
 
 ```python
-module_1.change_priority(module_2, ModulePriorities.LOW)
+module_1.change_priority(module_2, ModulePriority.LOW)
 ```
 
 ### Understand `ModuleLockError`

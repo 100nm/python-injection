@@ -4,14 +4,8 @@ description: Check code style
 runs:
   using: "composite"
   steps:
-    - name: Isort
+    - name: Ruff
       shell: bash
-      run: isort ./ --check
-
-    - name: Black
-      shell: bash
-      run: black ./ --check
-
-    - name: Flake8
-      shell: bash
-      run: flake8
+      run: |
+        ruff format --check
+        ruff check
