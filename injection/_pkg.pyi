@@ -128,7 +128,7 @@ class Module:
         Example: instance = ~lazy_instance
         """
 
-    def use(self, module: Module, priority: ModulePriorities = ...):
+    def use(self, module: Module, priority: ModulePriority = ...):
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
@@ -143,13 +143,13 @@ class Module:
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriorities = ...,
+        priority: ModulePriority = ...,
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
 
-    def change_priority(self, module: Module, priority: ModulePriorities):
+    def change_priority(self, module: Module, priority: ModulePriority):
         """
         Function for changing the priority of a module in use.
         There are two priority values:
@@ -164,7 +164,7 @@ class Module:
         """
 
 @final
-class ModulePriorities(Enum):
+class ModulePriority(Enum):
     HIGH = ...
     LOW = ...
 

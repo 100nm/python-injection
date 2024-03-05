@@ -11,14 +11,9 @@ set -e
 title "POETRY"
 poetry check
 
-title "ISORT"
-isort ./
-
-title "BLACK"
-black ./
-
-title "FLAKE"
-flake8
+title "RUFF"
+ruff format
+ruff check --fix
 
 title "PYTEST"
 pytest --cov=./ --cov-report term-missing:skip-covered

@@ -13,14 +13,42 @@ repository = "https://github.com/100nm/python-injection"
 python = ">=3.10, <4"
 
 [tool.poetry.group.dev.dependencies]
-black = "*"
-blacksheep = "^2.0.7"
-flake8 = "*"
-isort = "*"
-pydantic = "^2.6.3"
+blacksheep = "*"
+pydantic = "*"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
+ruff = "*"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+]
+
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+addopts = "-p no:warnings --tb=short"
+asyncio_mode = "auto"
+testpaths = "tests/"
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+extend-select = ["F", "I", "N"]
+ignore = ["N818"]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403"]
 
 [build-system]
 requires = ["poetry-core"]

@@ -41,7 +41,7 @@ from injection.exceptions import (
     NoInjectable,
 )
 
-__all__ = ("Injectable", "Module", "ModulePriorities")
+__all__ = ("Injectable", "Module", "ModulePriority")
 
 _logger = logging.getLogger(__name__)
 _thread_lock = RLock()
@@ -117,7 +117,7 @@ class ModuleRemoved(ModuleEvent):
 @dataclass(frozen=True, slots=True)
 class ModulePriorityUpdated(ModuleEvent):
     module_updated: Module
-    priority: ModulePriorities
+    priority: ModulePriority
 
     def __str__(self) -> str:
         return (
@@ -269,7 +269,7 @@ class Container(Broker):
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
-    def update(self, classes: Types, injectable: Injectable, override: bool):
+    def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
         values = MappingProxyType(
             {origin: injectable for origin in get_origins(*classes)}
         )
@@ -309,7 +309,7 @@ Module
 """
 
 
-class ModulePriorities(Enum):
+class ModulePriority(Enum):
     HIGH = auto()
     LOW = auto()
 
@@ -437,14 +437,19 @@ class Module(EventListener, Broker):
     def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
         return Lazy(lambda: self.get_instance(cls))
 
-    def update(self, classes: Types, injectable: Injectable, override: bool = False):
+    def update(
+        self,
+        classes: Iterable[type],
+        injectable: Injectable,
+        override: bool = False,
+    ):
         self.__container.update(classes, injectable, override)
         return self
 
     def use(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.get_default(),
+        priority: ModulePriority = ModulePriority.get_default(),
     ):
         if module is self:
             raise ModuleError("Module can't be used by itself.")
@@ -475,13 +480,13 @@ class Module(EventListener, Broker):
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriorities = ModulePriorities.get_default(),
+        priority: ModulePriority = ModulePriority.get_default(),
     ) -> ContextManager | ContextDecorator:
         self.use(module, priority)
         yield
         self.stop_using(module)
 
-    def change_priority(self, module: Module, priority: ModulePriorities):
+    def change_priority(self, module: Module, priority: ModulePriority):
         event = ModulePriorityUpdated(self, module, priority)
 
         with self.notify(event):
@@ -517,8 +522,8 @@ class Module(EventListener, Broker):
         if self.is_locked:
             raise ModuleLockError(f"`{self}` is locked.")
 
-    def __move_module(self, module: Module, priority: ModulePriorities):
-        last = priority == ModulePriorities.LOW
+    def __move_module(self, module: Module, priority: ModulePriority):
+        last = priority == ModulePriority.LOW
 
         try:
             self.__modules.move_to_end(module, last=last)
