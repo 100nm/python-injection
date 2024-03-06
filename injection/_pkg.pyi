@@ -85,14 +85,7 @@ class Module:
         always be the same.
         """
 
-    def should_be_injectable(
-        self,
-        wrapped: Callable[..., Any] = ...,
-        /,
-        *,
-        on: type | Iterable[type] | UnionType = ...,
-        override: bool = ...,
-    ):
+    def should_be_injectable(self, wrapped: type = ..., /, *, override: bool = ...):
         """
         Decorator applicable to a class. It is used to specify whether an injectable
         should be registered. Raise an exception at injection time if the class isn't
