@@ -1,7 +1,8 @@
 # python-injection
 
 [![CI](https://github.com/100nm/python-injection/actions/workflows/ci.yml/badge.svg)](https://github.com/100nm/python-injection)
-[![PyPI](https://badge.fury.io/py/python-injection.svg)](https://pypi.org/project/python-injection/)
+[![PyPI](https://img.shields.io/pypi/v/python-injection.svg)](https://pypi.org/project/python-injection/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Fast and easy dependency injection framework.
 
