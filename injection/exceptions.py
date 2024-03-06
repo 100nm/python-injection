@@ -10,7 +10,7 @@ __all__ = (
 
 
 class InjectionError(Exception):
-    __slots__ = ()
+    pass
 
 
 class NoInjectable(KeyError, InjectionError):
@@ -26,12 +26,12 @@ class NoInjectable(KeyError, InjectionError):
 
 
 class ModuleError(InjectionError):
-    __slots__ = ()
+    pass
 
 
 class ModuleLockError(ModuleError):
-    __slots__ = ()
+    pass
 
 
 class ModuleNotUsedError(KeyError, ModuleError):
-    __slots__ = ()
+    pass
