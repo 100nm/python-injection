@@ -19,3 +19,13 @@ class TestShouldBeInjectable:
 
         instance = get_instance(SomeInjectable)
         assert isinstance(instance, SomeInjectable)
+
+    def test_should_be_injectable_with_already_injectable(self):
+        @injectable
+        class SomeInjectable:
+            pass
+
+        should_be_injectable(SomeInjectable)
+
+        instance = get_instance(SomeInjectable)
+        assert isinstance(instance, SomeInjectable)
