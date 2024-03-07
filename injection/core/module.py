@@ -11,6 +11,7 @@ from collections.abc import (
     Iterator,
     Mapping,
     MutableMapping,
+    Set,
 )
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
@@ -189,31 +190,15 @@ class SingletonInjectable(BaseInjectable[_T]):
         return instance
 
 
-class InjectableWarning(BaseInjectable[_T], ABC):
-    __slots__ = ()
+@dataclass(repr=False, frozen=True, slots=True)
+class ShouldBeInjectable(Injectable[_T]):
+    cls: type[_T]
 
     def __bool__(self) -> bool:
         return False
 
-    @property
-    def formatted_type(self) -> str:
-        return format_type(self.factory)
-
-    @property
-    @abstractmethod
-    def exception(self) -> BaseException:
-        raise NotImplementedError
-
     def get_instance(self) -> NoReturn:
-        raise self.exception
-
-
-class ShouldBeInjectable(InjectableWarning[_T]):
-    __slots__ = ()
-
-    @property
-    def exception(self) -> BaseException:
-        return InjectionError(f"`{self.formatted_type}` should be an injectable.")
+        raise InjectionError(f"`{format_type(self.cls)}` should be an injectable.")
 
 
 """
@@ -268,22 +253,29 @@ class Container(Broker):
         return any(injectable.is_locked for injectable in self.__injectables)
 
     @property
+    def __classes(self) -> frozenset[type]:
+        return frozenset(self.__data.keys())
+
+    @property
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
     def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
-        values = MappingProxyType(
-            {origin: injectable for origin in get_origins(*classes)}
-        )
+        classes = frozenset(get_origins(*classes))
 
-        if values:
-            event = ContainerDependenciesUpdated(self, values, override)
+        with _thread_lock:
+            if not injectable:
+                classes -= self.__classes
+                override = True
 
-            with self.notify(event):
-                if not override:
-                    self.__check_if_exists(*values)
+            if classes:
+                event = ContainerDependenciesUpdated(self, classes, override)
 
-                self.__data.update(values)
+                with self.notify(event):
+                    if not override:
+                        self.__check_if_exists(classes)
+
+                    self.__data.update((cls, injectable) for cls in classes)
 
         return self
 
@@ -298,9 +290,11 @@ class Container(Broker):
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
         return self.__channel.dispatch(event)
 
-    def __check_if_exists(self, *classes: type):
-        for cls in classes:
-            if self.__data.get(cls):
+    def __check_if_exists(self, classes: Set[type]):
+        intersection = classes & self.__classes
+
+        for cls in intersection:
+            if self.__data[cls]:
                 raise RuntimeError(
                     f"An injectable already exists for the class `{format_type(cls)}`."
                 )
@@ -341,7 +335,7 @@ class Module(EventListener, Broker):
         raise NoInjectable(cls)
 
     def __setitem__(self, cls: type | UnionType, injectable: Injectable, /):
-        self.update((cls,), injectable, override=True)
+        self.update((cls,), injectable)
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
@@ -378,11 +372,13 @@ class Module(EventListener, Broker):
         return decorator(wrapped) if wrapped else decorator
 
     singleton = partialmethod(injectable, cls=SingletonInjectable)
-    should_be_injectable = partialmethod(
-        injectable,
-        cls=ShouldBeInjectable,
-        inject=False,
-    )
+
+    def should_be_injectable(self, wrapped: type = None, /):
+        def decorator(wp):
+            self[wp] = ShouldBeInjectable(wp)
+            return wp
+
+        return decorator(wrapped) if wrapped else decorator
 
     def set_constant(
         self,
@@ -624,7 +620,9 @@ class Binder(EventListener):
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
-        self.__dependencies = Dependencies.resolve(self.__signature, module)
+        with _thread_lock:
+            self.__dependencies = Dependencies.resolve(self.__signature, module)
+
         return self
 
     @singledispatchmethod
