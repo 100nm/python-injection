@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import ContextManager
 from weakref import WeakSet
 
+from injection.common.tools.threading import frozen_collection
+
 __all__ = ("Event", "EventChannel", "EventListener")
 
 
@@ -26,7 +28,7 @@ class EventChannel:
     @contextmanager
     def dispatch(self, event: Event) -> ContextManager | ContextDecorator:
         with ExitStack() as stack:
-            for listener in tuple(self.__listeners):
+            for listener in frozen_collection(self.__listeners):
                 context_manager = listener.on_event(event)
 
                 if context_manager is None:

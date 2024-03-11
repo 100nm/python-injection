@@ -1,4 +1,4 @@
-from injection.common.tools import format_type
+from injection.common.tools.type import format_type
 
 __all__ = (
     "InjectionError",
