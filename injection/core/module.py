@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import partialmethod, singledispatchmethod, wraps
 from inspect import Signature, isclass
-from threading import RLock
 from types import MappingProxyType, UnionType
 from typing import (
     Any,
@@ -33,7 +32,12 @@ from typing import (
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
-from injection.common.tools import find_types, format_type, get_origins
+from injection.common.tools.threading import (
+    frozen_collection,
+    synchronized,
+    thread_lock,
+)
+from injection.common.tools.type import find_types, format_type, get_origins
 from injection.exceptions import (
     InjectionError,
     ModuleError,
@@ -45,7 +49,6 @@ from injection.exceptions import (
 __all__ = ("Injectable", "Module", "ModulePriority")
 
 _logger = logging.getLogger(__name__)
-_thread_lock = RLock()
 
 _T = TypeVar("_T")
 Types = Iterable[type] | UnionType
@@ -183,7 +186,7 @@ class SingletonInjectable(BaseInjectable[_T]):
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
-        with _thread_lock:
+        with thread_lock:
             instance = self.factory()
             self.cache[self.__INSTANCE_KEY] = instance
 
@@ -263,7 +266,7 @@ class Container(Broker):
     def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
         classes = frozenset(get_origins(*classes))
 
-        with _thread_lock:
+        with thread_lock:
             if not injectable:
                 classes -= self.__classes
                 override = True
@@ -279,6 +282,7 @@ class Container(Broker):
 
         return self
 
+    @synchronized
     def unlock(self):
         for injectable in self.__injectables:
             injectable.unlock()
@@ -349,7 +353,7 @@ class Module(EventListener, Broker):
 
     @property
     def __brokers(self) -> Iterator[Broker]:
-        yield from tuple(self.__modules)
+        yield from frozen_collection(self.__modules)
         yield self.__container
 
     def injectable(
@@ -492,6 +496,7 @@ class Module(EventListener, Broker):
 
         return self
 
+    @synchronized
     def unlock(self):
         for broker in self.__brokers:
             broker.unlock()
@@ -544,13 +549,13 @@ Binder
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Dependencies:
-    __mapping: MappingProxyType[str, Injectable]
+    mapping: MappingProxyType[str, Injectable]
 
     def __bool__(self) -> bool:
-        return bool(self.__mapping)
+        return bool(self.mapping)
 
     def __iter__(self) -> Iterator[tuple[str, Any]]:
-        for name, injectable in self.__mapping.items():
+        for name, injectable in self.mapping.items():
             yield name, injectable.get_instance()
 
     @property
@@ -559,7 +564,7 @@ class Dependencies:
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, Injectable]):
-        return cls(MappingProxyType(mapping))
+        return cls(mapping=MappingProxyType(mapping))
 
     @classmethod
     def empty(cls):
@@ -620,7 +625,7 @@ class Binder(EventListener):
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
-        with _thread_lock:
+        with thread_lock:
             self.__dependencies = Dependencies.resolve(self.__signature, module)
 
         return self

@@ -1,12 +1,12 @@
 from collections.abc import Callable, Iterator, Mapping
-from threading import RLock
 from types import MappingProxyType
 from typing import Any, Generic, TypeVar
+
+from injection.common.tools.threading import thread_lock
 
 __all__ = ("Lazy", "LazyMapping")
 
 _sentinel = object()
-_thread_lock = RLock()
 
 _T = TypeVar("_T")
 _K = TypeVar("_K")
@@ -22,7 +22,7 @@ class Lazy(Generic[_T]):
 
     def __invert__(self) -> _T:
         if not self.is_set:
-            with _thread_lock:
+            with thread_lock:
                 self.__value = self.__factory()
                 self.__factory = _sentinel
 
