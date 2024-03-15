@@ -170,3 +170,17 @@ class TestInject:
 
         with pytest.raises(TypeError):
             my_function()
+
+    def test_inject_with_self_injectable(self):
+        @injectable
+        class A:
+            @inject
+            def my_method(self, dependency: SomeInjectable):
+                assert isinstance(self, A)
+                assert isinstance(dependency, SomeInjectable)
+                return self
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is a

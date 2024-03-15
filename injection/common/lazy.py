@@ -45,8 +45,6 @@ class Lazy(Generic[_T]):
 class LazyMapping(Mapping[_K, _V]):
     __slots__ = ("__lazy",)
 
-    __lazy: Lazy[MappingProxyType[_K, _V]]
-
     def __init__(self, iterator: Iterator[tuple[_K, _V]]):
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
@@ -58,3 +56,7 @@ class LazyMapping(Mapping[_K, _V]):
 
     def __len__(self) -> int:
         return len(~self.__lazy)
+
+    @property
+    def is_set(self) -> bool:
+        return self.__lazy.is_set
