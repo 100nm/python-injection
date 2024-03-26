@@ -28,6 +28,9 @@ class Lazy(Generic[_T]):
 
         return self.__value
 
+    def __call__(self) -> _T:
+        return ~self
+
     def __setattr__(self, name: str, value: Any, /):
         if self.is_set:
             raise TypeError(f"`{self}` is frozen.")

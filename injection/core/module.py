@@ -614,7 +614,7 @@ class Arguments(NamedTuple):
 
 
 class InjectedFunction(EventListener):
-    __slots__ = ("__dict__", "__wrapped__", "__wrapper", "__dependencies", "__owner")
+    __slots__ = ("__dict__", "__wrapper", "__dependencies", "__owner")
 
     def __init__(self, wrapped: Callable[..., Any], /, *, force: bool = False):
         update_wrapper(self, wrapped)
@@ -624,16 +624,17 @@ class InjectedFunction(EventListener):
             args, kwargs = self.bind(args, kwargs, force)
             return wrapped(*args, **kwargs)
 
+        self.__signature__ = Lazy(lambda: inspect.signature(wrapped, eval_str=True))
+
         self.__wrapper = wrapper
         self.__dependencies = Dependencies.empty()
         self.__owner = None
-        self.__signature__ = None
 
     def __repr__(self) -> str:
-        return repr(self.__wrapped__)
+        return repr(self.__wrapper)
 
     def __str__(self) -> str:
-        return str(self.__wrapped__)
+        return str(self.__wrapper)
 
     def __call__(self, /, *args, **kwargs) -> Any:
         return self.__wrapper(*args, **kwargs)
@@ -657,10 +658,7 @@ class InjectedFunction(EventListener):
 
     @property
     def signature(self) -> Signature:
-        if self.__signature__ is None:
-            self.__signature__ = inspect.signature(self.__wrapped__, eval_str=True)
-
-        return self.__signature__
+        return self.__signature__()
 
     def bind(
         self,
