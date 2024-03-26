@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
@@ -184,3 +185,35 @@ class TestInject:
 
         a = A()
         assert a.my_method() is a
+
+    def test_inject_with_set_method_in_multiple_class_raise_type_error(self):
+        @inject
+        def _method(this, _: SomeInjectable = ...):
+            return this
+
+        @injectable
+        class A:
+            method = _method
+
+        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
+        with pytest.raises(expected_exception):
+
+            @injectable
+            class B:
+                method = _method
+
+        assert isinstance(A.method(), A)
+
+    def test_inject_with_set_method_after_dependency_resolution_raise_type_error(self):
+        @inject
+        def _method(this=..., _: SomeInjectable = ...):
+            return this
+
+        assert _method() is ...
+
+        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
+        with pytest.raises(expected_exception):
+
+            @injectable
+            class A:
+                method = _method
