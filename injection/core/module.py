@@ -592,9 +592,8 @@ class Dependencies:
 
             yield name, injectable
 
-    @classmethod
+    @staticmethod
     def __get_annotations(
-        cls,
         signature: Signature,
         owner: type = None,
     ) -> Iterator[tuple[str, type | Any]]:
@@ -618,13 +617,14 @@ class InjectedFunction(EventListener):
 
     def __init__(self, wrapped: Callable[..., Any], /, *, force: bool = False):
         update_wrapper(self, wrapped)
+        self.__signature__ = Lazy[Signature](
+            lambda: inspect.signature(wrapped, eval_str=True)
+        )
 
         @wraps(wrapped)
         def wrapper(*args, **kwargs):
             args, kwargs = self.bind(args, kwargs, force)
             return wrapped(*args, **kwargs)
-
-        self.__signature__ = Lazy(lambda: inspect.signature(wrapped, eval_str=True))
 
         self.__wrapper = wrapper
         self.__dependencies = Dependencies.empty()
