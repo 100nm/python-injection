@@ -554,8 +554,8 @@ class Dependencies:
 
     @property
     def are_resolved(self) -> bool:
-        if isinstance(self.mapping, LazyMapping) and not self.mapping.is_set:
-            return False
+        if isinstance(self.mapping, LazyMapping):
+            return self.mapping.is_set
 
         return bool(self)
 
