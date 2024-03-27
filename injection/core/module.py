@@ -411,15 +411,14 @@ class Module(EventListener, Broker):
         wrapped: Callable[..., Any] = None,
         /,
         *,
-        force: bool = False,
         return_factory: bool = False,
     ):
         def decorator(wp):
             if not return_factory and isclass(wp):
-                wp.__init__ = self.inject(wp.__init__, force=force)
+                wp.__init__ = self.inject(wp.__init__)
                 return wp
 
-            wrapper = InjectedFunction(wp, force=force).update(self)
+            wrapper = InjectedFunction(wp).update(self)
             self.add_listener(wrapper)
             return wrapper
 
@@ -615,7 +614,7 @@ class Arguments(NamedTuple):
 class InjectedFunction(EventListener):
     __slots__ = ("__dict__", "__wrapper", "__dependencies", "__owner")
 
-    def __init__(self, wrapped: Callable[..., Any], /, *, force: bool = False):
+    def __init__(self, wrapped: Callable[..., Any], /):
         update_wrapper(self, wrapped)
         self.__signature__ = Lazy[Signature](
             lambda: inspect.signature(wrapped, eval_str=True)
@@ -623,7 +622,7 @@ class InjectedFunction(EventListener):
 
         @wraps(wrapped)
         def wrapper(*args, **kwargs):
-            args, kwargs = self.bind(args, kwargs, force)
+            args, kwargs = self.bind(args, kwargs)
             return wrapped(*args, **kwargs)
 
         self.__wrapper = wrapper
@@ -664,7 +663,6 @@ class InjectedFunction(EventListener):
         self,
         args: Iterable[Any] = (),
         kwargs: Mapping[str, Any] = None,
-        force: bool = False,
     ) -> Arguments:
         if kwargs is None:
             kwargs = {}
@@ -674,11 +672,7 @@ class InjectedFunction(EventListener):
 
         bound = self.signature.bind_partial(*args, **kwargs)
         dependencies = self.__dependencies.arguments
-
-        if force:
-            bound.arguments |= dependencies
-        else:
-            bound.arguments = dependencies | bound.arguments
+        bound.arguments = dependencies | bound.arguments
 
         return Arguments(bound.args, bound.kwargs)
 

@@ -39,19 +39,11 @@ class Module:
 
     def __init__(self, name: str = ...): ...
     def __contains__(self, cls: type | UnionType, /) -> bool: ...
-    def inject(
-        self,
-        wrapped: Callable[..., Any] = ...,
-        /,
-        *,
-        force: bool = ...,
-    ):
+    def inject(self, wrapped: Callable[..., Any] = ..., /):
         """
         Decorator applicable to a class or function. Inject function dependencies using
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
-
-        With `force=True`, parameters passed to replace dependencies will be ignored.
         """
 
     def injectable(
