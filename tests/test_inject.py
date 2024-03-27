@@ -186,6 +186,34 @@ class TestInject:
         a = A()
         assert a.my_method() is a
 
+    def test_inject_with_class_method(self):
+        @injectable
+        class A:
+            @classmethod
+            @inject
+            def my_method(cls, dependency: SomeInjectable):
+                assert cls is A
+                assert isinstance(dependency, SomeInjectable)
+                return cls
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is A
+
+    def test_inject_with_static_method(self):
+        @injectable
+        class A:
+            @staticmethod
+            @inject
+            def my_method(dependency: SomeInjectable):
+                assert isinstance(dependency, SomeInjectable)
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is None
+
     def test_inject_with_set_method_in_multiple_class_raise_type_error(self):
         @inject
         def _method(this, _: SomeInjectable = ...):
