@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
@@ -59,13 +60,6 @@ class TestInject:
 
         my_function()
 
-    def test_inject_with_positional_only_parameter_and_force(self):
-        @inject(force=True)
-        def my_function(instance: SomeInjectable, /, **kw):
-            assert isinstance(instance, SomeInjectable)
-
-        my_function()
-
     def test_inject_with_keyword_variable(self):
         kwargs = {"key": "value"}
 
@@ -76,30 +70,10 @@ class TestInject:
 
         my_function(**kwargs)
 
-    def test_inject_with_keyword_variable_and_force(self):
-        kwargs = {"key": "value"}
-
-        @inject(force=True)
-        def my_function(instance: SomeInjectable, **kw):
-            assert kw == kwargs
-            assert isinstance(instance, SomeInjectable)
-
-        my_function(**kwargs)
-
     def test_inject_with_positional_variable(self):
         arguments = ("value",)
 
         @inject
-        def my_function(*args, instance: SomeInjectable = ...):
-            assert args == arguments
-            assert isinstance(instance, SomeInjectable)
-
-        my_function(*arguments)
-
-    def test_inject_with_positional_variable_and_force(self):
-        arguments = ("value",)
-
-        @inject(force=True)
         def my_function(*args, instance: SomeInjectable = ...):
             assert args == arguments
             assert isinstance(instance, SomeInjectable)
@@ -170,3 +144,77 @@ class TestInject:
 
         with pytest.raises(TypeError):
             my_function()
+
+    def test_inject_with_self_injectable(self):
+        @injectable
+        class A:
+            @inject
+            def my_method(self, dependency: SomeInjectable):
+                assert isinstance(self, A)
+                assert isinstance(dependency, SomeInjectable)
+                return self
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is a
+
+    def test_inject_with_class_method(self):
+        @injectable
+        class A:
+            @classmethod
+            @inject
+            def my_method(cls, dependency: SomeInjectable):
+                assert cls is A
+                assert isinstance(dependency, SomeInjectable)
+                return cls
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is A
+
+    def test_inject_with_static_method(self):
+        @injectable
+        class A:
+            @staticmethod
+            @inject
+            def my_method(dependency: SomeInjectable):
+                assert isinstance(dependency, SomeInjectable)
+
+        A.my_method()
+
+        a = A()
+        assert a.my_method() is None
+
+    def test_inject_with_set_method_in_multiple_class_raise_type_error(self):
+        @inject
+        def _method(this, _: SomeInjectable = ...):
+            return this
+
+        @injectable
+        class A:
+            method = _method
+
+        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
+        with pytest.raises(expected_exception):
+
+            @injectable
+            class B:
+                method = _method
+
+        assert isinstance(A.method(), A)
+
+    def test_inject_with_set_method_after_dependency_resolution_raise_type_error(self):
+        @inject
+        def _method(this=..., _: SomeInjectable = ...):
+            return this
+
+        assert _method() is ...
+
+        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
+        with pytest.raises(expected_exception):
+
+            @injectable
+            class A:
+                method = _method

@@ -16,11 +16,17 @@ from collections.abc import (
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import partialmethod, singledispatchmethod, wraps
+from functools import (
+    partialmethod,
+    singledispatchmethod,
+    update_wrapper,
+    wraps,
+)
 from inspect import Signature, isclass
-from types import MappingProxyType, UnionType
+from types import UnionType
 from typing import (
     Any,
+    ClassVar,
     ContextManager,
     NamedTuple,
     NoReturn,
@@ -169,7 +175,7 @@ class NewInjectable(BaseInjectable[_T]):
 class SingletonInjectable(BaseInjectable[_T]):
     __slots__ = ("__dict__",)
 
-    __INSTANCE_KEY = "$instance"
+    __INSTANCE_KEY: ClassVar[str] = "$instance"
 
     @property
     def cache(self) -> MutableMapping[str, Any]:
@@ -405,21 +411,15 @@ class Module(EventListener, Broker):
         wrapped: Callable[..., Any] = None,
         /,
         *,
-        force: bool = False,
         return_factory: bool = False,
     ):
         def decorator(wp):
             if not return_factory and isclass(wp):
-                wp.__init__ = self.inject(wp.__init__, force=force)
+                wp.__init__ = self.inject(wp.__init__)
                 return wp
 
-            lazy_binder = Lazy[Binder](lambda: self.__new_binder(wp))
-
-            @wraps(wp)
-            def wrapper(*args, **kwargs):
-                arguments = (~lazy_binder).bind(args, kwargs, force)
-                return wp(*arguments.args, **arguments.kwargs)
-
+            wrapper = InjectedFunction(wp).update(self)
+            self.add_listener(wrapper)
             return wrapper
 
         return decorator(wrapped) if wrapped else decorator
@@ -535,21 +535,15 @@ class Module(EventListener, Broker):
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
 
-    def __new_binder(self, target: Callable[..., Any]) -> Binder:
-        signature = inspect.signature(target, eval_str=True)
-        binder = Binder(signature).update(self)
-        self.add_listener(binder)
-        return binder
-
 
 """
-Binder
+InjectedFunction
 """
 
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Dependencies:
-    mapping: MappingProxyType[str, Injectable]
+    mapping: Mapping[str, Injectable]
 
     def __bool__(self) -> bool:
         return bool(self.mapping)
@@ -559,20 +553,27 @@ class Dependencies:
             yield name, injectable.get_instance()
 
     @property
+    def are_resolved(self) -> bool:
+        if isinstance(self.mapping, LazyMapping) and not self.mapping.is_set:
+            return False
+
+        return bool(self)
+
+    @property
     def arguments(self) -> OrderedDict[str, Any]:
         return OrderedDict(self)
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, Injectable]):
-        return cls(mapping=MappingProxyType(mapping))
+        return cls(mapping=mapping)
 
     @classmethod
     def empty(cls):
         return cls.from_mapping({})
 
     @classmethod
-    def resolve(cls, signature: Signature, module: Module):
-        dependencies = LazyMapping(cls.__resolver(signature, module))
+    def resolve(cls, signature: Signature, module: Module, owner: type = None):
+        dependencies = LazyMapping(cls.__resolver(signature, module, owner))
         return cls.from_mapping(dependencies)
 
     @classmethod
@@ -580,14 +581,29 @@ class Dependencies:
         cls,
         signature: Signature,
         module: Module,
+        owner: type = None,
     ) -> Iterator[tuple[str, Injectable]]:
-        for name, parameter in signature.parameters.items():
+        for name, annotation in cls.__get_annotations(signature, owner):
             try:
-                injectable = module[parameter.annotation]
+                injectable = module[annotation]
             except KeyError:
                 continue
 
             yield name, injectable
+
+    @staticmethod
+    def __get_annotations(
+        signature: Signature,
+        owner: type = None,
+    ) -> Iterator[tuple[str, type | Any]]:
+        parameters = iter(signature.parameters.items())
+
+        if owner:
+            name, _ = next(parameters)
+            yield name, owner
+
+        for name, parameter in parameters:
+            yield name, parameter.annotation
 
 
 class Arguments(NamedTuple):
@@ -595,18 +611,58 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class Binder(EventListener):
-    __slots__ = ("__signature", "__dependencies")
+class InjectedFunction(EventListener):
+    __slots__ = ("__dict__", "__wrapper", "__dependencies", "__owner")
 
-    def __init__(self, signature: Signature):
-        self.__signature = signature
+    def __init__(self, wrapped: Callable[..., Any], /):
+        update_wrapper(self, wrapped)
+        self.__signature__ = Lazy[Signature](
+            lambda: inspect.signature(wrapped, eval_str=True)
+        )
+
+        @wraps(wrapped)
+        def wrapper(*args, **kwargs):
+            args, kwargs = self.bind(args, kwargs)
+            return wrapped(*args, **kwargs)
+
+        self.__wrapper = wrapper
         self.__dependencies = Dependencies.empty()
+        self.__owner = None
+
+    def __repr__(self) -> str:
+        return repr(self.__wrapper)
+
+    def __str__(self) -> str:
+        return str(self.__wrapper)
+
+    def __call__(self, /, *args, **kwargs) -> Any:
+        return self.__wrapper(*args, **kwargs)
+
+    def __get__(self, instance: object | None, owner: type):
+        if instance is None:
+            return self
+
+        return self.__wrapper.__get__(instance, owner)
+
+    def __set_name__(self, owner: type, name: str):
+        if self.__dependencies.are_resolved:
+            raise TypeError(
+                "`__set_name__` is called after dependencies have been resolved."
+            )
+
+        if self.__owner:
+            raise TypeError("Function owner is already defined.")
+
+        self.__owner = owner
+
+    @property
+    def signature(self) -> Signature:
+        return self.__signature__()
 
     def bind(
         self,
         args: Iterable[Any] = (),
         kwargs: Mapping[str, Any] = None,
-        force: bool = False,
     ) -> Arguments:
         if kwargs is None:
             kwargs = {}
@@ -614,19 +670,19 @@ class Binder(EventListener):
         if not self.__dependencies:
             return Arguments(args, kwargs)
 
-        bound = self.__signature.bind_partial(*args, **kwargs)
+        bound = self.signature.bind_partial(*args, **kwargs)
         dependencies = self.__dependencies.arguments
-
-        if force:
-            bound.arguments |= dependencies
-        else:
-            bound.arguments = dependencies | bound.arguments
+        bound.arguments = dependencies | bound.arguments
 
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
         with thread_lock:
-            self.__dependencies = Dependencies.resolve(self.__signature, module)
+            self.__dependencies = Dependencies.resolve(
+                self.signature,
+                module,
+                self.__owner,
+            )
 
         return self
 
