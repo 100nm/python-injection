@@ -638,7 +638,7 @@ class InjectedFunction(EventListener):
     def __call__(self, /, *args, **kwargs) -> Any:
         return self.__wrapper(*args, **kwargs)
 
-    def __get__(self, instance: object | None, owner: type):
+    def __get__(self, instance: object = None, owner: type = None):
         if instance is None:
             return self
 
@@ -647,7 +647,7 @@ class InjectedFunction(EventListener):
     def __set_name__(self, owner: type, name: str):
         if self.__dependencies.are_resolved:
             raise TypeError(
-                "`__set_name__` is called after dependencies have been resolved."
+                "Function owner must be assigned before dependencies are resolved."
             )
 
         if self.__owner:
@@ -671,9 +671,9 @@ class InjectedFunction(EventListener):
             return Arguments(args, kwargs)
 
         bound = self.signature.bind_partial(*args, **kwargs)
-        dependencies = self.__dependencies.arguments
-        bound.arguments = dependencies | bound.arguments
-
+        bound.arguments = (
+            bound.arguments | self.__dependencies.arguments | bound.arguments
+        )
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):

@@ -1,7 +1,6 @@
 from collections.abc import Callable, Iterator, Mapping
-from contextlib import suppress
 from types import MappingProxyType
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from injection.common.tools.threading import thread_lock
 
@@ -13,35 +12,35 @@ _V = TypeVar("_V")
 
 
 class Lazy(Generic[_T]):
-    __slots__ = ("is_set", "__generator")
+    __slots__ = ("__cache", "__is_set")
 
     def __init__(self, factory: Callable[[], _T]):
-        def generator() -> Iterator[_T]:
-            nonlocal factory
-
-            with thread_lock:
-                value = factory()
-                self.is_set = True
-                del factory
-
-            while True:
-                yield value
-
-        self.is_set = False
-        self.__generator = generator()
+        self.__setup_cache(factory)
 
     def __invert__(self) -> _T:
-        return next(self.__generator)
+        return next(self.__cache)
 
     def __call__(self) -> _T:
         return ~self
 
-    def __setattr__(self, name: str, value: Any, /):
-        with suppress(AttributeError):
-            if self.is_set:
-                raise TypeError(f"`{self}` is frozen.")
+    @property
+    def is_set(self) -> bool:
+        return self.__is_set
 
-        return super().__setattr__(name, value)
+    def __setup_cache(self, factory: Callable[[], _T]):
+        def new_cache() -> Iterator[_T]:
+            with thread_lock:
+                self.__is_set = True
+
+            nonlocal factory
+            cached = factory()
+            del factory
+
+            while True:
+                yield cached
+
+        self.__cache = new_cache()
+        self.__is_set = False
 
 
 class LazyMapping(Mapping[_K, _V]):
