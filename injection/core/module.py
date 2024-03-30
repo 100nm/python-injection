@@ -38,6 +38,7 @@ from typing import (
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
+from injection.common.queue import LimitedQueue
 from injection.common.tools.threading import (
     frozen_collection,
     synchronized,
@@ -418,9 +419,14 @@ class Module(EventListener, Broker):
                 wp.__init__ = self.inject(wp.__init__)
                 return wp
 
-            wrapper = InjectedFunction(wp).update(self)
-            self.add_listener(wrapper)
-            return wrapper
+            function = InjectedFunction(wp)
+
+            @function.setup
+            def listen():
+                function.update(self)
+                self.add_listener(function)
+
+            return function
 
         return decorator(wrapped) if wrapped else decorator
 
@@ -612,22 +618,36 @@ class Arguments(NamedTuple):
 
 
 class InjectedFunction(EventListener):
-    __slots__ = ("__dict__", "__wrapper", "__dependencies", "__owner")
+    __slots__ = (
+        "__dict__",
+        "__signature__",
+        "__dependencies",
+        "__owner",
+        "__setup_queue",
+        "__wrapper",
+    )
 
     def __init__(self, wrapped: Callable[..., Any], /):
         update_wrapper(self, wrapped)
-        self.__signature__ = Lazy[Signature](
-            lambda: inspect.signature(wrapped, eval_str=True)
-        )
 
         @wraps(wrapped)
         def wrapper(*args, **kwargs):
+            self.__consume_setup_queue()
             args, kwargs = self.bind(args, kwargs)
             return wrapped(*args, **kwargs)
 
         self.__wrapper = wrapper
         self.__dependencies = Dependencies.empty()
         self.__owner = None
+        self.__setup_queue = LimitedQueue[Callable[[], Any]]()
+        self.setup(
+            lambda: self.__set_signature(
+                inspect.signature(
+                    wrapped,
+                    eval_str=True,
+                )
+            )
+        )
 
     def __repr__(self) -> str:
         return repr(self.__wrapper)
@@ -638,7 +658,7 @@ class InjectedFunction(EventListener):
     def __call__(self, /, *args, **kwargs) -> Any:
         return self.__wrapper(*args, **kwargs)
 
-    def __get__(self, instance: object | None, owner: type):
+    def __get__(self, instance: object = None, owner: type = None):
         if instance is None:
             return self
 
@@ -647,7 +667,7 @@ class InjectedFunction(EventListener):
     def __set_name__(self, owner: type, name: str):
         if self.__dependencies.are_resolved:
             raise TypeError(
-                "`__set_name__` is called after dependencies have been resolved."
+                "Function owner must be assigned before dependencies are resolved."
             )
 
         if self.__owner:
@@ -657,7 +677,7 @@ class InjectedFunction(EventListener):
 
     @property
     def signature(self) -> Signature:
-        return self.__signature__()
+        return self.__signature__
 
     def bind(
         self,
@@ -671,9 +691,9 @@ class InjectedFunction(EventListener):
             return Arguments(args, kwargs)
 
         bound = self.signature.bind_partial(*args, **kwargs)
-        dependencies = self.__dependencies.arguments
-        bound.arguments = dependencies | bound.arguments
-
+        bound.arguments = (
+            bound.arguments | self.__dependencies.arguments | bound.arguments
+        )
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
@@ -686,6 +706,13 @@ class InjectedFunction(EventListener):
 
         return self
 
+    def setup(self, wrapped: Callable[[], Any] = None, /):
+        def decorator(wp):
+            self.__setup_queue.add(wp)
+            return wp
+
+        return decorator(wrapped) if wrapped else decorator
+
     @singledispatchmethod
     def on_event(self, event: Event, /):
         pass
@@ -695,3 +722,15 @@ class InjectedFunction(EventListener):
     def _(self, event: ModuleEvent, /) -> ContextManager:
         yield
         self.update(event.on_module)
+
+    def __consume_setup_queue(self):
+        for function in self.__setup_queue:
+            function()
+
+        return self
+
+    def __set_signature(self, signature: Signature):
+        with thread_lock:
+            self.__signature__ = signature
+
+        return self

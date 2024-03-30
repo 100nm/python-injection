@@ -53,6 +53,13 @@ class TestInject:
     def test_inject_with_optional(self):
         self.assert_inject(Optional[SomeInjectable])
 
+    def test_inject_with_no_parameter(self):
+        @inject
+        def my_function():
+            pass
+
+        my_function()
+
     def test_inject_with_positional_only_parameter(self):
         @inject
         def my_function(instance: SomeInjectable, /, **kw):
