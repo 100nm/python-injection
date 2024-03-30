@@ -20,9 +20,6 @@ class Lazy(Generic[_T]):
     def __invert__(self) -> _T:
         return next(self.__cache)
 
-    def __call__(self) -> _T:
-        return ~self
-
     @property
     def is_set(self) -> bool:
         return self.__is_set
