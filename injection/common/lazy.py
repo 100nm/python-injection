@@ -2,8 +2,6 @@ from collections.abc import Callable, Iterator, Mapping
 from types import MappingProxyType
 from typing import Generic, TypeVar
 
-from injection.common.tools.threading import thread_lock
-
 __all__ = ("Lazy", "LazyMapping")
 
 _T = TypeVar("_T")
@@ -26,11 +24,9 @@ class Lazy(Generic[_T]):
 
     def __setup_cache(self, factory: Callable[[], _T]):
         def new_cache() -> Iterator[_T]:
-            with thread_lock:
-                self.__is_set = True
-
             nonlocal factory
             cached = factory()
+            self.__is_set = True
             del factory
 
             while True:

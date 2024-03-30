@@ -39,11 +39,7 @@ from typing import (
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.lazy import Lazy, LazyMapping
 from injection.common.queue import LimitedQueue
-from injection.common.tools.threading import (
-    frozen_collection,
-    synchronized,
-    thread_lock,
-)
+from injection.common.tools.threading import synchronized
 from injection.common.tools.type import find_types, format_type, get_origins
 from injection.exceptions import (
     InjectionError,
@@ -193,7 +189,7 @@ class SingletonInjectable(BaseInjectable[_T]):
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
-        with thread_lock:
+        with synchronized():
             instance = self.factory()
             self.cache[self.__INSTANCE_KEY] = instance
 
@@ -273,7 +269,7 @@ class Container(Broker):
     def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
         classes = frozenset(get_origins(*classes))
 
-        with thread_lock:
+        with synchronized():
             if not injectable:
                 classes -= self.__classes
                 override = True
@@ -289,7 +285,7 @@ class Container(Broker):
 
         return self
 
-    @synchronized
+    @synchronized()
     def unlock(self):
         for injectable in self.__injectables:
             injectable.unlock()
@@ -360,7 +356,7 @@ class Module(EventListener, Broker):
 
     @property
     def __brokers(self) -> Iterator[Broker]:
-        yield from frozen_collection(self.__modules)
+        yield from tuple(self.__modules)
         yield self.__container
 
     def injectable(
@@ -502,7 +498,7 @@ class Module(EventListener, Broker):
 
         return self
 
-    @synchronized
+    @synchronized()
     def unlock(self):
         for broker in self.__brokers:
             broker.unlock()
@@ -697,7 +693,7 @@ class InjectedFunction(EventListener):
         return Arguments(bound.args, bound.kwargs)
 
     def update(self, module: Module):
-        with thread_lock:
+        with synchronized():
             self.__dependencies = Dependencies.resolve(
                 self.signature,
                 module,
@@ -730,7 +726,5 @@ class InjectedFunction(EventListener):
         return self
 
     def __set_signature(self, signature: Signature):
-        with thread_lock:
-            self.__signature__ = signature
-
+        self.__signature__ = signature
         return self

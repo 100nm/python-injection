@@ -4,8 +4,6 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import NoReturn, Protocol, TypeVar
 
-from injection.common.tools.threading import thread_lock
-
 __all__ = ("LimitedQueue",)
 
 _T = TypeVar("_T")
@@ -58,9 +56,7 @@ class LimitedQueue(Queue[_T]):
         try:
             return next(self.__queue)
         except StopIteration as exc:
-            with thread_lock:
-                self.__queue = NoQueue()
-
+            self.__queue = NoQueue()
             raise exc
 
     def add(self, item: _T):
