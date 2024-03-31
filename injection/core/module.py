@@ -37,6 +37,7 @@ from typing import (
 )
 
 from injection.common.event import Event, EventChannel, EventListener
+from injection.common.invertible import Invertible, SimpleInvertible
 from injection.common.lazy import Lazy, LazyMapping
 from injection.common.queue import LimitedQueue
 from injection.common.tools.threading import synchronized
@@ -157,6 +158,13 @@ class Injectable(Protocol[_T]):
         raise NotImplementedError
 
 
+class FallbackInjectable(Injectable[_T], ABC):
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return False
+
+
 @dataclass(repr=False, frozen=True, slots=True)
 class BaseInjectable(Injectable[_T], ABC):
     factory: Callable[[], _T]
@@ -197,11 +205,8 @@ class SingletonInjectable(BaseInjectable[_T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class ShouldBeInjectable(Injectable[_T]):
+class ShouldBeInjectable(FallbackInjectable[_T]):
     cls: type[_T]
-
-    def __bool__(self) -> bool:
-        return False
 
     def get_instance(self) -> NoReturn:
         raise InjectionError(f"`{format_type(self.cls)}` should be an injectable.")
@@ -260,28 +265,28 @@ class Container(Broker):
 
     @property
     def __classes(self) -> frozenset[type]:
-        return frozenset(self.__data.keys())
+        return frozenset(self.__data)
 
     @property
     def __injectables(self) -> frozenset[Injectable]:
         return frozenset(self.__data.values())
 
+    @synchronized()
     def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
         classes = frozenset(get_origins(*classes))
 
-        with synchronized():
-            if not injectable:
-                classes -= self.__classes
-                override = True
+        if not injectable:
+            classes -= self.__classes
+            override = True
 
-            if classes:
-                event = ContainerDependenciesUpdated(self, classes, override)
+        if classes:
+            event = ContainerDependenciesUpdated(self, classes, override)
 
-                with self.notify(event):
-                    if not override:
-                        self.__check_if_exists(classes)
+            with self.notify(event):
+                if not override:
+                    self.__check_if_exists(classes)
 
-                    self.__data.update((cls, injectable) for cls in classes)
+                self.__data.update((cls, injectable) for cls in classes)
 
         return self
 
@@ -289,6 +294,8 @@ class Container(Broker):
     def unlock(self):
         for injectable in self.__injectables:
             injectable.unlock()
+
+        return self
 
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
@@ -438,8 +445,17 @@ class Module(EventListener, Broker):
         instance = injectable.get_instance()
         return cast(cls, instance)
 
-    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
-        return Lazy(lambda: self.get_instance(cls))
+    def get_lazy_instance(
+        self,
+        cls: type[_T],
+        cache: bool = False,
+    ) -> Invertible[_T | None]:
+        if cache:
+            return Lazy(lambda: self.get_instance(cls))
+
+        function = self.inject(lambda instance=None: instance)
+        function.set_owner(cls)
+        return SimpleInvertible(function)
 
     def update(
         self,
@@ -502,6 +518,8 @@ class Module(EventListener, Broker):
     def unlock(self):
         for broker in self.__brokers:
             broker.unlock()
+
+        return self
 
     def add_listener(self, listener: EventListener):
         self.__channel.add_listener(listener)
@@ -661,15 +679,7 @@ class InjectedFunction(EventListener):
         return self.__wrapper.__get__(instance, owner)
 
     def __set_name__(self, owner: type, name: str):
-        if self.__dependencies.are_resolved:
-            raise TypeError(
-                "Function owner must be assigned before dependencies are resolved."
-            )
-
-        if self.__owner:
-            raise TypeError("Function owner is already defined.")
-
-        self.__owner = owner
+        self.set_owner(owner)
 
     @property
     def signature(self) -> Signature:
@@ -692,14 +702,21 @@ class InjectedFunction(EventListener):
         )
         return Arguments(bound.args, bound.kwargs)
 
-    def update(self, module: Module):
-        with synchronized():
-            self.__dependencies = Dependencies.resolve(
-                self.signature,
-                module,
-                self.__owner,
+    def set_owner(self, owner: type):
+        if self.__dependencies.are_resolved:
+            raise TypeError(
+                "Function owner must be assigned before dependencies are resolved."
             )
 
+        if self.__owner:
+            raise TypeError("Function owner is already defined.")
+
+        self.__owner = owner
+        return self
+
+    @synchronized()
+    def update(self, module: Module):
+        self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
     def on_setup(self, wrapped: Callable[[], Any] = None, /):

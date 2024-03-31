@@ -1,6 +1,8 @@
 from collections.abc import Callable, Iterator, Mapping
 from types import MappingProxyType
-from typing import Generic, TypeVar
+from typing import TypeVar
+
+from injection.common.invertible import Invertible
 
 __all__ = ("Lazy", "LazyMapping")
 
@@ -9,7 +11,7 @@ _K = TypeVar("_K")
 _V = TypeVar("_V")
 
 
-class Lazy(Generic[_T]):
+class Lazy(Invertible[_T]):
     __slots__ = ("__cache", "__is_set")
 
     def __init__(self, factory: Callable[[], _T]):
@@ -23,7 +25,7 @@ class Lazy(Generic[_T]):
         return self.__is_set
 
     def __setup_cache(self, factory: Callable[[], _T]):
-        def new_cache() -> Iterator[_T]:
+        def cache_generator() -> Iterator[_T]:
             nonlocal factory
             cached = factory()
             self.__is_set = True
@@ -32,7 +34,7 @@ class Lazy(Generic[_T]):
             while True:
                 yield cached
 
-        self.__cache = new_cache()
+        self.__cache = cache_generator()
         self.__is_set = False
 
 
