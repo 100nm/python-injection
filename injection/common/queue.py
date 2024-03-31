@@ -32,7 +32,7 @@ class SimpleQueue(Queue[_T]):
         return self
 
 
-class NoQueue(Queue[_T]):
+class DeadQueue(Queue[_T]):
     __slots__ = ()
 
     def __bool__(self) -> bool:
@@ -42,23 +42,22 @@ class NoQueue(Queue[_T]):
         raise StopIteration
 
     def add(self, item: _T) -> NoReturn:
-        raise TypeError("Queue doesn't exist.")
+        raise TypeError("Queue is dead.")
 
 
 @dataclass(repr=False, slots=True)
 class LimitedQueue(Queue[_T]):
-    __queue: Queue[_T] = field(default_factory=SimpleQueue)
+    __state: Queue[_T] = field(default_factory=SimpleQueue)
 
     def __next__(self) -> _T:
-        if not self.__queue:
-            raise StopIteration
-
         try:
-            return next(self.__queue)
+            return next(self.__state)
         except StopIteration as exc:
-            self.__queue = NoQueue()
+            if self.__state:
+                self.__state = DeadQueue()
+
             raise exc
 
     def add(self, item: _T):
-        self.__queue.add(item)
+        self.__state.add(item)
         return self

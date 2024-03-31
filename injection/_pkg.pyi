@@ -13,7 +13,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection.common.lazy import Lazy
+from injection.common.invertible import Invertible
 
 _T = TypeVar("_T")
 
@@ -104,11 +104,16 @@ class Module:
         will be raised.
         """
 
-    def get_lazy_instance(self, cls: type[_T]) -> Lazy[_T | None]:
+    def get_lazy_instance(
+        self,
+        cls: type[_T],
+        cache: bool = ...,
+    ) -> Invertible[_T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or `None`. Return a `Lazy` object. To access the instance contained
-        in a lazy object, simply use a wavy line (~).
+        parameter or `None`. Return a `Invertible` object. To access the instance
+        contained in an invertible object, simply use a wavy line (~).
+        With `cache=True`, the instance retrieved will always be the same.
 
         Example: instance = ~lazy_instance
         """

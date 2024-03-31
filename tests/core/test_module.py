@@ -109,18 +109,32 @@ class TestModule:
     """
 
     def test_get_lazy_instance_with_success_return_lazy_instance(self, module):
-        module[SomeClass] = self.get_test_injectable(SomeClass())
+        @module.injectable
+        class A:
+            pass
 
-        lazy_instance = module.get_lazy_instance(SomeClass)
-        assert not lazy_instance.is_set
-        assert isinstance(~lazy_instance, SomeClass)
-        assert lazy_instance.is_set
+        lazy_instance = module.get_lazy_instance(A)
+        instance1 = ~lazy_instance
+        instance2 = ~lazy_instance
+        assert isinstance(instance1, A)
+        assert isinstance(instance2, A)
+        assert instance1 is not instance2
+
+    def test_get_lazy_instance_with_cache_return_lazy_instance(self, module):
+        @module.injectable
+        class A:
+            pass
+
+        lazy_instance = module.get_lazy_instance(A, cache=True)
+        instance1 = ~lazy_instance
+        instance2 = ~lazy_instance
+        assert isinstance(instance1, A)
+        assert isinstance(instance2, A)
+        assert instance1 is instance2
 
     def test_get_lazy_instance_with_no_injectable_return_lazy_none(self, module):
         lazy_instance = module.get_lazy_instance(SomeClass)
-        assert not lazy_instance.is_set
         assert ~lazy_instance is None
-        assert lazy_instance.is_set
 
     """
     set_constant

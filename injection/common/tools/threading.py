@@ -4,10 +4,10 @@ from typing import ContextManager
 
 __all__ = ("synchronized",)
 
-__thread_lock = RLock()
+__lock = RLock()
 
 
 @contextmanager
 def synchronized() -> ContextManager | ContextDecorator:
-    with __thread_lock:
+    with __lock:
         yield
