@@ -10,7 +10,7 @@ If you wish to inject a singleton, use `singleton` decorator.
 from injection import singleton
 
 @singleton
-class Singleton:
+class ServiceA:
     """ class implementation """
 ```
 
@@ -20,7 +20,7 @@ If you wish to inject a new instance each time, use `injectable` decorator.
 from injection import injectable
 
 @injectable
-class Injectable:
+class ServiceB:
     """ class implementation """
 ```
 
@@ -30,7 +30,10 @@ function.
 ```python
 from injection import set_constant
 
-app = set_constant(Application())
+class ServiceC:
+    """ class implementation """
+
+service_c = set_constant(ServiceC())
 ```
 
 ## Inject an instance
@@ -42,7 +45,7 @@ _Don't forget to annotate type of parameter to inject._
 from injection import inject
 
 @inject
-def my_function(instance: Injectable):
+def some_function(service_a: ServiceA):
     """ function implementation """
 ```
 
@@ -59,8 +62,8 @@ from injection import inject
 
 @inject
 @dataclass
-class DataClass:
-    instance: Injectable = ...
+class SomeDataClass:
+    service_a: ServiceA = ...
 ```
 
 ## Get an instance
@@ -70,7 +73,7 @@ _Example with `get_instance` function:_
 ```python
 from injection import get_instance
 
-instance = get_instance(Injectable)
+service_a = get_instance(ServiceA)
 ```
 
 _Example with `get_lazy_instance` function:_
@@ -78,9 +81,9 @@ _Example with `get_lazy_instance` function:_
 ```python
 from injection import get_lazy_instance
 
-lazy_instance = get_lazy_instance(Injectable)
+lazy_service_a = get_lazy_instance(ServiceA)
 # ...
-instance = ~lazy_instance
+service_a = ~lazy_service_a
 ```
 
 ## Inheritance
@@ -94,43 +97,39 @@ classes.
 _Example with one class:_
 
 ```python
-from injection import singleton
-
-class A:
+class AbstractService(ABC):
     ...
 
-@singleton(on=A)
-class B(A):
+@injectable(on=AbstractService)
+class ConcreteService(AbstractService):
     ...
 ```
 
 _Example with several classes:_
 
 ```python
-from injection import singleton
-
-class A:
+class AbstractService(ABC):
     ...
 
-class B(A):
+class ConcreteService(AbstractService):
     ...
 
-@singleton(on=(A, B))
-class C(B):
+@injectable(on=(AbstractService, ConcreteService))
+class ConcreteServiceOverload(ConcreteService):
     ...
 ```
 
 If a class is registered in a package and you want to override it, there is the `override` parameter:
 
 ```python
-@singleton
-class A:
+@injectable
+class InaccessibleService:
     ...
 
 # ...
 
-@singleton(on=A, override=True)
-class B(A):
+@injectable(on=InaccessibleService, override=True)
+class ServiceOverload(InaccessibleService):
     ...
 ```
 
@@ -140,9 +139,9 @@ A recipe is a function that tells the injector how to construct the instance to 
 the return type annotation when defining the recipe.
 
 ```python
-from injection import singleton
+from injection import injectable
 
-@singleton
-def my_recipe() -> Singleton:
+@injectable
+def service_d_recipe() -> ServiceD:
     """ recipe implementation """
 ```

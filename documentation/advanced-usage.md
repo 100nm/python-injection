@@ -12,7 +12,7 @@ increase complexity unnecessarily if used extensively.
 ```python
 from injection import Module
 
-my_module = Module(f"{__name__}:my_module")
+custom_module = Module(f"{__name__}:custom_module")
 ```
 
 _It's recommended to give a module name, even if this isn't mandatory._
@@ -24,20 +24,20 @@ Modules contain basic decorators. [See more.](basic-usage.md)
 ```python
 # Injectable decorator
 
-@my_module.injectable
-class SomeInjectable:
+@custom_module.injectable
+class ServiceA:
     ...
 
 # Singleton decorator
 
-@my_module.singleton
-class SomeSingletonInjectable:
+@custom_module.singleton
+class ServiceB:
     ...
 
 # Inject decorator
 
-@my_module.inject
-def some_function(instance: SomeInjectable):
+@custom_module.inject
+def some_function(service_a: ServiceA, service_b: ServiceB):
     ...
 ```
 
@@ -45,33 +45,39 @@ def some_function(instance: SomeInjectable):
 
 > **Use a module**
 
-When a module is used by another module, the module's dependencies are replaced by those of the module used. 
+When a module is used by another module, the module's dependencies are replaced by those of the module used.
 
 ```python
 from injection import Module
 
-module_x, module_y = Module(), Module()
+module_1 = Module(f"{__name__}:module_1")
+module_2 = Module(f"{__name__}:module_2")
 
-class A:
-    ...
-    
-@module_x.injectable(on=A)
-class B(A):
+
+class AbstractService:
     ...
 
-@module_y.injectable(on=A)
-class C(A):
+
+@module_1.injectable(on=AbstractService)
+class ConcreteService_1(AbstractService):
     ...
 
-@module_x.inject
-def function(a: A):
+
+@module_2.injectable(on=AbstractService)
+class ConcreteService_2(AbstractService):
     ...
 
-function()  # Inject B instance
-module_x.use(module_y)
-function()  # Inject C instance
-module_x.stop_using(module_y)
-function()  # Inject B instance
+
+@module_1.inject
+def some_function(service: AbstractService):
+    ...
+
+
+some_function()  # Inject `ConcreteService_1` instance
+module_1.use(module_2)
+some_function()  # Inject `ConcreteService_2` instance
+module_1.stop_using(module_2)
+some_function()  # Inject `ConcreteService_1` instance
 ```
 
 There's also a context decorator for using a module temporarily.
@@ -79,18 +85,14 @@ There's also a context decorator for using a module temporarily.
 ```python
 # Context Manager
 
-with module_x.use_temporarily(module_y):
-    # ...
-    function()
-    # ...
+with module_1.use_temporarily(module_2):
+    ...
 
 # Decorator
 
-@module_x.use_temporarily(module_y)
-def use_case():
-    # ...
-    function()
-    # ...
+@module_1.use_temporarily(module_2)
+def function():
+    ...
 ```
 
 > **Priorities**
@@ -106,10 +108,6 @@ The default priority is **`LOW`**.
 Apply priority with `use` method:
 
 ```python
-from injection import Module, ModulePriority
-
-module_1, module_2 = Module(), Module()
-
 module_1.use(module_2, ModulePriority.HIGH)
 ```
 
@@ -141,15 +139,14 @@ _First of all, make sure that all scripts containing injectables have been impor
 
 > **Tips**
 > * Avoid local imports
-> * Avoid singletons if not necessary 
-> * Try grouping dependencies in different injection modules.
+> * Avoid singletons if not necessary
 
 #### Unlock method
 
 If you know what you're doing, you can delete the cached instances of all singletons using the `unlock` method:
 
 ```python
-my_module.unlock()
+custom_module.unlock()
 ```
 
 ### Logging

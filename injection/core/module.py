@@ -16,14 +16,9 @@ from collections.abc import (
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import (
-    partialmethod,
-    singledispatchmethod,
-    update_wrapper,
-    wraps,
-)
+from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import Signature, isclass
-from types import UnionType
+from types import MethodType, UnionType
 from typing import (
     Any,
     ClassVar,
@@ -635,48 +630,37 @@ class InjectedFunction(EventListener):
     __slots__ = (
         "__dict__",
         "__signature__",
+        "__wrapped__",
         "__dependencies",
         "__owner",
         "__setup_queue",
-        "__wrapper",
     )
 
     def __init__(self, wrapped: Callable[..., Any], /):
         update_wrapper(self, wrapped)
-
-        @wraps(wrapped)
-        def wrapper(*args, **kwargs):
-            self.__consume_setup_queue()
-            args, kwargs = self.bind(args, kwargs)
-            return wrapped(*args, **kwargs)
-
-        self.__wrapper = wrapper
         self.__dependencies = Dependencies.empty()
         self.__owner = None
         self.__setup_queue = LimitedQueue[Callable[[], Any]]()
-        self.on_setup(
-            lambda: self.__set_signature(
-                inspect.signature(
-                    wrapped,
-                    eval_str=True,
-                )
-            )
-        )
+        self.on_setup(self.__set_signature)
 
     def __repr__(self) -> str:
-        return repr(self.__wrapper)
+        return repr(self.wrapped)
 
     def __str__(self) -> str:
-        return str(self.__wrapper)
+        return str(self.wrapped)
 
     def __call__(self, /, *args, **kwargs) -> Any:
-        return self.__wrapper(*args, **kwargs)
+        for function in self.__setup_queue:
+            function()
+
+        args, kwargs = self.bind(args, kwargs)
+        return self.wrapped(*args, **kwargs)
 
     def __get__(self, instance: object = None, owner: type = None):
         if instance is None:
             return self
 
-        return self.__wrapper.__get__(instance, owner)
+        return MethodType(self, instance)
 
     def __set_name__(self, owner: type, name: str):
         self.set_owner(owner)
@@ -684,6 +668,10 @@ class InjectedFunction(EventListener):
     @property
     def signature(self) -> Signature:
         return self.__signature__
+
+    @property
+    def wrapped(self) -> Callable[..., Any]:
+        return self.__wrapped__
 
     def bind(
         self,
@@ -736,12 +724,6 @@ class InjectedFunction(EventListener):
         yield
         self.update(event.on_module)
 
-    def __consume_setup_queue(self):
-        for function in self.__setup_queue:
-            function()
-
-        return self
-
-    def __set_signature(self, signature: Signature):
-        self.__signature__ = signature
+    def __set_signature(self):
+        self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
         return self
