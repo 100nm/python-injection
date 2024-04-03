@@ -20,5 +20,4 @@ pip install python-injection
 * [**Advanced usage**](documentation/advanced-usage.md)
 * [**Utils**](documentation/utils.md)
 * [**Integrations**](documentation/integrations.md)
-* [**Concrete example**](documentation/concrete-example.md)
 * [**Concrete example**](documentation/example)
