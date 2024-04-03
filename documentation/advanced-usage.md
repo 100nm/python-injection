@@ -86,17 +86,13 @@ There's also a context decorator for using a module temporarily.
 # Context Manager
 
 with module_1.use_temporarily(module_2):
-    # ...
-    function()
-    # ...
+    ...
 
 # Decorator
 
 @module_1.use_temporarily(module_2)
-def use_case():
-    # ...
-    function()
-    # ...
+def function():
+    ...
 ```
 
 > **Priorities**
@@ -112,11 +108,6 @@ The default priority is **`LOW`**.
 Apply priority with `use` method:
 
 ```python
-from injection import Module, ModulePriority
-
-module_1 = Module(f"{__name__}:module_1")
-module_2 = Module(f"{__name__}:module_2")
-
 module_1.use(module_2, ModulePriority.HIGH)
 ```
 

@@ -13,7 +13,9 @@ repository = "https://github.com/100nm/python-injection"
 python = ">=3.10, <4"
 
 [tool.poetry.group.dev.dependencies]
+argon2-cffi = "*"
 blacksheep = "*"
+faker = "*"
 pydantic = "*"
 pytest = "*"
 pytest-asyncio = "*"
@@ -31,7 +33,7 @@ exclude_lines = [
 python_files = "test_*.py"
 addopts = "-p no:warnings --tb=short"
 asyncio_mode = "auto"
-testpaths = "tests/"
+testpaths = "**/tests/"
 
 [tool.ruff]
 line-length = 88
