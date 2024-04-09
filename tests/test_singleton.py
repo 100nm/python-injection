@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 from pydantic import BaseModel
 
-from injection import get_instance, singleton
+from injection import Mode, get_instance, singleton
 
 
 class TestSingleton:
@@ -170,7 +170,7 @@ class TestSingleton:
         class A:
             pass
 
-        @singleton(on=A, override=True)
+        @singleton(on=A, mode=Mode.OVERRIDE)
         class B(A):
             pass
 

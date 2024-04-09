@@ -11,7 +11,6 @@ from collections.abc import (
     Iterator,
     Mapping,
     MutableMapping,
-    Set,
 )
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
@@ -45,7 +44,7 @@ from injection.exceptions import (
     NoInjectable,
 )
 
-__all__ = ("Injectable", "Module", "ModulePriority")
+__all__ = ("Injectable", "Mode", "Module", "ModulePriority")
 
 _logger = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ class ContainerEvent(Event, ABC):
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
     classes: Collection[type]
-    override: bool
+    mode: Mode
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -153,13 +152,6 @@ class Injectable(Protocol[_T]):
         raise NotImplementedError
 
 
-class FallbackInjectable(Injectable[_T], ABC):
-    __slots__ = ()
-
-    def __bool__(self) -> bool:
-        return False
-
-
 @dataclass(repr=False, frozen=True, slots=True)
 class BaseInjectable(Injectable[_T], ABC):
     factory: Callable[[], _T]
@@ -200,7 +192,7 @@ class SingletonInjectable(BaseInjectable[_T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class ShouldBeInjectable(FallbackInjectable[_T]):
+class ShouldBeInjectable(Injectable[_T]):
     cls: type[_T]
 
     def get_instance(self) -> NoReturn:
@@ -239,15 +231,52 @@ Container
 """
 
 
+class Mode(Enum):
+    FALLBACK = -1
+    NORMAL = 0
+    OVERRIDE = 1
+
+    def __lt__(self, mode: Mode) -> bool:
+        return self.value < mode.value
+
+    def __le__(self, mode: Mode) -> bool:
+        return self.value <= mode.value
+
+    def __eq__(self, mode: Mode) -> bool:
+        return self.value == mode.value
+
+    def __ne__(self, mode: Mode) -> bool:
+        return self.value != mode.value
+
+    def __gt__(self, mode: Mode) -> bool:
+        return self.value > mode.value
+
+    def __ge__(self, mode: Mode) -> bool:
+        return self.value >= mode.value
+
+    @classmethod
+    def get_default(cls):
+        return cls.NORMAL
+
+
+class InjectionData(NamedTuple):
+    injectable: Injectable
+    mode: Mode
+
+
 @dataclass(repr=False, frozen=True, slots=True)
 class Container(Broker):
-    __data: dict[type, Injectable] = field(default_factory=dict, init=False)
+    __data: dict[type, InjectionData] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
         for origin in get_origins(cls):
-            with suppress(KeyError):
-                return self.__data[origin]
+            try:
+                injectable, _ = self.__data[origin]
+            except KeyError:
+                continue
+
+            return injectable
 
         raise NoInjectable(cls)
 
@@ -259,29 +288,21 @@ class Container(Broker):
         return any(injectable.is_locked for injectable in self.__injectables)
 
     @property
-    def __classes(self) -> frozenset[type]:
-        return frozenset(self.__data)
-
-    @property
     def __injectables(self) -> frozenset[Injectable]:
-        return frozenset(self.__data.values())
+        return frozenset(injectable for injectable, _ in self.__data.values())
 
     @synchronized()
-    def update(self, classes: Iterable[type], injectable: Injectable, override: bool):
-        classes = frozenset(get_origins(*classes))
+    def update(self, classes: Iterable[type], injectable: Injectable, mode: Mode):
+        for_update = {
+            cls: InjectionData(injectable, mode)
+            for cls in self.__filter_classes(classes, mode)
+        }
 
-        if not injectable:
-            classes -= self.__classes
-            override = True
-
-        if classes:
-            event = ContainerDependenciesUpdated(self, classes, override)
+        if for_update:
+            event = ContainerDependenciesUpdated(self, for_update.keys(), mode)
 
             with self.notify(event):
-                if not override:
-                    self.__check_if_exists(classes)
-
-                self.__data.update((cls, injectable) for cls in classes)
+                self.__data.update(for_update)
 
         return self
 
@@ -299,14 +320,24 @@ class Container(Broker):
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
         return self.__channel.dispatch(event)
 
-    def __check_if_exists(self, classes: Set[type]):
-        intersection = classes & self.__classes
+    def __filter_classes(self, classes: Iterable[type], mode: Mode) -> Iterator[type]:
+        for cls in frozenset(get_origins(*classes)):
+            try:
+                _, existing_mode = self.__data[cls]
 
-        for cls in intersection:
-            if self.__data[cls]:
-                raise RuntimeError(
-                    f"An injectable already exists for the class `{format_type(cls)}`."
-                )
+            except KeyError:
+                pass
+
+            else:
+                if mode == existing_mode:
+                    raise RuntimeError(
+                        f"An injectable already exists for the class `{format_type(cls)}`."
+                    )
+
+                elif mode < existing_mode:
+                    continue
+
+            yield cls
 
 
 """
@@ -369,13 +400,13 @@ class Module(EventListener, Broker):
         cls: type[Injectable] = NewInjectable,
         inject: bool = True,
         on: type | Types = None,
-        override: bool = False,
+        mode: Mode = Mode.get_default(),
     ):
         def decorator(wp):
             factory = self.inject(wp, return_factory=True) if inject else wp
             injectable = cls(factory)
             classes = find_types(wp, on)
-            self.update(classes, injectable, override)
+            self.update(classes, injectable, mode)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -384,7 +415,11 @@ class Module(EventListener, Broker):
 
     def should_be_injectable(self, wrapped: type = None, /):
         def decorator(wp):
-            self[wp] = ShouldBeInjectable(wp)
+            self.update(
+                (wp,),
+                ShouldBeInjectable(wp),
+                mode=Mode.FALLBACK,
+            )
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -394,14 +429,14 @@ class Module(EventListener, Broker):
         instance: _T,
         on: type | Types = None,
         *,
-        override: bool = False,
+        mode: Mode = Mode.get_default(),
     ) -> _T:
         cls = type(instance)
         self.injectable(
             lambda: instance,
             inject=False,
             on=(cls, on),
-            override=override,
+            mode=mode,
         )
         return instance
 
@@ -456,9 +491,9 @@ class Module(EventListener, Broker):
         self,
         classes: Iterable[type],
         injectable: Injectable,
-        override: bool = False,
+        mode: Mode = Mode.get_default(),
     ):
-        self.__container.update(classes, injectable, override)
+        self.__container.update(classes, injectable, mode)
         return self
 
     def use(

@@ -54,7 +54,7 @@ class Module:
         cls: type[Injectable] = ...,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        override: bool = ...,
+        mode: Mode = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -69,7 +69,7 @@ class Module:
         *,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        override: bool = ...,
+        mode: Mode = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -89,7 +89,7 @@ class Module:
         instance: _T,
         on: type | Iterable[type] | UnionType = ...,
         *,
-        override: bool = ...,
+        mode: Mode = ...,
     ) -> _T:
         """
         Function for registering a specific instance to be injected. This is useful for
@@ -157,6 +157,12 @@ class Module:
 class ModulePriority(Enum):
     HIGH = ...
     LOW = ...
+
+@final
+class Mode(Enum):
+    FALLBACK = ...
+    NORMAL = ...
+    OVERRIDE = ...
 
 @runtime_checkable
 class Injectable(Protocol[_T]):
