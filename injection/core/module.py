@@ -14,7 +14,6 @@ from collections.abc import (
 )
 from contextlib import ContextDecorator, contextmanager, suppress
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import Signature, isclass
 from types import MethodType, UnionType
@@ -22,11 +21,13 @@ from typing import (
     Any,
     ClassVar,
     ContextManager,
+    Literal,
     NamedTuple,
     NoReturn,
     Protocol,
     TypeVar,
     cast,
+    get_args,
     runtime_checkable,
 )
 
@@ -44,12 +45,21 @@ from injection.exceptions import (
     NoInjectable,
 )
 
-__all__ = ("Injectable", "Mode", "Module", "ModulePriority")
+__all__ = ("Injectable", "Module")
 
 _logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
-Types = Iterable[type] | UnionType
+_Types = Iterable[type] | UnionType
+
+
+"""
+Literal types
+"""
+
+
+_Mode = Literal["fallback", "normal", "override"]
+_Priority = Literal["low", "high"]
 
 
 """
@@ -65,7 +75,7 @@ class ContainerEvent(Event, ABC):
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
     classes: Collection[type]
-    mode: Mode
+    mode: _Mode
 
     def __str__(self) -> str:
         length = len(self.classes)
@@ -119,11 +129,11 @@ class ModuleRemoved(ModuleEvent):
 @dataclass(frozen=True, slots=True)
 class ModulePriorityUpdated(ModuleEvent):
     module_updated: Module
-    priority: ModulePriority
+    priority: _Priority
 
     def __str__(self) -> str:
         return (
-            f"In `{self.on_module}`, the priority `{self.priority.name}` "
+            f"In `{self.on_module}`, the priority `{self.priority}` "
             f"has been applied to `{self.module_updated}`."
         )
 
@@ -231,48 +241,20 @@ Container
 """
 
 
-class Mode(Enum):
-    FALLBACK = -1
-    NORMAL = 0
-    OVERRIDE = 1
-
-    def __lt__(self, mode: Mode) -> bool:
-        return self.value < mode.value
-
-    def __le__(self, mode: Mode) -> bool:
-        return self.value <= mode.value
-
-    def __eq__(self, mode: Mode) -> bool:
-        return self.value == mode.value
-
-    def __ne__(self, mode: Mode) -> bool:
-        return self.value != mode.value
-
-    def __gt__(self, mode: Mode) -> bool:
-        return self.value > mode.value
-
-    def __ge__(self, mode: Mode) -> bool:
-        return self.value >= mode.value
-
-    @classmethod
-    def get_default(cls):
-        return cls.NORMAL
-
-
-class InjectionData(NamedTuple):
+class Record(NamedTuple):
     injectable: Injectable
-    mode: Mode
+    mode: _Mode
 
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Container(Broker):
-    __data: dict[type, InjectionData] = field(default_factory=dict, init=False)
+    __data: dict[type, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
-        for origin in get_origins(cls):
+        for cls in get_origins(cls):
             try:
-                injectable, _ = self.__data[origin]
+                injectable, _ = self.__data[cls]
             except KeyError:
                 continue
 
@@ -281,7 +263,7 @@ class Container(Broker):
         raise NoInjectable(cls)
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
-        return any(origin in self.__data for origin in get_origins(cls))
+        return any(cls in self.__data for cls in get_origins(cls))
 
     @property
     def is_locked(self) -> bool:
@@ -292,17 +274,17 @@ class Container(Broker):
         return frozenset(injectable for injectable, _ in self.__data.values())
 
     @synchronized()
-    def update(self, classes: Iterable[type], injectable: Injectable, mode: Mode):
-        for_update = {
-            cls: InjectionData(injectable, mode)
+    def update(self, classes: Iterable[type], injectable: Injectable, mode: _Mode):
+        records = {
+            cls: Record(injectable, mode)
             for cls in self.__filter_classes(classes, mode)
         }
 
-        if for_update:
-            event = ContainerDependenciesUpdated(self, for_update.keys(), mode)
+        if records:
+            event = ContainerDependenciesUpdated(self, records.keys(), mode)
 
             with self.notify(event):
-                self.__data.update(for_update)
+                self.__data.update(records)
 
         return self
 
@@ -320,21 +302,24 @@ class Container(Broker):
     def notify(self, event: Event) -> ContextManager | ContextDecorator:
         return self.__channel.dispatch(event)
 
-    def __filter_classes(self, classes: Iterable[type], mode: Mode) -> Iterator[type]:
+    def __filter_classes(self, classes: Iterable[type], mode: _Mode) -> Iterator[type]:
+        modes = get_args(_Mode)
+        rank = modes.index(mode)
+
         for cls in frozenset(get_origins(*classes)):
             try:
-                _, existing_mode = self.__data[cls]
+                _, current_mode = self.__data[cls]
 
             except KeyError:
                 pass
 
             else:
-                if mode == existing_mode:
+                if mode == current_mode:
                     raise RuntimeError(
                         f"An injectable already exists for the class `{format_type(cls)}`."
                     )
 
-                elif mode < existing_mode:
+                elif rank < modes.index(current_mode):
                     continue
 
             yield cls
@@ -343,15 +328,6 @@ class Container(Broker):
 """
 Module
 """
-
-
-class ModulePriority(Enum):
-    HIGH = auto()
-    LOW = auto()
-
-    @classmethod
-    def get_default(cls):
-        return cls.LOW
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
@@ -399,8 +375,8 @@ class Module(EventListener, Broker):
         *,
         cls: type[Injectable] = NewInjectable,
         inject: bool = True,
-        on: type | Types = None,
-        mode: Mode = Mode.get_default(),
+        on: type | _Types = None,
+        mode: _Mode = "normal",
     ):
         def decorator(wp):
             factory = self.inject(wp, return_factory=True) if inject else wp
@@ -418,7 +394,7 @@ class Module(EventListener, Broker):
             self.update(
                 (wp,),
                 ShouldBeInjectable(wp),
-                mode=Mode.FALLBACK,
+                mode="fallback",
             )
             return wp
 
@@ -427,9 +403,9 @@ class Module(EventListener, Broker):
     def set_constant(
         self,
         instance: _T,
-        on: type | Types = None,
+        on: type | _Types = None,
         *,
-        mode: Mode = Mode.get_default(),
+        mode: _Mode = "normal",
     ) -> _T:
         cls = type(instance)
         self.injectable(
@@ -463,7 +439,7 @@ class Module(EventListener, Broker):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def get_instance(self, cls: type[_T], none: bool = True) -> _T | None:
+    def get_instance(self, cls: type[_T], *, none: bool = True) -> _T | None:
         try:
             injectable = self[cls]
         except KeyError as exc:
@@ -478,6 +454,7 @@ class Module(EventListener, Broker):
     def get_lazy_instance(
         self,
         cls: type[_T],
+        *,
         cache: bool = False,
     ) -> Invertible[_T | None]:
         if cache:
@@ -491,16 +468,12 @@ class Module(EventListener, Broker):
         self,
         classes: Iterable[type],
         injectable: Injectable,
-        mode: Mode = Mode.get_default(),
+        mode: _Mode = "normal",
     ):
         self.__container.update(classes, injectable, mode)
         return self
 
-    def use(
-        self,
-        module: Module,
-        priority: ModulePriority = ModulePriority.get_default(),
-    ):
+    def use(self, module: Module, *, priority: _Priority = "low"):
         if module is self:
             raise ModuleError("Module can't be used by itself.")
 
@@ -530,13 +503,14 @@ class Module(EventListener, Broker):
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriority = ModulePriority.get_default(),
+        *,
+        priority: _Priority = "low",
     ) -> ContextManager | ContextDecorator:
-        self.use(module, priority)
+        self.use(module, priority=priority)
         yield
         self.stop_using(module)
 
-    def change_priority(self, module: Module, priority: ModulePriority):
+    def change_priority(self, module: Module, priority: _Priority):
         event = ModulePriorityUpdated(self, module, priority)
 
         with self.notify(event):
@@ -575,8 +549,8 @@ class Module(EventListener, Broker):
         if self.is_locked:
             raise ModuleLockError(f"`{self}` is locked.")
 
-    def __move_module(self, module: Module, priority: ModulePriority):
-        last = priority == ModulePriority.LOW
+    def __move_module(self, module: Module, priority: _Priority):
+        last = priority != "high"
 
         try:
             self.__modules.move_to_end(module, last=last)

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 from pydantic import BaseModel
 
-from injection import Mode, get_instance, injectable
+from injection import get_instance, injectable
 
 
 class TestInjectable:
@@ -172,7 +172,7 @@ class TestInjectable:
         class A:
             pass
 
-        @injectable(on=A, mode=Mode.OVERRIDE)
+        @injectable(on=A, mode="override")
         class B(A):
             pass
 

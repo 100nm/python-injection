@@ -108,20 +108,20 @@ The default priority is **`LOW`**.
 Apply priority with `use` method:
 
 ```python
-module_1.use(module_2, ModulePriority.HIGH)
+module_1.use(module_2, priority="high")
 ```
 
 Apply priority with `use_temporarily` method:
 
 ```python
-with module_1.use_temporarily(module_2, ModulePriority.HIGH):
+with module_1.use_temporarily(module_2, priority="high"):
     ...
 ```
 
 Change the priority of a used module:
 
 ```python
-module_1.change_priority(module_2, ModulePriority.LOW)
+module_1.change_priority(module_2, priority="low")
 ```
 
 ### Understand `ModuleLockError`

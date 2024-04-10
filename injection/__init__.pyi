@@ -1,12 +1,12 @@
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from contextlib import ContextDecorator
-from enum import Enum
 from types import UnionType
 from typing import (
     Any,
     ContextManager,
     Final,
+    Literal,
     Protocol,
     TypeVar,
     final,
@@ -54,7 +54,7 @@ class Module:
         cls: type[Injectable] = ...,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        mode: Mode = ...,
+        mode: Literal["fallback", "normal", "override"] = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -69,7 +69,7 @@ class Module:
         *,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        mode: Mode = ...,
+        mode: Literal["fallback", "normal", "override"] = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -89,7 +89,7 @@ class Module:
         instance: _T,
         on: type | Iterable[type] | UnionType = ...,
         *,
-        mode: Mode = ...,
+        mode: Literal["fallback", "normal", "override"] = ...,
     ) -> _T:
         """
         Function for registering a specific instance to be injected. This is useful for
@@ -97,7 +97,7 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def get_instance(self, cls: type[_T], none: bool = ...) -> _T | None:
+    def get_instance(self, cls: type[_T], *, none: bool = ...) -> _T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None` but if `none` parameter is `False` an exception
@@ -107,6 +107,7 @@ class Module:
     def get_lazy_instance(
         self,
         cls: type[_T],
+        *,
         cache: bool = ...,
     ) -> Invertible[_T | None]:
         """
@@ -118,7 +119,7 @@ class Module:
         Example: instance = ~lazy_instance
         """
 
-    def use(self, module: Module, priority: ModulePriority = ...):
+    def use(self, module: Module, *, priority: Literal["high", "low"] = ...):
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
@@ -133,13 +134,14 @@ class Module:
     def use_temporarily(
         self,
         module: Module,
-        priority: ModulePriority = ...,
+        *,
+        priority: Literal["high", "low"] = ...,
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
 
-    def change_priority(self, module: Module, priority: ModulePriority):
+    def change_priority(self, module: Module, priority: Literal["high", "low"]):
         """
         Function for changing the priority of a module in use.
         There are two priority values:
@@ -152,17 +154,6 @@ class Module:
         """
         Function to unlock the module by deleting cached instances of singletons.
         """
-
-@final
-class ModulePriority(Enum):
-    HIGH = ...
-    LOW = ...
-
-@final
-class Mode(Enum):
-    FALLBACK = ...
-    NORMAL = ...
-    OVERRIDE = ...
 
 @runtime_checkable
 class Injectable(Protocol[_T]):
