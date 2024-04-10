@@ -637,7 +637,15 @@ class InjectedFunction(EventListener):
     )
 
     def __init__(self, wrapped: Callable[..., Any], /):
-        update_wrapper(self, wrapped)
+        try:
+            variables = vars(wrapped)
+        except TypeError:
+            pass
+        else:
+            self.__update_vars(variables)
+            del variables
+
+        update_wrapper(self, wrapped, updated=())
         self.__dependencies = Dependencies.empty()
         self.__owner = None
         self.__setup_queue = LimitedQueue[Callable[[], Any]]()
@@ -727,3 +735,15 @@ class InjectedFunction(EventListener):
     def __set_signature(self):
         self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
         return self
+
+    def __update_vars(self, variables: Mapping[str, Any], /):
+        def is_dunder(var: str) -> bool:
+            return var.startswith("__") and var.endswith("__")
+
+        restricted_vars = frozenset(var for var in dir(self) if not is_dunder(var))
+        variables = (
+            (var, value)
+            for var, value in variables.items()
+            if var not in restricted_vars
+        )
+        vars(self).update(variables)

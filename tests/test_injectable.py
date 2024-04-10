@@ -178,3 +178,12 @@ class TestInjectable:
 
         a = get_instance(A)
         assert isinstance(a, B)
+
+    def test_injectable_with_class_and_update_method(self):
+        @injectable
+        class A:
+            def update(self):
+                raise NotImplementedError
+
+        a = get_instance(A)
+        assert isinstance(a, A)
