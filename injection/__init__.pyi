@@ -13,7 +13,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection.common.invertible import Invertible
+from .common.invertible import Invertible
 
 _T = TypeVar("_T")
 
@@ -119,7 +119,7 @@ class Module:
         Example: instance = ~lazy_instance
         """
 
-    def use(self, module: Module, *, priority: Literal["high", "low"] = ...):
+    def use(self, module: Module, *, priority: Literal["low", "high"] = ...):
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
@@ -135,13 +135,13 @@ class Module:
         self,
         module: Module,
         *,
-        priority: Literal["high", "low"] = ...,
+        priority: Literal["low", "high"] = ...,
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
 
-    def change_priority(self, module: Module, priority: Literal["high", "low"]):
+    def change_priority(self, module: Module, priority: Literal["low", "high"]):
         """
         Function for changing the priority of a module in use.
         There are two priority values:
