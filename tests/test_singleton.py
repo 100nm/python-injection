@@ -170,7 +170,7 @@ class TestSingleton:
         class A:
             pass
 
-        @singleton(on=A, override=True)
+        @singleton(on=A, mode="override")
         class B(A):
             pass
 

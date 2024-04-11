@@ -172,7 +172,7 @@ class TestInjectable:
         class A:
             pass
 
-        @injectable(on=A, override=True)
+        @injectable(on=A, mode="override")
         class B(A):
             pass
 

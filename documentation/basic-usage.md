@@ -119,7 +119,7 @@ class ConcreteServiceOverload(ConcreteService):
     ...
 ```
 
-If a class is registered in a package and you want to override it, there is the `override` parameter:
+If a class is registered in a package and you want to override it, there is the `mode` parameter:
 
 ```python
 @injectable
@@ -128,7 +128,7 @@ class InaccessibleService:
 
 # ...
 
-@injectable(on=InaccessibleService, override=True)
+@injectable(on=InaccessibleService, mode="override")
 class ServiceOverload(InaccessibleService):
     ...
 ```

@@ -2,7 +2,7 @@ from typing import Annotated, Any
 
 import pytest
 
-from injection.core import Injectable, Module, ModulePriority
+from injection.core import Injectable, Module
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -48,7 +48,7 @@ class TestModule:
         assert module[SomeClass] is injectable_x
 
         fourth_module = Module()
-        module.use(fourth_module, priority=ModulePriority.HIGH)
+        module.use(fourth_module, priority="high")
         injectable_z = self.get_test_injectable(SomeClass())
         fourth_module[SomeClass] = injectable_z
         assert module[SomeClass] is injectable_z
@@ -173,7 +173,7 @@ class TestModule:
         third_module = Module()
 
         module.use(second_module)
-        module.use(third_module, priority=ModulePriority.HIGH)
+        module.use(third_module, priority="high")
 
         event_history.assert_length(2)
 
@@ -257,11 +257,11 @@ class TestModule:
 
         assert module[SomeClass] is injectable_x
 
-        module.change_priority(third_module, ModulePriority.HIGH)
+        module.change_priority(third_module, "high")
         event_history.assert_length(3)
         assert module[SomeClass] is injectable_y
 
-        module.change_priority(third_module, ModulePriority.LOW)
+        module.change_priority(third_module, "low")
         event_history.assert_length(4)
         assert module[SomeClass] is injectable_x
 
@@ -269,7 +269,7 @@ class TestModule:
         second_module = Module()
 
         with pytest.raises(ModuleNotUsedError):
-            module.change_priority(second_module, ModulePriority.HIGH)
+            module.change_priority(second_module, "high")
 
     """
     unlock
