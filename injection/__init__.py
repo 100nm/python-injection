@@ -1,8 +1,10 @@
-from .core import Injectable, Module
+from .core import Injectable, InjectableMode, Module, ModulePriority
 
 __all__ = (
     "Injectable",
+    "InjectableMode",
     "Module",
+    "ModulePriority",
     "default_module",
     "get_instance",
     "get_lazy_instance",

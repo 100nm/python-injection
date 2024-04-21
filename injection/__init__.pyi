@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from contextlib import ContextDecorator
+from enum import Enum
 from types import UnionType
 from typing import (
     Any,
@@ -54,7 +55,7 @@ class Module:
         cls: type[Injectable] = ...,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        mode: Literal["fallback", "normal", "override"] = ...,
+        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -69,7 +70,7 @@ class Module:
         *,
         inject: bool = ...,
         on: type | Iterable[type] | UnionType = ...,
-        mode: Literal["fallback", "normal", "override"] = ...,
+        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -89,7 +90,7 @@ class Module:
         instance: _T,
         on: type | Iterable[type] | UnionType = ...,
         *,
-        mode: Literal["fallback", "normal", "override"] = ...,
+        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
     ) -> _T:
         """
         Function for registering a specific instance to be injected. This is useful for
@@ -119,7 +120,12 @@ class Module:
         Example: instance = ~lazy_instance
         """
 
-    def use(self, module: Module, *, priority: Literal["low", "high"] = ...):
+    def use(
+        self,
+        module: Module,
+        *,
+        priority: ModulePriority | Literal["low", "high"] = ...,
+    ):
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
@@ -135,13 +141,17 @@ class Module:
         self,
         module: Module,
         *,
-        priority: Literal["low", "high"] = ...,
+        priority: ModulePriority | Literal["low", "high"] = ...,
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
 
-    def change_priority(self, module: Module, priority: Literal["low", "high"]):
+    def change_priority(
+        self,
+        module: Module,
+        priority: ModulePriority | Literal["low", "high"],
+    ):
         """
         Function for changing the priority of a module in use.
         There are two priority values:
@@ -155,6 +165,11 @@ class Module:
         Function to unlock the module by deleting cached instances of singletons.
         """
 
+@final
+class ModulePriority(str, Enum):
+    LOW = ...
+    HIGH = ...
+
 @runtime_checkable
 class Injectable(Protocol[_T]):
     def __init__(self, factory: Callable[[], _T] = ..., /): ...
@@ -163,3 +178,9 @@ class Injectable(Protocol[_T]):
     def unlock(self): ...
     @abstractmethod
     def get_instance(self) -> _T: ...
+
+@final
+class InjectableMode(str, Enum):
+    FALLBACK = ...
+    NORMAL = ...
+    OVERRIDE = ...
