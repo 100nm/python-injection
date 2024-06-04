@@ -9,3 +9,7 @@ runs:
       run: |
         ruff format --check
         ruff check
+
+    - name: MyPy
+      shell: bash
+      run: mypy ./

@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 import pytest
 from blacksheep import Application, Response
 from blacksheep.server.controllers import APIController, post
@@ -32,7 +34,7 @@ class Controller(APIController):
 
 class TestBlackSheepIntegration:
     @pytest.fixture(scope="class")
-    async def client(self) -> TestClient:
+    async def client(self) -> AsyncIterator[TestClient]:
         await application.start()
         yield TestClient(application)
         await application.stop()

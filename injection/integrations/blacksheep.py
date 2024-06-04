@@ -1,5 +1,7 @@
 from typing import Any, TypeVar
 
+from rodi import ContainerProtocol
+
 from injection import Module, default_module
 
 __all__ = ("InjectionServices",)
@@ -7,7 +9,7 @@ __all__ = ("InjectionServices",)
 _T = TypeVar("_T")
 
 
-class InjectionServices:
+class InjectionServices(ContainerProtocol):
     """
     BlackSheep dependency injection container implemented with `python-injection`.
     """
@@ -17,12 +19,12 @@ class InjectionServices:
     def __init__(self, module: Module = default_module):
         self.__module = module
 
-    def __contains__(self, cls: type | Any, /) -> bool:
-        return cls in self.__module
+    def __contains__(self, item: Any) -> bool:
+        return item in self.__module
 
-    def register(self, cls: type | Any, *__args, **__kwargs):
-        self.__module.injectable(cls)
+    def register(self, obj_type: type | Any, *args, **kwargs):
+        self.__module.injectable(obj_type)
         return self
 
-    def resolve(self, cls: type[_T] | Any, *__args, **__kwargs) -> _T:
-        return self.__module.get_instance(cls, none=False)
+    def resolve(self, obj_type: type[_T] | Any, *args, **kwargs) -> _T:
+        return self.__module.resolve(obj_type)

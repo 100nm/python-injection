@@ -16,7 +16,8 @@ from typing import (
 
 from .common.invertible import Invertible
 
-_T = TypeVar("_T")
+_In_T = TypeVar("_In_T", covariant=False)
+_Co_T = TypeVar("_Co_T", covariant=True)
 
 default_module: Final[Module] = ...
 
@@ -87,30 +88,35 @@ class Module:
 
     def set_constant(
         self,
-        instance: _T,
+        instance: _In_T,
         on: type | Iterable[type] | UnionType = ...,
         *,
         mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
-    ) -> _T:
+    ) -> _In_T:
         """
         Function for registering a specific instance to be injected. This is useful for
         registering global variables. The difference with the singleton decorator is
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def get_instance(self, cls: type[_T], *, none: bool = ...) -> _T | None:
+    def resolve(self, cls: type[_In_T]) -> _In_T:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or return `None` but if `none` parameter is `False` an exception
-        will be raised.
+        parameter or an exception will be raised.
+        """
+
+    def get_instance(self, cls: type[_In_T]) -> _In_T | None:
+        """
+        Function used to retrieve an instance associated with the type passed in
+        parameter or return `None`.
         """
 
     def get_lazy_instance(
         self,
-        cls: type[_T],
+        cls: type[_In_T],
         *,
         cache: bool = ...,
-    ) -> Invertible[_T | None]:
+    ) -> Invertible[_In_T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Invertible` object. To access the instance
@@ -171,13 +177,13 @@ class ModulePriority(str, Enum):
     HIGH = ...
 
 @runtime_checkable
-class Injectable(Protocol[_T]):
-    def __init__(self, factory: Callable[[], _T] = ..., /): ...
+class Injectable(Protocol[_Co_T]):
+    def __init__(self, factory: Callable[[], _Co_T] = ..., /): ...
     @property
     def is_locked(self) -> bool: ...
     def unlock(self): ...
     @abstractmethod
-    def get_instance(self) -> _T: ...
+    def get_instance(self) -> _Co_T: ...
 
 @final
 class InjectableMode(str, Enum):

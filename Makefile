@@ -1,4 +1,4 @@
-before_commit: check lint pytest
+before_commit: check lint mypy pytest
 
 check:
 	poetry check
@@ -9,6 +9,9 @@ install:
 lint:
 	ruff format
 	ruff check --fix
+
+mypy:
+	mypy ./
 
 pytest:
 	pytest --cov=./ --cov-report term-missing:skip-covered

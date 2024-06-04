@@ -16,6 +16,7 @@ python = ">=3.10, <4"
 argon2-cffi = "*"
 blacksheep = "*"
 faker = "*"
+mypy = "*"
 pydantic = "*"
 pytest = "*"
 pytest-asyncio = "*"
@@ -28,6 +29,14 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
 ]
+
+[tool.mypy]
+check_untyped_defs = true
+exclude = [
+    "documentation/example/",
+    "tests/",
+]
+implicit_optional = true
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"

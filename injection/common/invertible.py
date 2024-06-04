@@ -5,7 +5,7 @@ from typing import Protocol, TypeVar, runtime_checkable
 
 __all__ = ("Invertible", "SimpleInvertible")
 
-_T = TypeVar("_T")
+_T = TypeVar("_T", covariant=True)
 
 
 @runtime_checkable

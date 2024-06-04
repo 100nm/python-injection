@@ -1,4 +1,6 @@
-from .core import Injectable, InjectableMode, Module, ModulePriority
+from .core import Injectable, Module
+from .core import Mode as InjectableMode
+from .core import Priority as ModulePriority
 
 __all__ = (
     "Injectable",
