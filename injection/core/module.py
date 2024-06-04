@@ -291,7 +291,7 @@ class Container(Broker):
         mode = Mode(mode)
         records = {
             cls: Record(injectable, mode)
-            for cls in self.__filter_classes(classes, mode)
+            for cls in self.__classes_to_update(classes, mode)
         }
 
         if records:
@@ -316,7 +316,7 @@ class Container(Broker):
     def notify(self, event: Event):
         return self.__channel.dispatch(event)
 
-    def __filter_classes(
+    def __classes_to_update(
         self,
         classes: Iterable[type | UnionType],
         mode: Mode,
