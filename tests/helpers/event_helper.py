@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import ContextManager
 
 from injection.common.event import Event, EventListener
 
@@ -20,6 +19,6 @@ class EventHistory(EventListener):
         assert len(self) == length
 
     @contextmanager
-    def on_event(self, event: Event, /) -> ContextManager:
+    def on_event(self, event: Event, /):
         yield
         self.__history.append(event)

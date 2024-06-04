@@ -24,7 +24,7 @@ def get_origins(*types: type | Any) -> Iterator[type | Any]:
             args = get_args(tp)
 
         elif origin is Annotated is not tp:
-            args = (tp.__origin__,)
+            args = get_args(tp)[:1]
 
         else:
             yield origin

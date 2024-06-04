@@ -6,6 +6,8 @@ from ...sources.services.uuid_service import UUIDService
 
 
 class TestUUIDService:
+    uuid_service: UUIDService
+
     @classmethod
     def setup_class(cls):
         cls.init_dependencies()

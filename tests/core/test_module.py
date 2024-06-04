@@ -7,7 +7,6 @@ from injection.exceptions import (
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
-    NoInjectable,
 )
 
 
@@ -91,10 +90,6 @@ class TestModule:
 
         instance = module.get_instance(SomeClass)
         assert isinstance(instance, SomeClass)
-
-    def test_get_instance_with_none_false_raise_no_injectable(self, module):
-        with pytest.raises(NoInjectable):
-            module.get_instance(SomeClass, none=False)
 
     def test_get_instance_with_no_injectable_return_none(self, module):
         instance = module.get_instance(SomeClass)

@@ -1,6 +1,5 @@
-from contextlib import ContextDecorator, contextmanager
+from contextlib import contextmanager
 from threading import RLock
-from typing import ContextManager
 
 __all__ = ("synchronized",)
 
@@ -8,6 +7,6 @@ __lock = RLock()
 
 
 @contextmanager
-def synchronized() -> ContextManager | ContextDecorator:
+def synchronized():
     with __lock:
         yield
