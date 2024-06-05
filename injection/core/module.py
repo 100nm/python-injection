@@ -48,8 +48,8 @@ __all__ = ("Injectable", "Mode", "Module", "Priority")
 
 _logger = logging.getLogger(__name__)
 
-_In_T = TypeVar("_In_T", covariant=False)
-_Co_T = TypeVar("_Co_T", covariant=True)
+_T = TypeVar("_T")
+_T_co = TypeVar("_T_co", covariant=True)
 
 
 """
@@ -135,10 +135,10 @@ Injectables
 
 
 @runtime_checkable
-class Injectable(Protocol[_Co_T]):
+class Injectable(Protocol[_T_co]):
     __slots__ = ()
 
-    def __init__(self, __factory: Callable[[], _Co_T] = None, /):
+    def __init__(self, __factory: Callable[[], _T_co] = None, /):
         pass
 
     @property
@@ -149,23 +149,23 @@ class Injectable(Protocol[_Co_T]):
         return
 
     @abstractmethod
-    def get_instance(self) -> _Co_T:
+    def get_instance(self) -> _T_co:
         raise NotImplementedError
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class BaseInjectable(Injectable[_In_T], ABC):
-    factory: Callable[[], _In_T]
+class BaseInjectable(Injectable[_T], ABC):
+    factory: Callable[[], _T]
 
 
-class NewInjectable(BaseInjectable[_In_T]):
+class NewInjectable(BaseInjectable[_T]):
     __slots__ = ()
 
-    def get_instance(self) -> _In_T:
+    def get_instance(self) -> _T:
         return self.factory()
 
 
-class SingletonInjectable(BaseInjectable[_In_T]):
+class SingletonInjectable(BaseInjectable[_T]):
     __slots__ = ("__dict__",)
 
     __INSTANCE_KEY: ClassVar[str] = "$instance"
@@ -181,7 +181,7 @@ class SingletonInjectable(BaseInjectable[_In_T]):
     def unlock(self):
         self.cache.clear()
 
-    def get_instance(self) -> _In_T:
+    def get_instance(self) -> _T:
         with suppress(KeyError):
             return self.cache[self.__INSTANCE_KEY]
 
@@ -193,8 +193,8 @@ class SingletonInjectable(BaseInjectable[_In_T]):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class ShouldBeInjectable(Injectable[_In_T]):
-    cls: type[_In_T]
+class ShouldBeInjectable(Injectable[_T]):
+    cls: type[_T]
 
     def get_instance(self) -> NoReturn:
         raise InjectionError(f"`{format_type(self.cls)}` should be an injectable.")
@@ -210,7 +210,7 @@ class Broker(Protocol):
     __slots__ = ()
 
     @abstractmethod
-    def __getitem__(self, cls: type[_In_T] | UnionType, /) -> Injectable[_In_T]:
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
         raise NotImplementedError
 
     @abstractmethod
@@ -259,7 +259,7 @@ class Container(Broker):
     __records: dict[type, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__(self, cls: type[_In_T] | UnionType, /) -> Injectable[_In_T]:
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
         for cls in get_origins(cls):
             try:
                 injectable, _ = self.__records[cls]
@@ -372,7 +372,7 @@ class Module(EventListener, Broker):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-    def __getitem__(self, cls: type[_In_T] | UnionType, /) -> Injectable[_In_T]:
+    def __getitem__(self, cls: type[_T] | UnionType, /) -> Injectable[_T]:
         for broker in self.__brokers:
             with suppress(KeyError):
                 return broker[cls]
@@ -431,11 +431,11 @@ class Module(EventListener, Broker):
 
     def set_constant(
         self,
-        instance: _In_T,
+        instance: _T,
         on: type | Iterable[type] | UnionType = (),
         *,
         mode: Mode | ModeStr = Mode.get_default(),
-    ) -> _In_T:
+    ) -> _T:
         cls = type(instance)
         self.injectable(
             lambda: instance,
@@ -468,11 +468,11 @@ class Module(EventListener, Broker):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def resolve(self, cls: type[_In_T]) -> _In_T:
+    def resolve(self, cls: type[_T]) -> _T:
         injectable = self[cls]
         return injectable.get_instance()
 
-    def get_instance(self, cls: type[_In_T]) -> _In_T | None:
+    def get_instance(self, cls: type[_T]) -> _T | None:
         try:
             return self.resolve(cls)
         except KeyError:
@@ -480,10 +480,10 @@ class Module(EventListener, Broker):
 
     def get_lazy_instance(
         self,
-        cls: type[_In_T],
+        cls: type[_T],
         *,
         cache: bool = False,
-    ) -> Invertible[_In_T | None]:
+    ) -> Invertible[_T | None]:
         if cache:
             return Lazy(lambda: self.get_instance(cls))
 
