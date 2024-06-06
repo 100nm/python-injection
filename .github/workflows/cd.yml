@@ -1,9 +1,8 @@
 name: CD
 
 on:
-  push:
-    tags:
-      - "*"
+  release:
+    types: [published]
 
 jobs:
   cd:
@@ -20,6 +19,6 @@ jobs:
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
-          version: ${{ github.ref_name }}
+          version: ${{ github.event.release.tag_name }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
