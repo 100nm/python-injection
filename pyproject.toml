@@ -10,7 +10,7 @@ readme = "documentation/basic-usage.md"
 repository = "https://github.com/100nm/python-injection"
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4"
+python = ">=3.12, <4"
 
 [tool.poetry.group.dev.dependencies]
 argon2-cffi = "*"
@@ -32,6 +32,7 @@ exclude_lines = [
 
 [tool.mypy]
 check_untyped_defs = true
+enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",

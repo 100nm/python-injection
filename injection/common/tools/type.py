@@ -1,9 +1,11 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from inspect import get_annotations, isfunction
 from types import NoneType, UnionType
 from typing import Annotated, Any, Union, get_args, get_origin
 
-__all__ = ("find_types", "format_type", "get_origins")
+__all__ = ("TypeInfo", "format_type", "get_deep_origins", "get_return_types")
+
+type TypeInfo[T] = type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType
 
 
 def format_type(cls: type | Any) -> str:
@@ -13,7 +15,7 @@ def format_type(cls: type | Any) -> str:
         return str(cls)
 
 
-def get_origins(*types: type | Any) -> Iterator[type | Any]:
+def get_deep_origins(*types: type | Any) -> Iterator[type | Any]:
     for tp in types:
         origin = get_origin(tp) or tp
 
@@ -30,10 +32,10 @@ def get_origins(*types: type | Any) -> Iterator[type | Any]:
             yield origin
             continue
 
-        yield from get_origins(*args)
+        yield from get_deep_origins(*args)
 
 
-def find_types(*args: Any) -> Iterator[type | UnionType]:
+def get_return_types(*args: TypeInfo[Any]) -> Iterator[type | UnionType]:
     for argument in args:
         if isinstance(argument, Iterable) and not isinstance(argument, type | str):
             arguments = argument
@@ -45,4 +47,4 @@ def find_types(*args: Any) -> Iterator[type | UnionType]:
             yield argument
             continue
 
-        yield from find_types(*arguments)
+        yield from get_return_types(*arguments)

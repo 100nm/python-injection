@@ -1,12 +1,10 @@
-from typing import Any, TypeVar
+from typing import Any
 
 from rodi import ContainerProtocol
 
 from injection import Module, default_module
 
 __all__ = ("InjectionServices",)
-
-_T = TypeVar("_T")
 
 
 class InjectionServices(ContainerProtocol):
@@ -26,5 +24,5 @@ class InjectionServices(ContainerProtocol):
         self.__module.injectable(obj_type)
         return self
 
-    def resolve(self, obj_type: type[_T] | Any, *args, **kwargs) -> _T:
+    def resolve[T](self, obj_type: type[T] | Any, *args, **kwargs) -> T:
         return self.__module.resolve(obj_type)

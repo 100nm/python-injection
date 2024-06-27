@@ -15,15 +15,15 @@ class InjectionError(Exception):
     pass
 
 
-class NoInjectable(KeyError, InjectionError):
+class NoInjectable[T](KeyError, InjectionError):
     __slots__ = ("__class",)
 
-    def __init__(self, cls: type | Any):
+    def __init__(self, cls: type[T] | Any):
         super().__init__(f"No injectable for `{format_type(cls)}`.")
         self.__class = cls
 
     @property
-    def cls(self) -> type:
+    def cls(self) -> type[T]:
         return self.__class
 
 

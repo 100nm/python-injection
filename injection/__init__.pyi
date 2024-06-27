@@ -1,23 +1,22 @@
 from abc import abstractmethod
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from contextlib import ContextDecorator
-from enum import Enum
+from enum import StrEnum
 from types import UnionType
 from typing import (
     Any,
     ContextManager,
     Final,
-    Literal,
     Protocol,
-    TypeVar,
     final,
     runtime_checkable,
 )
 
 from .common.invertible import Invertible
-
-_T = TypeVar("_T")
-_T_co = TypeVar("_T_co", covariant=True)
+from .common.tools.type import TypeInfo
+from .core import InjectableFactory
+from .core import ModeStr as InjectableModeStr
+from .core import PriorityStr as ModulePriorityStr
 
 default_module: Final[Module] = ...
 
@@ -41,6 +40,8 @@ class Module:
 
     def __init__(self, name: str = ...): ...
     def __contains__(self, cls: type | UnionType, /) -> bool: ...
+    @property
+    def is_locked(self) -> bool: ...
     def inject(self, wrapped: Callable[..., Any] = ..., /):
         """
         Decorator applicable to a class or function. Inject function dependencies using
@@ -48,15 +49,15 @@ class Module:
         will be those of the `__init__` method.
         """
 
-    def injectable(
+    def injectable[T](
         self,
-        wrapped: Callable[..., Any] = ...,
+        wrapped: Callable[..., T] = ...,
         /,
         *,
-        cls: type[Injectable] = ...,
+        cls: InjectableFactory[T] = ...,
         inject: bool = ...,
-        on: type | Iterable[type] | UnionType = ...,
-        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
+        on: TypeInfo[T] = ...,
+        mode: InjectableMode | InjectableModeStr = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -64,14 +65,14 @@ class Module:
         injected each time.
         """
 
-    def singleton(
+    def singleton[T](
         self,
-        wrapped: Callable[..., Any] = ...,
+        wrapped: Callable[..., T] = ...,
         /,
         *,
         inject: bool = ...,
-        on: type | Iterable[type] | UnionType = ...,
-        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
+        on: TypeInfo[T] = ...,
+        mode: InjectableMode | InjectableModeStr = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -86,37 +87,37 @@ class Module:
         registered.
         """
 
-    def set_constant(
+    def set_constant[T](
         self,
-        instance: _T,
-        on: type | Iterable[type] | UnionType = ...,
+        instance: T,
+        on: TypeInfo[T] = ...,
         *,
-        mode: InjectableMode | Literal["fallback", "normal", "override"] = ...,
-    ) -> _T:
+        mode: InjectableMode | InjectableModeStr = ...,
+    ) -> T:
         """
         Function for registering a specific instance to be injected. This is useful for
         registering global variables. The difference with the singleton decorator is
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def resolve(self, cls: type[_T]) -> _T:
+    def resolve[T](self, cls: type[T]) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.
         """
 
-    def get_instance(self, cls: type[_T]) -> _T | None:
+    def get_instance[T](self, cls: type[T]) -> T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
         """
 
-    def get_lazy_instance(
+    def get_lazy_instance[T](
         self,
-        cls: type[_T],
+        cls: type[T],
         *,
         cache: bool = ...,
-    ) -> Invertible[_T | None]:
+    ) -> Invertible[T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Invertible` object. To access the instance
@@ -130,7 +131,7 @@ class Module:
         self,
         module: Module,
         *,
-        priority: ModulePriority | Literal["low", "high"] = ...,
+        priority: ModulePriority | ModulePriorityStr = ...,
     ):
         """
         Function for using another module. Using another module replaces the module's
@@ -147,7 +148,7 @@ class Module:
         self,
         module: Module,
         *,
-        priority: ModulePriority | Literal["low", "high"] = ...,
+        priority: ModulePriority | ModulePriorityStr = ...,
     ) -> ContextManager | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
@@ -156,7 +157,7 @@ class Module:
     def change_priority(
         self,
         module: Module,
-        priority: ModulePriority | Literal["low", "high"],
+        priority: ModulePriority | ModulePriorityStr,
     ):
         """
         Function for changing the priority of a module in use.
@@ -172,21 +173,20 @@ class Module:
         """
 
 @final
-class ModulePriority(str, Enum):
+class ModulePriority(StrEnum):
     LOW = ...
     HIGH = ...
 
 @runtime_checkable
-class Injectable(Protocol[_T_co]):
-    def __init__(self, factory: Callable[[], _T_co] = ..., /): ...
+class Injectable[T](Protocol):
     @property
     def is_locked(self) -> bool: ...
     def unlock(self): ...
     @abstractmethod
-    def get_instance(self) -> _T_co: ...
+    def get_instance(self) -> T: ...
 
 @final
-class InjectableMode(str, Enum):
+class InjectableMode(StrEnum):
     FALLBACK = ...
     NORMAL = ...
     OVERRIDE = ...

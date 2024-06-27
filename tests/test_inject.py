@@ -1,6 +1,5 @@
-import sys
 from dataclasses import dataclass
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Optional, TypeVar, Union
 
 import pytest
 
@@ -10,7 +9,7 @@ T = TypeVar("T")
 
 
 @injectable
-class SomeGenericInjectable(Generic[T]):
+class SomeGenericInjectable[_]:
     pass
 
 
@@ -203,8 +202,7 @@ class TestInject:
         class A:
             method = _method
 
-        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
-        with pytest.raises(expected_exception):
+        with pytest.raises(TypeError):
 
             @injectable
             class B:
@@ -219,8 +217,7 @@ class TestInject:
 
         assert _method() is ...
 
-        expected_exception = TypeError if sys.version_info >= (3, 12) else RuntimeError
-        with pytest.raises(expected_exception):
+        with pytest.raises(TypeError):
 
             @injectable
             class A:
