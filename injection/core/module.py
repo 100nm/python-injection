@@ -786,12 +786,15 @@ class InjectedFunction(EventListener):
             self.__update_vars(variables)
 
     def __update_vars(self, variables: Mapping[str, Any]):
-        def is_dunder(var: str) -> bool:
-            return var.startswith("__") and var.endswith("__")
-
-        restricted_vars = frozenset(var for var in dir(self) if not is_dunder(var))
+        restricted_vars = frozenset(
+            var for var in dir(self) if not self.__is_dunder(var)
+        )
         vars(self).update(
             (var, value)
             for var, value in variables.items()
             if var not in restricted_vars
         )
+
+    @staticmethod
+    def __is_dunder(var: str) -> bool:
+        return var.startswith("__") and var.endswith("__")
