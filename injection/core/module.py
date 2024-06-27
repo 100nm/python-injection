@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import Signature, isclass
+from queue import Queue
 from types import MethodType, UnionType
 from typing import (
     Any,
@@ -33,7 +34,6 @@ from typing import (
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.invertible import Invertible, SimpleInvertible
 from injection.common.lazy import Lazy, LazyMapping
-from injection.common.queue import LimitedQueue
 from injection.common.tools.threading import synchronized
 from injection.common.tools.type import find_types, format_type, get_origins
 from injection.exceptions import (
@@ -50,7 +50,6 @@ _logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 _T_co = TypeVar("_T_co", covariant=True)
-
 
 """
 Events
@@ -684,8 +683,10 @@ class InjectedFunction(EventListener):
         update_wrapper(self, wrapped, updated=())
         self.__dependencies = Dependencies.empty()
         self.__owner = None
-        self.__setup_queue = LimitedQueue[Callable[[], Any]]()
-        self.on_setup(self.__set_signature)
+
+        queue = Queue[Callable[[], Any]]()
+        queue.put_nowait(self.__set_signature)
+        self.__setup_queue = queue
 
     def __repr__(self) -> str:  # pragma: no cover
         return repr(self.wrapped)
@@ -694,8 +695,12 @@ class InjectedFunction(EventListener):
         return str(self.wrapped)
 
     def __call__(self, /, *args, **kwargs) -> Any:
-        for function in self.__setup_queue:
-            function()
+        queue = self.__setup_queue
+
+        while not queue.empty():
+            setup = queue.get()
+            setup()
+            queue.task_done()
 
         arguments = self.bind(args, kwargs)
         return self.wrapped(*arguments.args, **arguments.kwargs)
@@ -753,7 +758,7 @@ class InjectedFunction(EventListener):
 
     def on_setup(self, wrapped: Callable[[], Any] = None, /):
         def decorator(wp):
-            self.__setup_queue.add(wp)
+            self.__setup_queue.put(wp)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
