@@ -1,7 +1,5 @@
 from typing import Any
 
-from injection.common.tools.type import format_type
-
 __all__ = (
     "InjectionError",
     "NoInjectable",
@@ -19,7 +17,7 @@ class NoInjectable[T](KeyError, InjectionError):
     __slots__ = ("__class",)
 
     def __init__(self, cls: type[T] | Any):
-        super().__init__(f"No injectable for `{format_type(cls)}`.")
+        super().__init__(f"No injectable for `{cls}`.")
         self.__class = cls
 
     @property

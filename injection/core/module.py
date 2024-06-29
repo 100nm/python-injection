@@ -39,7 +39,6 @@ from injection.common.tools.type import (
     TypeInfo,
     TypeReport,
     analyze_types,
-    format_type,
     get_return_types,
 )
 from injection.exceptions import (
@@ -204,7 +203,7 @@ class ShouldBeInjectable[T](Injectable[T]):
     cls: type[T]
 
     def get_instance(self) -> NoReturn:
-        raise InjectionError(f"`{format_type(self.cls)}` should be an injectable.")
+        raise InjectionError(f"`{self.cls}` should be an injectable.")
 
 
 """

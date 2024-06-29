@@ -11,13 +11,7 @@ from typing import (
     get_origin,
 )
 
-__all__ = (
-    "TypeInfo",
-    "TypeReport",
-    "analyze_types",
-    "format_type",
-    "get_return_types",
-)
+__all__ = ("TypeInfo", "TypeReport", "analyze_types", "get_return_types")
 
 type TypeInfo[T] = type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType
 
@@ -59,13 +53,6 @@ def analyze_types(*types: type | Any) -> Iterator[TypeReport[Any]]:
             continue
 
         yield from analyze_types(*inner_types)
-
-
-def format_type(cls: type | Any) -> str:
-    try:
-        return f"{cls.__module__}.{cls.__qualname__}"
-    except AttributeError:
-        return str(cls)
 
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[type | UnionType]:
