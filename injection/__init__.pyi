@@ -8,6 +8,7 @@ from typing import (
     ContextManager,
     Final,
     Protocol,
+    Self,
     final,
     runtime_checkable,
 )
@@ -127,19 +128,24 @@ class Module:
         Example: instance = ~lazy_instance
         """
 
+    def init_modules(self, *modules: Module) -> Self:
+        """
+        Function to clean modules in use and to use those passed as parameters.
+        """
+
     def use(
         self,
         module: Module,
         *,
         priority: ModulePriority | ModulePriorityStr = ...,
-    ):
+    ) -> Self:
         """
         Function for using another module. Using another module replaces the module's
         dependencies with those of the module used. If the dependency is not found, it
         will be searched for in the module's dependency container.
         """
 
-    def stop_using(self, module: Module):
+    def stop_using(self, module: Module) -> Self:
         """
         Function to remove a module in use.
         """
@@ -158,7 +164,7 @@ class Module:
         self,
         module: Module,
         priority: ModulePriority | ModulePriorityStr,
-    ):
+    ) -> Self:
         """
         Function for changing the priority of a module in use.
         There are two priority values:
@@ -167,7 +173,7 @@ class Module:
         * **HIGH**: The module concerned becomes the most important of the modules used.
         """
 
-    def unlock(self):
+    def unlock(self) -> Self:
         """
         Function to unlock the module by deleting cached instances of singletons.
         """

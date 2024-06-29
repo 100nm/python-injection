@@ -229,7 +229,7 @@ class Broker(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def unlock(self):
+    def unlock(self) -> Self:
         raise NotImplementedError
 
 
@@ -320,7 +320,7 @@ class Container(Broker):
         self.__channel.add_listener(listener)
         return self
 
-    def notify(self, event: Event):
+    def notify(self, event: Event) -> ContextManager:
         return self.__channel.dispatch(event)
 
     def __prepare_reports_for_updating(
@@ -509,6 +509,15 @@ class Module(EventListener, Broker):
         self.__container.update(classes, injectable, mode)
         return self
 
+    def init_modules(self, *modules: Module) -> Self:
+        for module in tuple(self.__modules):
+            self.stop_using(module)
+
+        for module in modules:
+            self.use(module)
+
+        return self
+
     def use(
         self,
         module: Module,
@@ -552,7 +561,7 @@ class Module(EventListener, Broker):
         yield
         self.stop_using(module)
 
-    def change_priority(self, module: Module, priority: Priority | PriorityStr):
+    def change_priority(self, module: Module, priority: Priority | PriorityStr) -> Self:
         priority = Priority(priority)
         event = ModulePriorityUpdated(self, module, priority)
 
@@ -774,7 +783,7 @@ class InjectedFunction(EventListener):
         return decorator(wrapped) if wrapped else decorator
 
     @singledispatchmethod
-    def on_event(self, event: Event, /) -> ContextManager | None:  # type: ignore
+    def on_event(self, event: Event, /) -> None:  # type: ignore
         return None
 
     @on_event.register

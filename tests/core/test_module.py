@@ -160,6 +160,21 @@ class TestModule:
         )
 
     """
+    init_modules
+    """
+
+    def test_init_modules_with_success(self, module, event_history):
+        residual_module = Module()
+        module.use(residual_module)
+        event_history.clear()
+
+        second_module = Module()
+        third_module = Module()
+
+        module.init_modules(second_module, third_module)
+        event_history.assert_length(3)
+
+    """
     use
     """
 
