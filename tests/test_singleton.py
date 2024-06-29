@@ -28,7 +28,7 @@ class TestSingleton:
         instance_2 = get_instance(SomeClass)
         assert instance_1 is instance_2
 
-    def test_injectable_with_recipe_and_union(self):
+    def test_singleton_with_recipe_and_union(self):
         class A:
             pass
 
@@ -165,7 +165,7 @@ class TestSingleton:
             class C(A):
                 pass
 
-    def test_injectable_with_override(self):
+    def test_singleton_with_override(self):
         @singleton
         class A:
             pass
@@ -176,3 +176,19 @@ class TestSingleton:
 
         a = get_instance(A)
         assert isinstance(a, B)
+
+    def test_singleton_with_multiple_override(self):
+        @singleton
+        class A:
+            pass
+
+        @singleton(on=A, mode="override")
+        class B(A):
+            pass
+
+        @singleton(on=A, mode="override")
+        class C(B):
+            pass
+
+        a = get_instance(A)
+        assert isinstance(a, C)

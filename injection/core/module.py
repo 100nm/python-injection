@@ -37,8 +37,9 @@ from injection.common.lazy import Lazy, LazyMapping
 from injection.common.tools.threading import synchronized
 from injection.common.tools.type import (
     TypeInfo,
+    TypeReport,
+    analyze_types,
     format_type,
-    get_deep_origins,
     get_return_types,
 )
 from injection.exceptions import (
@@ -73,12 +74,12 @@ class ContainerEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class ContainerDependenciesUpdated(ContainerEvent):
-    classes: Collection[type]
+    reports: Collection[TypeReport]
     mode: Mode
 
     def __str__(self) -> str:
-        length = len(self.classes)
-        formatted_classes = ", ".join(f"`{format_type(cls)}`" for cls in self.classes)
+        length = len(self.reports)
+        formatted_classes = ", ".join(f"`{report.cls}`" for report in self.reports)
         return (
             f"{length} container dependenc{'ies' if length > 1 else 'y'} have been "
             f"updated{f': {formatted_classes}' if formatted_classes else ''}."
@@ -262,22 +263,23 @@ class Record[T](NamedTuple):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Container(Broker):
-    __records: dict[type, Record] = field(default_factory=dict, init=False)
+    __records: dict[TypeReport, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
-        for cls in get_deep_origins(cls):
-            try:
-                injectable, _ = self.__records[cls]
-            except KeyError:
-                continue
+        for report in analyze_types(cls):
+            for scoped_report in dict.fromkeys((report, report.no_args)):
+                try:
+                    injectable, _ = self.__records[scoped_report]
+                except KeyError:
+                    continue
 
-            return injectable
+                return injectable
 
         raise NoInjectable(cls)
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
-        return any(cls in self.__records for cls in get_deep_origins(cls))
+        return any(report in self.__records for report in analyze_types(cls))
 
     @property
     def is_locked(self) -> bool:
@@ -296,8 +298,8 @@ class Container(Broker):
     ) -> Self:
         mode = Mode(mode)
         records = {
-            cls: Record(injectable, mode)
-            for cls in self.__classes_to_update(classes, mode)
+            report: Record(injectable, mode)
+            for report in self.__prepare_reports_for_updating(classes, mode)
         }
 
         if records:
@@ -322,30 +324,30 @@ class Container(Broker):
     def notify(self, event: Event):
         return self.__channel.dispatch(event)
 
-    def __classes_to_update(
+    def __prepare_reports_for_updating(
         self,
         classes: Iterable[type | UnionType],
         mode: Mode,
-    ) -> Iterator[type]:
+    ) -> Iterator[TypeReport]:
         rank = mode.rank
 
-        for cls in frozenset(get_deep_origins(*classes)):
+        for report in frozenset(analyze_types(*classes)):
             try:
-                _, current_mode = self.__records[cls]
+                _, current_mode = self.__records[report]
 
             except KeyError:
                 pass
 
             else:
-                if mode == current_mode:
+                if mode == current_mode and mode != Mode.OVERRIDE:
                     raise RuntimeError(
-                        f"An injectable already exists for the class `{format_type(cls)}`."
+                        f"An injectable already exists for the class `{report.cls}`."
                     )
 
                 elif rank < current_mode.rank:
                     continue
 
-            yield cls
+            yield report
 
 
 """

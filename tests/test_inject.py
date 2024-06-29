@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Annotated, Any, Optional, TypeVar, Union
 
@@ -92,6 +93,30 @@ class TestInject:
             assert isinstance(instance, SomeGenericInjectable)
 
         my_function()
+
+    def test_inject_with_scoped_generic_injectable(self):
+        class Factory[T](ABC):
+            @abstractmethod
+            def build(self) -> T:
+                raise NotImplementedError
+
+        @injectable(on=Factory[SomeClass])
+        class SomeClassFactory(Factory[SomeClass]):
+            def build(self) -> SomeClass:
+                return SomeClass()
+
+        @inject
+        def build(factory: Factory) -> Any:
+            raise NotImplementedError
+
+        @inject
+        def build_some_class(factory: Factory[SomeClass]) -> SomeClass:
+            return factory.build()
+
+        with pytest.raises(TypeError):
+            build()
+
+        assert isinstance(build_some_class(), SomeClass)
 
     def test_inject_with_class(self):
         @inject
