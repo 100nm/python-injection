@@ -13,7 +13,7 @@ def setup_test_dependencies():
     from .tests import injectables
 
     load_package(injectables)
-    default_module.use(testing)
+    default_module.init_modules(testing)
 
 
 @pytest.fixture(scope="function", autouse=True)

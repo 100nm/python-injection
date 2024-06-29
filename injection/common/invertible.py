@@ -1,23 +1,21 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol, TypeVar, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 __all__ = ("Invertible", "SimpleInvertible")
 
-_T_co = TypeVar("_T_co", covariant=True)
-
 
 @runtime_checkable
-class Invertible(Protocol[_T_co]):
+class Invertible[T](Protocol):
     @abstractmethod
-    def __invert__(self) -> _T_co:
+    def __invert__(self) -> T:
         raise NotImplementedError
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
-class SimpleInvertible(Invertible[_T_co]):
-    callable: Callable[[], _T_co]
+class SimpleInvertible[T](Invertible[T]):
+    callable: Callable[[], T]
 
-    def __invert__(self) -> _T_co:
+    def __invert__(self) -> T:
         return self.callable()

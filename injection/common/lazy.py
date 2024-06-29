@@ -1,31 +1,26 @@
 from collections.abc import Callable, Iterator, Mapping
 from types import MappingProxyType
-from typing import TypeVar
 
 from injection.common.invertible import Invertible
 
 __all__ = ("Lazy", "LazyMapping")
 
-_T = TypeVar("_T")
-_K = TypeVar("_K")
-_V = TypeVar("_V")
 
-
-class Lazy(Invertible[_T]):
+class Lazy[T](Invertible[T]):
     __slots__ = ("__cache", "__is_set")
 
-    def __init__(self, factory: Callable[[], _T]):
+    def __init__(self, factory: Callable[[], T]):
         self.__setup_cache(factory)
 
-    def __invert__(self) -> _T:
+    def __invert__(self) -> T:
         return next(self.__cache)
 
     @property
     def is_set(self) -> bool:
         return self.__is_set
 
-    def __setup_cache(self, factory: Callable[[], _T]):
-        def cache_generator() -> Iterator[_T]:
+    def __setup_cache(self, factory: Callable[[], T]):
+        def cache_generator() -> Iterator[T]:
             nonlocal factory
             cached = factory()
             self.__is_set = True
@@ -38,16 +33,16 @@ class Lazy(Invertible[_T]):
         self.__is_set = False
 
 
-class LazyMapping(Mapping[_K, _V]):
+class LazyMapping[K, V](Mapping[K, V]):
     __slots__ = ("__lazy",)
 
-    def __init__(self, iterator: Iterator[tuple[_K, _V]]):
+    def __init__(self, iterator: Iterator[tuple[K, V]]):
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
-    def __getitem__(self, key: _K, /) -> _V:
+    def __getitem__(self, key: K, /) -> V:
         return (~self.__lazy)[key]
 
-    def __iter__(self) -> Iterator[_K]:
+    def __iter__(self) -> Iterator[K]:
         yield from ~self.__lazy
 
     def __len__(self) -> int:

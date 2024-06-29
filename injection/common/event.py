@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from contextlib import ExitStack, contextmanager, suppress
 from dataclasses import dataclass, field
-from typing import ContextManager
+from typing import ContextManager, Self
 from weakref import WeakSet
 
 __all__ = ("Event", "EventChannel", "EventListener")
@@ -36,11 +36,11 @@ class EventChannel:
 
             yield
 
-    def add_listener(self, listener: EventListener):
+    def add_listener(self, listener: EventListener) -> Self:
         self.__listeners.add(listener)
         return self
 
-    def remove_listener(self, listener: EventListener):
+    def remove_listener(self, listener: EventListener) -> Self:
         with suppress(KeyError):
             self.__listeners.remove(listener)
 

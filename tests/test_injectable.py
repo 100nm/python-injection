@@ -179,6 +179,22 @@ class TestInjectable:
         a = get_instance(A)
         assert isinstance(a, B)
 
+    def test_injectable_with_multiple_override(self):
+        @injectable
+        class A:
+            pass
+
+        @injectable(on=A, mode="override")
+        class B(A):
+            pass
+
+        @injectable(on=A, mode="override")
+        class C(B):
+            pass
+
+        a = get_instance(A)
+        assert isinstance(a, C)
+
     def test_injectable_with_class_and_update_method(self):
         @injectable
         class A:
