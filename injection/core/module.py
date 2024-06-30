@@ -468,7 +468,7 @@ class Module(EventListener, Broker):
 
             function = InjectedFunction(wp)
 
-            @function.on_setup
+            @function.on_setup(block=False)
             def listen():
                 function.update(self)
                 self.add_listener(function)
@@ -775,9 +775,9 @@ class InjectedFunction(EventListener):
         self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
-    def on_setup(self, wrapped: Callable[[], Any] = None, /):
+    def on_setup(self, wrapped: Callable[[], Any] = None, /, *, block: bool = True):
         def decorator(wp):
-            self.__setup_queue.put(wp)
+            self.__setup_queue.put(wp, block=block)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
