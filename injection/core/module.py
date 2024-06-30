@@ -78,10 +78,10 @@ class ContainerDependenciesUpdated(ContainerEvent):
 
     def __str__(self) -> str:
         length = len(self.reports)
-        formatted_classes = ", ".join(f"`{report.cls}`" for report in self.reports)
+        formatted_types = ", ".join(f"`{report.type}`" for report in self.reports)
         return (
-            f"{length} container dependenc{'ies' if length > 1 else 'y'} have been "
-            f"updated{f': {formatted_classes}' if formatted_classes else ''}."
+            f"{length} container dependenc{'ies' if length > 1 else 'y'} have "
+            f"been updated{f': {formatted_types}' if formatted_types else ''}."
         )
 
 
@@ -340,7 +340,7 @@ class Container(Broker):
             else:
                 if mode == current_mode and mode != Mode.OVERRIDE:
                     raise RuntimeError(
-                        f"An injectable already exists for the class `{report.cls}`."
+                        f"An injectable already exists for the class `{report.type}`."
                     )
 
                 elif rank < current_mode.rank:

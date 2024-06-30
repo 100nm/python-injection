@@ -21,11 +21,13 @@ class TypeReport[T](NamedTuple):
     args: tuple[Any, ...]
 
     @property
-    def cls(self) -> type[T]:
-        if self.args:
-            return self.origin[*self.args]
+    def type(self) -> type[T]:
+        origin = self.origin
 
-        return self.origin
+        if args := self.args:
+            return origin[*args]
+
+        return origin
 
     @property
     def no_args(self) -> Self:
