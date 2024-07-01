@@ -14,4 +14,4 @@ mypy:
 	mypy ./
 
 pytest:
-	pytest --cov=./ --cov-report term-missing:skip-covered
+	pytest

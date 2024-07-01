@@ -174,7 +174,7 @@ class NewInjectable[T](BaseInjectable[T]):
 class SingletonInjectable[T](BaseInjectable[T]):
     __slots__ = ("__dict__",)
 
-    __INSTANCE_KEY: ClassVar[str] = "$instance"
+    __key: ClassVar[str] = "$instance"
 
     @property
     def cache(self) -> MutableMapping[str, Any]:
@@ -182,18 +182,18 @@ class SingletonInjectable[T](BaseInjectable[T]):
 
     @property
     def is_locked(self) -> bool:
-        return self.__INSTANCE_KEY in self.cache
+        return self.__key in self.cache
 
     def unlock(self):
         self.cache.clear()
 
     def get_instance(self) -> T:
         with suppress(KeyError):
-            return self.cache[self.__INSTANCE_KEY]
+            return self.cache[self.__key]
 
         with synchronized():
             instance = self.factory()
-            self.cache[self.__INSTANCE_KEY] = instance
+            self.cache[self.__key] = instance
 
         return instance
 
@@ -368,18 +368,32 @@ type PriorityStr = Literal["low", "high"]
 type InjectableFactory[T] = Callable[[Callable[..., T]], Injectable[T]]
 
 
-@dataclass(repr=False, eq=False, frozen=True, slots=True)
+@dataclass(eq=False, frozen=True, slots=True)
 class Module(EventListener, Broker):
     name: str | None = field(default=None)
-    __channel: EventChannel = field(default_factory=EventChannel, init=False)
-    __container: Container = field(default_factory=Container, init=False)
+    __channel: EventChannel = field(
+        default_factory=EventChannel,
+        init=False,
+        repr=False,
+    )
+    __container: Container = field(
+        default_factory=Container,
+        init=False,
+        repr=False,
+    )
     __modules: OrderedDict[Module, None] = field(
         default_factory=OrderedDict,
         init=False,
+        repr=False,
     )
+
+    __instances: ClassVar[dict[str, Module]] = {}
 
     def __post_init__(self):
         self.__container.add_listener(self)
+
+        if name := self.name:
+            self.__instances.setdefault(name, self)
 
     def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
         for broker in self.__brokers:
@@ -393,9 +407,6 @@ class Module(EventListener, Broker):
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
-
-    def __str__(self) -> str:
-        return self.name or object.__str__(self)
 
     @property
     def is_locked(self) -> bool:
@@ -610,6 +621,17 @@ class Module(EventListener, Broker):
             raise ModuleNotUsedError(
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
+
+    @classmethod
+    def from_name(cls, name: str) -> Self:
+        with suppress(KeyError):
+            return cls.__instances[name]
+
+        return cls(name=name)
+
+    @classmethod
+    def default(cls) -> Self:
+        return cls.from_name("default")
 
 
 """

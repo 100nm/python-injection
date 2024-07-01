@@ -7,7 +7,6 @@ __all__ = (
     "InjectableMode",
     "Module",
     "ModulePriority",
-    "default_module",
     "get_instance",
     "get_lazy_instance",
     "inject",
@@ -17,12 +16,14 @@ __all__ = (
     "singleton",
 )
 
-default_module = Module(f"{__name__}:default_module")
+_module = Module.default()
 
-get_instance = default_module.get_instance
-get_lazy_instance = default_module.get_lazy_instance
-inject = default_module.inject
-injectable = default_module.injectable
-set_constant = default_module.set_constant
-should_be_injectable = default_module.should_be_injectable
-singleton = default_module.singleton
+get_instance = _module.get_instance
+get_lazy_instance = _module.get_lazy_instance
+inject = _module.inject
+injectable = _module.injectable
+set_constant = _module.set_constant
+should_be_injectable = _module.should_be_injectable
+singleton = _module.singleton
+
+del _module

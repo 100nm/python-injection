@@ -7,15 +7,13 @@ A module is an object that contains an isolated injection environment.
 Modules have been designed to simplify unit test writing. So think carefully before instantiating a new one. They could
 increase complexity unnecessarily if used extensively.
 
-### Create new Module
+### Get or create Module
 
 ```python
 from injection import Module
 
-custom_module = Module(f"{__name__}:custom_module")
+custom_module = Module.from_name("custom_module")
 ```
-
-_It's recommended to give a module name, even if this isn't mandatory._
 
 ### Basic decorators
 
@@ -50,8 +48,8 @@ When a module is used by another module, the module's dependencies are replaced 
 ```python
 from injection import Module
 
-module_1 = Module(f"{__name__}:module_1")
-module_2 = Module(f"{__name__}:module_2")
+module_1 = Module.from_name("module_1")
+module_2 = Module.from_name("module_2")
 
 
 class AbstractService:
@@ -162,8 +160,8 @@ logging.basicConfig(level=logging.DEBUG)
 Example:
 
 ```
-DEBUG:injection.core.module:`injection:default_module` now uses `__main__:my_module`.
-DEBUG:injection.core.module:`injection:default_module` has propagated an event: 1 container dependency have been updated: `__main__.A`.
-DEBUG:injection.core.module:`__main__:my_module` has propagated an event: 1 container dependency have been updated: `__main__.B`.
-DEBUG:injection.core.module:`injection:default_module` has propagated an event: 1 container dependency have been updated: `__main__.B`.
+DEBUG:injection.core.module:`Module(name='default')` now uses `Module(name='my_module')`.
+DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 container dependency have been updated: `__main__.A`.
+DEBUG:injection.core.module:`Module(name='my_module')` has propagated an event: 1 container dependency have been updated: `__main__.B`.
+DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 container dependency have been updated: `__main__.B`.
 ```

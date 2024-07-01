@@ -2,11 +2,12 @@ from uuid import UUID
 
 from faker import Faker
 
-from ...conftest import testing
+from injection.testing import test_singleton
+
 from ...sources.services.uuid_service import AbstractUUIDService
 
 
-@testing.singleton(on=AbstractUUIDService)
+@test_singleton(on=AbstractUUIDService)
 class FakeUUIDService(AbstractUUIDService):
     def __init__(self):
         self.__faker = Faker()

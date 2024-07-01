@@ -6,5 +6,7 @@ __all__ = ("synchronized",)
 
 @contextmanager
 def synchronized():
-    with RLock():
-        yield
+    lock = RLock()
+
+    with lock:
+        yield lock

@@ -6,7 +6,6 @@ from types import UnionType
 from typing import (
     Any,
     ContextManager,
-    Final,
     Protocol,
     Self,
     final,
@@ -19,15 +18,17 @@ from .core import InjectableFactory
 from .core import ModeStr as InjectableModeStr
 from .core import PriorityStr as ModulePriorityStr
 
-default_module: Final[Module] = ...
+_module: Module = ...
 
-get_instance = default_module.get_instance
-get_lazy_instance = default_module.get_lazy_instance
-inject = default_module.inject
-injectable = default_module.injectable
-set_constant = default_module.set_constant
-should_be_injectable = default_module.should_be_injectable
-singleton = default_module.singleton
+get_instance = _module.get_instance
+get_lazy_instance = _module.get_lazy_instance
+inject = _module.inject
+injectable = _module.injectable
+set_constant = _module.set_constant
+should_be_injectable = _module.should_be_injectable
+singleton = _module.singleton
+
+del _module
 
 @final
 class Module:
@@ -176,6 +177,18 @@ class Module:
     def unlock(self) -> Self:
         """
         Function to unlock the module by deleting cached instances of singletons.
+        """
+
+    @classmethod
+    def from_name(cls, name: str) -> Self:
+        """
+        Class method for getting or creating a module by name.
+        """
+
+    @classmethod
+    def default(cls) -> Self:
+        """
+        Class method for getting the default module.
         """
 
 @final
