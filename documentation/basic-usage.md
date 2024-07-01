@@ -1,6 +1,6 @@
 # Basic usage
 
-## Create an injectable
+## Register an injectable
 
 > **Note**: If the class needs dependencies, these will be resolved when the instance is retrieved.
 

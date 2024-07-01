@@ -41,7 +41,7 @@ implicit_optional = true
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"
-addopts = "-p no:warnings --tb=short"
+addopts = "-p no:warnings --tb=short --cov=./ --cov-report term-missing:skip-covered"
 asyncio_mode = "auto"
 testpaths = "**/tests/"
 

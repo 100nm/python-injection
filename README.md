@@ -17,6 +17,7 @@ pip install python-injection
 ## Resources
 
 * [**Basic usage**](documentation/basic-usage.md)
+* [**Testing**](documentation/testing.md)
 * [**Advanced usage**](documentation/advanced-usage.md)
 * [**Utils**](documentation/utils.md)
 * [**Integrations**](documentation/integrations.md)

@@ -1,25 +1,18 @@
 import pytest
 from faker import Faker
 
-from injection import Module as InjectionModule
-from injection import default_module
+from injection.testing import use_test_injectables
 from injection.utils import load_package
-
-testing = InjectionModule(f"{__name__}:testing")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_dependencies():
+def autouse_test_injectables():
     from .tests import injectables
 
     load_package(injectables)
-    default_module.init_modules(testing)
 
-
-@pytest.fixture(scope="function", autouse=True)
-def clear_cache_dependencies():
-    yield
-    default_module.unlock()
+    with use_test_injectables():
+        yield
 
 
 @pytest.fixture(scope="function", autouse=True)
