@@ -392,9 +392,6 @@ class Module(EventListener, Broker):
     def __post_init__(self):
         self.__container.add_listener(self)
 
-        if name := self.name:
-            self.__instances.setdefault(name, self)
-
     def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
         for broker in self.__brokers:
             with suppress(KeyError):
@@ -627,7 +624,9 @@ class Module(EventListener, Broker):
         with suppress(KeyError):
             return cls.__instances[name]
 
-        return cls(name=name)
+        instance = cls(name)
+        cls.__instances[name] = instance
+        return instance
 
     @classmethod
     def default(cls) -> Self:
@@ -663,7 +662,7 @@ class Dependencies:
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, Injectable]) -> Self:
-        return cls(mapping=mapping)
+        return cls(mapping)
 
     @classmethod
     def empty(cls) -> Self:
