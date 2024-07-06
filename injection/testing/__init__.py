@@ -33,6 +33,8 @@ def use_test_injectables(*, on: Module = None, test_module: Module = None):
     for module in (on, test_module):
         module.unlock()
 
+    del module
+
     with on.use_temporarily(test_module, priority=ModulePriority.HIGH):
         yield
         on.unlock()

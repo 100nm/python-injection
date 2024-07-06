@@ -804,7 +804,7 @@ class InjectedFunction(EventListener):
         return decorator(wrapped) if wrapped else decorator
 
     @singledispatchmethod
-    def on_event(self, event: Event, /) -> None:  # type: ignore
+    def on_event(self, event: Event, /) -> ContextManager | None:  # type: ignore
         return None
 
     @on_event.register
