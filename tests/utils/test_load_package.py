@@ -35,3 +35,18 @@ class TestLoadPackage:
 
         with pytest.raises(TypeError):
             load_package(module1)
+
+    def test_load_package_with_predicate(self):
+        from tests.utils import package
+
+        load_package(package, predicate=lambda name: ".excluded_package." not in name)
+
+        assert "tests.utils.excluded_package.module3" not in sys.modules
+
+        modules = (
+            "tests.utils.package.module1",
+            "tests.utils.package.sub_package.module2",
+        )
+
+        for module in modules:
+            assert module in sys.modules
