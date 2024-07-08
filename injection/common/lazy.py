@@ -9,7 +9,7 @@ __all__ = ("Lazy", "LazyMapping")
 class Lazy[T](Invertible[T]):
     __slots__ = ("__cache", "__is_set")
 
-    def __init__(self, factory: Callable[[], T]):
+    def __init__(self, factory: Callable[..., T]):
         self.__setup_cache(factory)
 
     def __invert__(self) -> T:
@@ -19,7 +19,7 @@ class Lazy[T](Invertible[T]):
     def is_set(self) -> bool:
         return self.__is_set
 
-    def __setup_cache(self, factory: Callable[[], T]):
+    def __setup_cache(self, factory: Callable[..., T]):
         def cache_generator() -> Iterator[T]:
             nonlocal factory
             cached = factory()

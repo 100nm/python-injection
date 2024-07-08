@@ -15,7 +15,7 @@ class Invertible[T](Protocol):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class SimpleInvertible[T](Invertible[T]):
-    callable: Callable[[], T]
+    callable: Callable[..., T]
 
     def __invert__(self) -> T:
         return self.callable()

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import Signature, isclass
-from queue import Queue
+from queue import Empty, Queue
 from types import MethodType, UnionType
 from typing import (
     Any,
@@ -161,7 +161,7 @@ class Injectable[T](Protocol):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class BaseInjectable[T](Injectable[T], ABC):
-    factory: Callable[[], T]
+    factory: Callable[..., T]
 
 
 class NewInjectable[T](BaseInjectable[T]):
@@ -476,7 +476,7 @@ class Module(EventListener, Broker):
 
             function = InjectedFunction(wp)
 
-            @function.on_setup(block=False)
+            @function.on_setup
             def listen():
                 function.update(self)
                 self.add_listener(function)
@@ -723,10 +723,8 @@ class InjectedFunction(EventListener):
         update_wrapper(self, wrapped, updated=())
         self.__dependencies = Dependencies.empty()
         self.__owner = None
-
-        queue = Queue[Callable[[], Any]]()
-        queue.put_nowait(self.__set_signature)
-        self.__setup_queue = queue
+        self.__setup_queue = Queue[Callable[..., Any]](maxsize=2)
+        self.on_setup(self.__set_signature)
 
     def __repr__(self) -> str:  # pragma: no cover
         return repr(self.wrapped)
@@ -735,13 +733,7 @@ class InjectedFunction(EventListener):
         return str(self.wrapped)
 
     def __call__(self, /, *args, **kwargs) -> Any:
-        queue = self.__setup_queue
-
-        while not queue.empty():
-            setup = queue.get()
-            setup()
-            queue.task_done()
-
+        self.__setup()
         arguments = self.bind(args, kwargs)
         return self.wrapped(*arguments.args, **arguments.kwargs)
 
@@ -796,9 +788,9 @@ class InjectedFunction(EventListener):
         self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
-    def on_setup(self, wrapped: Callable[[], Any] = None, /, *, block: bool = True):
+    def on_setup(self, wrapped: Callable[..., Any] = None, /):
         def decorator(wp):
-            self.__setup_queue.put(wp, block=block)
+            self.__setup_queue.put_nowait(wp)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -812,6 +804,20 @@ class InjectedFunction(EventListener):
     def _(self, event: ModuleEvent, /):
         yield
         self.update(event.on_module)
+
+    def __setup(self):
+        queue = self.__setup_queue
+
+        while True:
+            try:
+                task = queue.get_nowait()
+            except Empty:
+                break
+
+            task()
+            queue.task_done()
+
+        queue.join()
 
     def __set_signature(self) -> Self:
         self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
