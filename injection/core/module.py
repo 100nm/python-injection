@@ -624,8 +624,10 @@ class Module(EventListener, Broker):
         with suppress(KeyError):
             return cls.__instances[name]
 
-        instance = cls(name)
-        cls.__instances[name] = instance
+        with synchronized():
+            instance = cls(name)
+            cls.__instances[name] = instance
+
         return instance
 
     @classmethod
