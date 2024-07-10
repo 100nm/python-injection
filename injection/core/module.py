@@ -627,7 +627,7 @@ class Module(EventListener, Broker):
             ) from exc
 
     def __send_debug(self, message: object):
-        for logger in self.__loggers:
+        for logger in tuple(self.__loggers):
             logger.debug(message)
 
     @classmethod
