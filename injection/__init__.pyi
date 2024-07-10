@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 from contextlib import ContextDecorator
 from enum import StrEnum
+from logging import Logger
 from types import UnionType
 from typing import (
     Any,
@@ -179,6 +180,7 @@ class Module:
         Function to unlock the module by deleting cached instances of singletons.
         """
 
+    def add_logger(self, logger: Logger) -> Self: ...
     @classmethod
     def from_name(cls, name: str) -> Self:
         """
