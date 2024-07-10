@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import (
@@ -17,6 +16,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import Signature, isclass
+from logging import Logger, getLogger
 from queue import Empty, Queue
 from types import MethodType, UnionType
 from typing import (
@@ -58,8 +58,6 @@ __all__ = (
     "Priority",
     "PriorityStr",
 )
-
-_logger = logging.getLogger(__name__)
 
 """
 Events
@@ -386,6 +384,11 @@ class Module(EventListener, Broker):
         init=False,
         repr=False,
     )
+    __loggers: list[Logger] = field(
+        default_factory=lambda: [getLogger(__name__)],
+        init=False,
+        repr=False,
+    )
 
     __instances: ClassVar[dict[str, Module]] = {}
 
@@ -585,6 +588,10 @@ class Module(EventListener, Broker):
 
         return self
 
+    def add_logger(self, logger: Logger) -> Self:
+        self.__loggers.append(logger)
+        return self
+
     def add_listener(self, listener: EventListener) -> Self:
         self.__channel.add_listener(listener)
         return self
@@ -603,7 +610,7 @@ class Module(EventListener, Broker):
 
         with self.__channel.dispatch(event):
             yield
-            _logger.debug(event)
+            self.__send_debug(event)
 
     def __check_locking(self):
         if self.is_locked:
@@ -618,6 +625,10 @@ class Module(EventListener, Broker):
             raise ModuleNotUsedError(
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
+
+    def __send_debug(self, message: object):
+        for logger in self.__loggers:
+            logger.debug(message)
 
     @classmethod
     def from_name(cls, name: str) -> Self:
