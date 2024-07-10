@@ -24,7 +24,7 @@ from blacksheep import Application
 from injection import Module
 from injection.integrations.blacksheep import InjectionServices
 
-custom_module = Module(f"{__name__}:custom_module")
+custom_module = Module.from_name("custom_module")
 
 app = Application(
     services=InjectionServices(custom_module),
