@@ -11,19 +11,24 @@ __all__ = (
     "get_lazy_instance",
     "inject",
     "injectable",
+    "mod",
     "set_constant",
     "should_be_injectable",
     "singleton",
 )
 
-_module = Module.default()
 
-get_instance = _module.get_instance
-get_lazy_instance = _module.get_lazy_instance
-inject = _module.inject
-injectable = _module.injectable
-set_constant = _module.set_constant
-should_be_injectable = _module.should_be_injectable
-singleton = _module.singleton
+def mod(name: str = None, /) -> Module:
+    if name is None:
+        return Module.default()
 
-del _module
+    return Module.from_name(name)
+
+
+get_instance = mod().get_instance
+get_lazy_instance = mod().get_lazy_instance
+inject = mod().inject
+injectable = mod().injectable
+set_constant = mod().set_constant
+should_be_injectable = mod().should_be_injectable
+singleton = mod().singleton

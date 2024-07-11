@@ -21,10 +21,10 @@ Example with a custom injection module:
 
 ```python
 from blacksheep import Application
-from injection import Module
+from injection import mod
 from injection.integrations.blacksheep import InjectionServices
 
-custom_module = Module.from_name("custom_module")
+custom_module = mod("custom_module")
 
 app = Application(
     services=InjectionServices(custom_module),

@@ -19,18 +19,22 @@ from .core import InjectableFactory
 from .core import ModeStr as InjectableModeStr
 from .core import PriorityStr as ModulePriorityStr
 
-_module: Module = ...
+_: Module = ...
 
-get_instance = _module.get_instance
-get_lazy_instance = _module.get_lazy_instance
-inject = _module.inject
-injectable = _module.injectable
-set_constant = _module.set_constant
-should_be_injectable = _module.should_be_injectable
-singleton = _module.singleton
+get_instance = _.get_instance
+get_lazy_instance = _.get_lazy_instance
+inject = _.inject
+injectable = _.injectable
+set_constant = _.set_constant
+should_be_injectable = _.should_be_injectable
+singleton = _.singleton
 
-del _module
+del _
 
+def mod(name: str = ..., /) -> Module:
+    """
+    Short syntax for `Module.from_name`.
+    """
 @final
 class Module:
     """

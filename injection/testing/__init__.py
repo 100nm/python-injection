@@ -1,6 +1,7 @@
 from contextlib import contextmanager
+from functools import partial
 
-from injection import Module, ModulePriority
+from injection import Module, ModulePriority, mod
 
 __all__ = (
     "set_test_constant",
@@ -11,24 +12,18 @@ __all__ = (
 )
 
 
-def get_test_module() -> Module:
-    return Module.from_name("testing")
+testing_mod = partial(mod, "testing")
 
-
-_module = get_test_module()
-
-set_test_constant = _module.set_constant
-should_be_test_injectable = _module.should_be_injectable
-test_injectable = _module.injectable
-test_singleton = _module.singleton
-
-del _module
+set_test_constant = testing_mod().set_constant
+should_be_test_injectable = testing_mod().should_be_injectable
+test_injectable = testing_mod().injectable
+test_singleton = testing_mod().singleton
 
 
 @contextmanager
 def use_test_injectables(*, on: Module = None, test_module: Module = None):
-    on = on or Module.default()
-    test_module = test_module or get_test_module()
+    on = on or mod()
+    test_module = test_module or testing_mod()
 
     for module in (on, test_module):
         module.unlock()

@@ -2,7 +2,7 @@ from typing import Any
 
 from rodi import ContainerProtocol
 
-from injection import Module
+from injection import Module, mod
 
 __all__ = ("InjectionServices",)
 
@@ -15,7 +15,7 @@ class InjectionServices(ContainerProtocol):
     __slots__ = ("__module",)
 
     def __init__(self, module: Module = None):
-        self.__module = module or Module.default()
+        self.__module = module or mod()
 
     def __contains__(self, item: Any) -> bool:
         return item in self.__module
