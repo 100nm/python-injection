@@ -1,16 +1,13 @@
 from contextlib import ContextDecorator
 from typing import ContextManager
 
+import injection as _
 from injection import Module
 
-_module: Module = ...
-
-set_test_constant = _module.set_constant
-should_be_test_injectable = _module.should_be_injectable
-test_injectable = _module.injectable
-test_singleton = _module.singleton
-
-del _module
+set_test_constant = _.set_constant
+should_be_test_injectable = _.should_be_injectable
+test_injectable = _.injectable
+test_singleton = _.singleton
 
 def use_test_injectables(
     *,

@@ -10,9 +10,9 @@ increase complexity unnecessarily if used extensively.
 ### Get or create Module
 
 ```python
-from injection import Module
+from injection import mod
 
-custom_module = Module.from_name("custom_module")
+custom_module = mod("custom_module")
 ```
 
 ### Basic decorators
@@ -46,10 +46,10 @@ def some_function(service_a: ServiceA, service_b: ServiceB):
 When a module is used by another module, the module's dependencies are replaced by those of the module used.
 
 ```python
-from injection import Module
+from injection import mod
 
-module_1 = Module.from_name("module_1")
-module_2 = Module.from_name("module_2")
+module_1 = mod("module_1")
+module_2 = mod("module_2")
 
 
 class AbstractService:
