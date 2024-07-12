@@ -488,13 +488,13 @@ class Module(EventListener, Broker):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def resolve[T](self, cls: type[T]) -> T:
+    def find_instance[T](self, cls: type[T]) -> T:
         injectable = self[cls]
         return injectable.get_instance()
 
     def get_instance[T](self, cls: type[T]) -> T | None:
         try:
-            return self.resolve(cls)
+            return self.find_instance(cls)
         except KeyError:
             return None
 

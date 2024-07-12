@@ -7,6 +7,7 @@ __all__ = (
     "InjectableMode",
     "Module",
     "ModulePriority",
+    "find_instance",
     "get_instance",
     "get_lazy_instance",
     "inject",
@@ -25,6 +26,7 @@ def mod(name: str = None, /) -> Module:
     return Module.from_name(name)
 
 
+find_instance = mod().find_instance
 get_instance = mod().get_instance
 get_lazy_instance = mod().get_lazy_instance
 inject = mod().inject
