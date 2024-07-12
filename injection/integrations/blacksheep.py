@@ -25,4 +25,4 @@ class InjectionServices(ContainerProtocol):
         return self
 
     def resolve[T](self, obj_type: type[T] | Any, *args, **kwargs) -> T:
-        return self.__module.resolve(obj_type)
+        return self.__module.find_instance(obj_type)

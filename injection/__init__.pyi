@@ -21,6 +21,7 @@ from .core import PriorityStr as ModulePriorityStr
 
 _: Module = ...
 
+find_instance = _.find_instance
 get_instance = _.get_instance
 get_lazy_instance = _.get_lazy_instance
 inject = _.inject
@@ -107,7 +108,7 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def resolve[T](self, cls: type[T]) -> T:
+    def find_instance[T](self, cls: type[T]) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.
