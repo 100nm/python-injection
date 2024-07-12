@@ -25,6 +25,7 @@ get_instance = _.get_instance
 get_lazy_instance = _.get_lazy_instance
 inject = _.inject
 injectable = _.injectable
+resolve_instance = _.resolve_instance
 set_constant = _.set_constant
 should_be_injectable = _.should_be_injectable
 singleton = _.singleton
@@ -107,7 +108,7 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def resolve[T](self, cls: type[T]) -> T:
+    def resolve_instance[T](self, cls: type[T]) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.

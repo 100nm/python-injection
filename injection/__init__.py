@@ -29,6 +29,7 @@ get_instance = mod().get_instance
 get_lazy_instance = mod().get_lazy_instance
 inject = mod().inject
 injectable = mod().injectable
+resolve_instance = mod().resolve_instance
 set_constant = mod().set_constant
 should_be_injectable = mod().should_be_injectable
 singleton = mod().singleton
