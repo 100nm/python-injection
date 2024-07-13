@@ -2,12 +2,26 @@
 name = "python-injection"
 version = "0.0.0"
 description = "Fast and easy dependency injection framework."
-authors = ["remimd"]
-keywords = ["dependencies", "inject", "injection"]
 license = "MIT"
-packages = [{ include = "injection" }]
+authors = ["remimd"]
 readme = "documentation/basic-usage.md"
 repository = "https://github.com/100nm/python-injection"
+keywords = ["dependencies", "dependency", "inject", "injection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Testing",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Typing :: Typed",
+]
+packages = [{ include = "injection" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12, <4"
