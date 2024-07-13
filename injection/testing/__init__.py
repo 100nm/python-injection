@@ -12,24 +12,24 @@ __all__ = (
 )
 
 
-testing_mod = partial(mod, "testing")
+tmod = partial(mod, "testing")
 
-set_test_constant = testing_mod().set_constant
-should_be_test_injectable = testing_mod().should_be_injectable
-test_injectable = testing_mod().injectable
-test_singleton = testing_mod().singleton
+set_test_constant = tmod().set_constant
+should_be_test_injectable = tmod().should_be_injectable
+test_injectable = tmod().injectable
+test_singleton = tmod().singleton
 
 
 @contextmanager
-def use_test_injectables(*, on: Module = None, test_module: Module = None):
-    on = on or mod()
-    test_module = test_module or testing_mod()
+def use_test_injectables(*, module: Module = None, test_module: Module = None):
+    module = module or mod()
+    test_module = test_module or tmod()
 
-    for module in (on, test_module):
-        module.unlock()
+    for m in (module, test_module):
+        m.unlock()
 
-    del module
+    del m
 
-    with on.use_temporarily(test_module, priority=ModulePriority.HIGH):
+    with module.use_temporarily(test_module, priority=ModulePriority.HIGH):
         yield
-        on.unlock()
+        module.unlock()

@@ -22,7 +22,6 @@ class InjectionServices(ContainerProtocol):
 
     def register(self, obj_type: type | Any, *args, **kwargs):
         self.__module.injectable(obj_type)
-        return self
 
     def resolve[T](self, obj_type: type[T] | Any, *args, **kwargs) -> T:
         return self.__module.find_instance(obj_type)

@@ -66,7 +66,7 @@ Events
 
 @dataclass(frozen=True, slots=True)
 class ContainerEvent(Event, ABC):
-    on_container: Container
+    container: Container
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,7 +85,7 @@ class ContainerDependenciesUpdated(ContainerEvent):
 
 @dataclass(frozen=True, slots=True)
 class ModuleEvent(Event, ABC):
-    on_module: Module
+    module: Module
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,7 +93,7 @@ class ModuleEventProxy(ModuleEvent):
     event: Event
 
     def __str__(self) -> str:
-        return f"`{self.on_module}` has propagated an event: {self.origin}"
+        return f"`{self.module}` has propagated an event: {self.origin}"
 
     @property
     def history(self) -> Iterator[Event]:
@@ -113,7 +113,7 @@ class ModuleAdded(ModuleEvent):
     priority: Priority
 
     def __str__(self) -> str:
-        return f"`{self.on_module}` now uses `{self.module_added}`."
+        return f"`{self.module}` now uses `{self.module_added}`."
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,7 +121,7 @@ class ModuleRemoved(ModuleEvent):
     module_removed: Module
 
     def __str__(self) -> str:
-        return f"`{self.on_module}` no longer uses `{self.module_removed}`."
+        return f"`{self.module}` no longer uses `{self.module_removed}`."
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,7 +131,7 @@ class ModulePriorityUpdated(ModuleEvent):
 
     def __str__(self) -> str:
         return (
-            f"In `{self.on_module}`, the priority `{self.priority}` "
+            f"In `{self.module}`, the priority `{self.priority}` "
             f"has been applied to `{self.module_updated}`."
         )
 
@@ -265,7 +265,7 @@ class Container(Broker):
 
     def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
         for report in analyze_types(cls):
-            for scoped_report in dict.fromkeys((report, report.no_args)):
+            for scoped_report in OrderedDict.fromkeys((report, report.no_args)):
                 try:
                     injectable, _ = self.__records[scoped_report]
                 except KeyError:
@@ -302,7 +302,7 @@ class Container(Broker):
         if records:
             event = ContainerDependenciesUpdated(self, records.keys(), mode)
 
-            with self.notify(event):
+            with self.dispatch(event):
                 self.__records.update(records)
 
         return self
@@ -318,7 +318,7 @@ class Container(Broker):
         self.__channel.add_listener(listener)
         return self
 
-    def notify(self, event: Event) -> ContextManager:
+    def dispatch(self, event: Event) -> ContextManager:
         return self.__channel.dispatch(event)
 
     def __prepare_reports_for_updating(
@@ -455,7 +455,7 @@ class Module(EventListener, Broker):
         on: TypeInfo[T] = (),
         *,
         mode: Mode | ModeStr = Mode.get_default(),
-    ) -> T:
+    ) -> Self:
         cls = type(instance)
         self.injectable(
             lambda: instance,
@@ -463,7 +463,7 @@ class Module(EventListener, Broker):
             on=(cls, on),
             mode=mode,
         )
-        return instance
+        return self
 
     def inject(
         self,
@@ -544,7 +544,7 @@ class Module(EventListener, Broker):
         priority = Priority(priority)
         event = ModuleAdded(self, module, priority)
 
-        with self.notify(event):
+        with self.dispatch(event):
             self.__modules[module] = None
             self.__move_module(module, priority)
             module.add_listener(self)
@@ -555,7 +555,7 @@ class Module(EventListener, Broker):
         event = ModuleRemoved(self, module)
 
         with suppress(KeyError):
-            with self.notify(event):
+            with self.dispatch(event):
                 self.__modules.pop(module)
                 module.remove_listener(self)
 
@@ -576,7 +576,7 @@ class Module(EventListener, Broker):
         priority = Priority(priority)
         event = ModulePriorityUpdated(self, module, priority)
 
-        with self.notify(event):
+        with self.dispatch(event):
             self.__move_module(module, priority)
 
         return self
@@ -602,15 +602,20 @@ class Module(EventListener, Broker):
 
     def on_event(self, event: Event, /) -> ContextManager:
         self_event = ModuleEventProxy(self, event)
-        return self.notify(self_event)
+        return self.dispatch(self_event)
 
     @contextmanager
-    def notify(self, event: Event):
+    def dispatch(self, event: Event):
         self.__check_locking()
 
         with self.__channel.dispatch(event):
             yield
-            self.__send_debug(event)
+            message = str(event)
+            self.__debug(message)
+
+    def __debug(self, message: object):
+        for logger in tuple(self.__loggers):
+            logger.debug(message)
 
     def __check_locking(self):
         if self.is_locked:
@@ -625,10 +630,6 @@ class Module(EventListener, Broker):
             raise ModuleNotUsedError(
                 f"`{module}` can't be found in the modules used by `{self}`."
             ) from exc
-
-    def __send_debug(self, message: object):
-        for logger in tuple(self.__loggers):
-            logger.debug(message)
 
     @classmethod
     def from_name(cls, name: str) -> Self:
@@ -816,7 +817,7 @@ class InjectedFunction(EventListener):
     @contextmanager
     def _(self, event: ModuleEvent, /):
         yield
-        self.update(event.on_module)
+        self.update(event.module)
 
     def __setup(self):
         queue = self.__setup_queue

@@ -33,7 +33,8 @@ from injection import set_constant
 class ServiceC:
     """ class implementation """
 
-service_c = set_constant(ServiceC())
+service_c = ServiceC()
+set_constant(service_c)
 ```
 
 ## Inject an instance
