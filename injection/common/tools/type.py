@@ -59,9 +59,9 @@ def analyze_types(*types: type | Any) -> Iterator[TypeReport[Any]]:
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[type | UnionType]:
     for arg in args:
-        origin = get_origin(arg) or arg
-
-        if isinstance(origin, Iterable) and not isinstance(origin, type | str):
+        if isinstance(arg, Iterable) and not (
+            isinstance(arg, type | str) or isinstance(get_origin(arg), type)
+        ):
             inner_args = arg
 
         elif isfunction(arg):
