@@ -11,7 +11,7 @@ test_singleton = _.singleton
 
 def use_test_injectables(
     *,
-    on: Module = ...,
+    module: Module = ...,
     test_module: Module = ...,
 ) -> ContextManager | ContextDecorator:
     """

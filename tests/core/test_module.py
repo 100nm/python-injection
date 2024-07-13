@@ -137,8 +137,8 @@ class TestModule:
 
     def test_set_constant_with_success_return_instance(self, module):
         instance = SomeClass()
-        return_value = module.set_constant(instance)
-        assert instance is return_value is module.get_instance(SomeClass)
+        module.set_constant(instance)
+        assert instance is module.get_instance(SomeClass)
 
     def test_set_constant_with_on_return_instance(self, module):
         class A:

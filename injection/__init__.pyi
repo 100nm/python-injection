@@ -101,7 +101,7 @@ class Module:
         on: TypeInfo[T] = ...,
         *,
         mode: InjectableMode | InjectableModeStr = ...,
-    ) -> T:
+    ) -> Self:
         """
         Function for registering a specific instance to be injected. This is useful for
         registering global variables. The difference with the singleton decorator is
