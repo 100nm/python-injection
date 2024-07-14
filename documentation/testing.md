@@ -54,5 +54,6 @@ from injection.testing import set_test_constant
 class ServiceC:
     """ class implementation """
 
-service_c = set_test_constant(ServiceC())
+service_c = ServiceC()
+set_test_constant(service_c)
 ```
