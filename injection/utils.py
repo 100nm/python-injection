@@ -1,15 +1,15 @@
 from collections.abc import Callable, Iterator
 from importlib import import_module
 from pkgutil import walk_packages
-from types import ModuleType
+from types import ModuleType as PythonModule
 
 __all__ = ("load_package",)
 
 
 def load_package(
-    package: ModuleType | str,
+    package: PythonModule | str,
     predicate: Callable[[str], bool] = lambda module_name: True,
-) -> tuple[ModuleType, ...]:
+) -> tuple[PythonModule, ...]:
     """
     Function for importing all modules in a Python package.
     Pass the `predicate` parameter if you want to filter the modules to be imported.
@@ -22,9 +22,9 @@ def load_package(
 
 
 def __iter_modules(
-    package: ModuleType,
+    package: PythonModule,
     predicate: Callable[[str], bool],
-) -> Iterator[ModuleType]:
+) -> Iterator[PythonModule]:
     try:
         path = package.__path__
     except AttributeError as exc:
