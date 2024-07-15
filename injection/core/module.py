@@ -30,6 +30,7 @@ from typing import (
     Self,
     runtime_checkable,
 )
+from uuid import uuid4
 
 from injection.common.event import Event, EventChannel, EventListener
 from injection.common.invertible import Invertible, SimpleInvertible
@@ -369,7 +370,7 @@ type InjectableFactory[T] = Callable[[Callable[..., T]], Injectable[T]]
 
 @dataclass(eq=False, frozen=True, slots=True)
 class Module(Broker, EventListener):
-    name: str | None = field(default=None)
+    name: str = field(default_factory=lambda: f"anonymous@{uuid4().hex[:7]}")
     __channel: EventChannel = field(
         default_factory=EventChannel,
         init=False,
