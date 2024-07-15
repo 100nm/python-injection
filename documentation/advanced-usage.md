@@ -161,7 +161,7 @@ Example:
 
 ```
 DEBUG:injection.core.module:`Module(name='default')` now uses `Module(name='my_module')`.
-DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 container dependency have been updated: `__main__.A`.
-DEBUG:injection.core.module:`Module(name='my_module')` has propagated an event: 1 container dependency have been updated: `__main__.B`.
-DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 container dependency have been updated: `__main__.B`.
+DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.A`.
+DEBUG:injection.core.module:`Module(name='my_module')` has propagated an event: 1 dependency have been updated: `__main__.B`.
+DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.B`.
 ```
