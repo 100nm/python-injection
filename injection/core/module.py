@@ -294,8 +294,9 @@ class Locator(Broker):
         mode: Mode | ModeStr,
     ) -> Self:
         mode = Mode(mode)
+        record = Record(injectable, mode)
         records = {
-            report: Record(injectable, mode)
+            report: record
             for report in self.__prepare_reports_for_updating(classes, mode)
         }
 
