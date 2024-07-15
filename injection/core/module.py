@@ -65,12 +65,12 @@ Events
 
 
 @dataclass(frozen=True, slots=True)
-class ContainerEvent(Event, ABC):
-    container: Container
+class LocatorEvent(Event, ABC):
+    locator: Locator
 
 
 @dataclass(frozen=True, slots=True)
-class ContainerDependenciesUpdated(ContainerEvent):
+class LocatorDependenciesUpdated(LocatorEvent):
     reports: Collection[TypeReport]
     mode: Mode
 
@@ -78,8 +78,8 @@ class ContainerDependenciesUpdated(ContainerEvent):
         length = len(self.reports)
         formatted_types = ", ".join(f"`{report.type}`" for report in self.reports)
         return (
-            f"{length} container dependenc{'ies' if length > 1 else 'y'} have "
-            f"been updated{f': {formatted_types}' if formatted_types else ''}."
+            f"{length} dependenc{"ies" if length > 1 else "y"} have been "
+            f"updated{f": {formatted_types}" if formatted_types else ""}."
         )
 
 
@@ -232,7 +232,7 @@ class Broker(Protocol):
 
 
 """
-Container
+Locator
 """
 
 
@@ -259,7 +259,7 @@ class Record[T](NamedTuple):
 
 
 @dataclass(repr=False, frozen=True, slots=True)
-class Container(Broker):
+class Locator(Broker):
     __records: dict[TypeReport, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
@@ -300,7 +300,7 @@ class Container(Broker):
         }
 
         if records:
-            event = ContainerDependenciesUpdated(self, records.keys(), mode)
+            event = LocatorDependenciesUpdated(self, records.keys(), mode)
 
             with self.dispatch(event):
                 self.__records.update(records)
@@ -367,20 +367,15 @@ type InjectableFactory[T] = Callable[[Callable[..., T]], Injectable[T]]
 
 
 @dataclass(eq=False, frozen=True, slots=True)
-class Module(EventListener, Broker):
+class Module(Broker, EventListener):
     name: str | None = field(default=None)
     __channel: EventChannel = field(
         default_factory=EventChannel,
         init=False,
         repr=False,
     )
-    __container: Container = field(
-        default_factory=Container,
-        init=False,
-        repr=False,
-    )
-    __modules: OrderedDict[Module, None] = field(
-        default_factory=OrderedDict,
+    __locator: Locator = field(
+        default_factory=Locator,
         init=False,
         repr=False,
     )
@@ -389,11 +384,16 @@ class Module(EventListener, Broker):
         init=False,
         repr=False,
     )
+    __modules: OrderedDict[Module, None] = field(
+        default_factory=OrderedDict,
+        init=False,
+        repr=False,
+    )
 
     __instances: ClassVar[dict[str, Module]] = {}
 
     def __post_init__(self):
-        self.__container.add_listener(self)
+        self.__locator.add_listener(self)
 
     def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
         for broker in self.__brokers:
@@ -415,7 +415,7 @@ class Module(EventListener, Broker):
     @property
     def __brokers(self) -> Iterator[Broker]:
         yield from tuple(self.__modules)
-        yield self.__container
+        yield self.__locator
 
     def injectable[T](
         self,
@@ -517,7 +517,7 @@ class Module(EventListener, Broker):
         injectable: Injectable[T],
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Self:
-        self.__container.update(classes, injectable, mode)
+        self.__locator.update(classes, injectable, mode)
         return self
 
     def init_modules(self, *modules: Module) -> Self:
