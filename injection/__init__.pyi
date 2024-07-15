@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from contextlib import ContextDecorator
-from enum import StrEnum
+from enum import Enum
 from logging import Logger
 from types import UnionType
 from typing import (
@@ -199,7 +199,7 @@ class Module:
         """
 
 @final
-class ModulePriority(StrEnum):
+class ModulePriority(Enum):
     LOW = ...
     HIGH = ...
 
@@ -212,7 +212,7 @@ class Injectable[T](Protocol):
     def get_instance(self) -> T: ...
 
 @final
-class InjectableMode(StrEnum):
+class InjectableMode(Enum):
     FALLBACK = ...
     NORMAL = ...
     OVERRIDE = ...
