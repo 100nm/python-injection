@@ -13,11 +13,11 @@ from typing import (
     runtime_checkable,
 )
 
-from .common.invertible import Invertible
-from .common.tools.type import TypeInfo
-from .core import InjectableFactory
-from .core import ModeStr as InjectableModeStr
-from .core import PriorityStr as ModulePriorityStr
+from ._core import InjectableFactory as _InjectableFactory
+from ._core import ModeStr as InjectableModeStr
+from ._core import PriorityStr as ModulePriorityStr
+from ._core.common.invertible import Invertible as _Invertible
+from ._core.common.type import TypeInfo as _TypeInfo
 
 _: Module = ...
 
@@ -62,9 +62,9 @@ class Module:
         wrapped: Callable[..., T] = ...,
         /,
         *,
-        cls: InjectableFactory[T] = ...,
+        cls: _InjectableFactory[T] = ...,
         inject: bool = ...,
-        on: TypeInfo[T] = ...,
+        on: _TypeInfo[T] = ...,
         mode: InjectableMode | InjectableModeStr = ...,
     ):
         """
@@ -79,7 +79,7 @@ class Module:
         /,
         *,
         inject: bool = ...,
-        on: TypeInfo[T] = ...,
+        on: _TypeInfo[T] = ...,
         mode: InjectableMode | InjectableModeStr = ...,
     ):
         """
@@ -98,7 +98,7 @@ class Module:
     def set_constant[T](
         self,
         instance: T,
-        on: TypeInfo[T] = ...,
+        on: _TypeInfo[T] = ...,
         *,
         mode: InjectableMode | InjectableModeStr = ...,
     ) -> Self:
@@ -125,7 +125,7 @@ class Module:
         cls: type[T],
         *,
         cache: bool = ...,
-    ) -> Invertible[T | None]:
+    ) -> _Invertible[T | None]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Invertible` object. To access the instance

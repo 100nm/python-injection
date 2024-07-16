@@ -9,7 +9,7 @@ __all__ = ("load_package",)
 def load_package(
     package: PythonModule | str,
     predicate: Callable[[str], bool] = lambda module_name: True,
-) -> tuple[PythonModule, ...]:
+) -> dict[str, PythonModule]:
     """
     Function for importing all modules in a Python package.
     Pass the `predicate` parameter if you want to filter the modules to be imported.
@@ -18,13 +18,13 @@ def load_package(
     if isinstance(package, str):
         package = import_module(package)
 
-    return tuple(__iter_modules(package, predicate))
+    return dict(__iter_modules_from(package, predicate))
 
 
-def __iter_modules(
+def __iter_modules_from(
     package: PythonModule,
     predicate: Callable[[str], bool],
-) -> Iterator[PythonModule]:
+) -> Iterator[tuple[str, PythonModule]]:
     try:
         path = package.__path__
     except AttributeError as exc:
@@ -38,4 +38,4 @@ def __iter_modules(
         if info.ispkg or not predicate(name):
             continue
 
-        yield import_module(name)
+        yield name, import_module(name)

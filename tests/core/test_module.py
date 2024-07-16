@@ -1,8 +1,8 @@
-from typing import Annotated, Any
+from typing import Annotated
 
 import pytest
 
-from injection.core import Injectable, Module
+from injection import Module
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -15,47 +15,6 @@ class SomeClass:
 
 
 class TestModule:
-    @classmethod
-    def get_test_injectable(cls, instance: Any) -> Injectable:
-        class_ = type(instance)
-
-        class TestInjectable(Injectable[class_]):
-            def get_instance(self) -> class_:
-                return instance
-
-        return TestInjectable()
-
-    """
-    __getitem__
-    """
-
-    def test_getitem_with_success_return_injectable(self, module):
-        injectable_w = self.get_test_injectable(SomeClass())
-        module[SomeClass] = injectable_w
-        assert module[SomeClass] is injectable_w
-
-        second_module = Module()
-        module.use(second_module)
-        injectable_x = self.get_test_injectable(SomeClass())
-        second_module[SomeClass] = injectable_x
-        assert module[SomeClass] is injectable_x
-
-        third_module = Module()
-        module.use(third_module)
-        injectable_y = self.get_test_injectable(SomeClass())
-        third_module[SomeClass] = injectable_y
-        assert module[SomeClass] is injectable_x
-
-        fourth_module = Module()
-        module.use(fourth_module, priority="high")
-        injectable_z = self.get_test_injectable(SomeClass())
-        fourth_module[SomeClass] = injectable_z
-        assert module[SomeClass] is injectable_z
-
-    def test_getitem_with_no_item_raise_key_error(self, module):
-        with pytest.raises(KeyError):
-            module[SomeClass]
-
     """
     __contains__
     """
@@ -67,7 +26,7 @@ class TestModule:
         class B:
             pass
 
-        module[A] = self.get_test_injectable(A())
+        module.set_constant(A())
 
         assert A in module
         assert B not in module
@@ -76,7 +35,7 @@ class TestModule:
         class T:
             pass
 
-        module[T] = self.get_test_injectable(T())
+        module.set_constant(T())
 
         assert T | None in module
         assert str | None not in module
@@ -86,7 +45,7 @@ class TestModule:
     """
 
     def test_get_instance_with_success_return_instance(self, module):
-        module[SomeClass] = self.get_test_injectable(SomeClass())
+        module.set_constant(SomeClass())
 
         instance = module.get_instance(SomeClass)
         assert isinstance(instance, SomeClass)
@@ -181,11 +140,13 @@ class TestModule:
     def test_use_with_success(self, module, event_history):
         second_module = Module()
         third_module = Module()
+        fourth_module = Module()
 
         module.use(second_module)
-        module.use(third_module, priority="high")
+        second_module.use(third_module)
+        third_module.use(fourth_module)
 
-        event_history.assert_length(2)
+        event_history.assert_length(3)
 
     def test_use_with_self_raise_module_error(self, module, event_history):
         with pytest.raises(ModuleError):
@@ -255,25 +216,27 @@ class TestModule:
         second_module = Module()
         third_module = Module()
 
-        injectable_x = self.get_test_injectable(SomeClass())
-        injectable_y = self.get_test_injectable(SomeClass())
+        @second_module.injectable
+        class A:
+            pass
 
-        second_module[SomeClass] = injectable_x
-        third_module[SomeClass] = injectable_y
+        @third_module.injectable(on=A)
+        class B(A):
+            pass
 
         module.use(second_module)
         module.use(third_module)
         event_history.assert_length(2)
 
-        assert module[SomeClass] is injectable_x
+        assert not isinstance(module.get_instance(A), B)
 
         module.change_priority(third_module, "high")
         event_history.assert_length(3)
-        assert module[SomeClass] is injectable_y
+        assert isinstance(module.get_instance(A), B)
 
         module.change_priority(third_module, "low")
         event_history.assert_length(4)
-        assert module[SomeClass] is injectable_x
+        assert not isinstance(module.get_instance(A), B)
 
     def test_change_priority_with_module_not_found(self, module, event_history):
         second_module = Module()

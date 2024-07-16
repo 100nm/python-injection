@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterator, Mapping
 from types import MappingProxyType
 
-from injection.common.invertible import Invertible
+from injection._core.common.invertible import Invertible
 
 __all__ = ("Lazy", "LazyMapping")
 
