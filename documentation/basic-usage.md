@@ -37,6 +37,18 @@ service_c = ServiceC()
 set_constant(service_c)
 ```
 
+Or here is the decorator `constant` which is equivalent:
+
+> Unlike `@singleton`, dependencies will not be resolved.
+
+```python
+from injection import constant
+
+@constant
+class ServiceC:
+    """ class implementation """
+```
+
 ## Inject an instance
 
 To inject one or several instances, use `inject` decorator.
