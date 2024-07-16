@@ -6,6 +6,7 @@ from typing import (
     Any,
     NamedTuple,
     Self,
+    TypeAlias,
     Union,
     get_args,
     get_origin,
@@ -13,7 +14,9 @@ from typing import (
 
 __all__ = ("TypeInfo", "TypeReport", "analyze_types", "get_return_types")
 
-type TypeInfo[T] = type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType
+type TypeInfo[T] = (
+    type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType | TypeAlias
+)
 
 
 class TypeReport[T](NamedTuple):
