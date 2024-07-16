@@ -28,6 +28,7 @@ from typing import (
     NoReturn,
     Protocol,
     Self,
+    TypeAliasType,
     runtime_checkable,
 )
 from uuid import uuid4
@@ -215,11 +216,15 @@ class Broker(Protocol):
     __slots__ = ()
 
     @abstractmethod
-    def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
+    def __getitem__[T](
+        self,
+        cls: type[T] | UnionType | TypeAliasType,
+        /,
+    ) -> Injectable[T]:
         raise NotImplementedError
 
     @abstractmethod
-    def __contains__(self, cls: type | UnionType, /) -> bool:
+    def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool:
         raise NotImplementedError
 
     @property
@@ -264,7 +269,11 @@ class Locator(Broker):
     __records: dict[TypeReport, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
-    def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
+    def __getitem__[T](
+        self,
+        cls: type[T] | UnionType | TypeAliasType,
+        /,
+    ) -> Injectable[T]:
         for report in analyze_types(cls):
             for scoped_report in OrderedDict.fromkeys((report, report.no_args)):
                 try:
@@ -276,7 +285,7 @@ class Locator(Broker):
 
         raise NoInjectable(cls)
 
-    def __contains__(self, cls: type | UnionType, /) -> bool:
+    def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool:
         return any(report in self.__records for report in analyze_types(cls))
 
     @property
@@ -290,7 +299,7 @@ class Locator(Broker):
     @synchronized()
     def update[T](
         self,
-        classes: Iterable[type[T] | UnionType],
+        classes: Iterable[type[T] | UnionType | TypeAliasType],
         injectable: Injectable[T],
         mode: Mode | ModeStr,
     ) -> Self:
@@ -325,7 +334,7 @@ class Locator(Broker):
 
     def __prepare_reports_for_updating(
         self,
-        classes: Iterable[type | UnionType],
+        classes: Iterable[type | UnionType | TypeAliasType],
         mode: Mode,
     ) -> Iterator[TypeReport]:
         rank = mode.rank
@@ -397,14 +406,18 @@ class Module(Broker, EventListener):
     def __post_init__(self):
         self.__locator.add_listener(self)
 
-    def __getitem__[T](self, cls: type[T] | UnionType, /) -> Injectable[T]:
+    def __getitem__[T](
+        self,
+        cls: type[T] | UnionType | TypeAliasType,
+        /,
+    ) -> Injectable[T]:
         for broker in self.__brokers:
             with suppress(KeyError):
                 return broker[cls]
 
         raise NoInjectable(cls)
 
-    def __contains__(self, cls: type | UnionType, /) -> bool:
+    def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     @property
@@ -510,11 +523,11 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def find_instance[T](self, cls: type[T]) -> T:
+    def find_instance[T](self, cls: type[T] | TypeAliasType) -> T:
         injectable = self[cls]
         return injectable.get_instance()
 
-    def get_instance[T](self, cls: type[T]) -> T | None:
+    def get_instance[T](self, cls: type[T] | TypeAliasType) -> T | None:
         try:
             return self.find_instance(cls)
         except KeyError:
@@ -522,7 +535,7 @@ class Module(Broker, EventListener):
 
     def get_lazy_instance[T](
         self,
-        cls: type[T],
+        cls: type[T] | TypeAliasType,
         *,
         cache: bool = False,
     ) -> Invertible[T | None]:
@@ -535,7 +548,7 @@ class Module(Broker, EventListener):
 
     def update[T](
         self,
-        classes: Iterable[type[T] | UnionType],
+        classes: Iterable[type[T] | UnionType | TypeAliasType],
         injectable: Injectable[T],
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Self:
