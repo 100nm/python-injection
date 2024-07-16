@@ -6,7 +6,7 @@ from typing import (
     Any,
     NamedTuple,
     Self,
-    TypeAlias,
+    TypeAliasType,
     Union,
     get_args,
     get_origin,
@@ -15,7 +15,7 @@ from typing import (
 __all__ = ("TypeInfo", "TypeReport", "analyze_types", "get_return_types")
 
 type TypeInfo[T] = (
-    type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType | TypeAlias
+    type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType | TypeAliasType
 )
 
 
@@ -60,7 +60,9 @@ def analyze_types(*types: type | Any) -> Iterator[TypeReport[Any]]:
         yield from analyze_types(*inner_types)
 
 
-def get_return_types(*args: TypeInfo[Any]) -> Iterator[type | UnionType]:
+def get_return_types(
+    *args: TypeInfo[Any],
+) -> Iterator[type | UnionType | TypeAliasType]:
     for arg in args:
         if isinstance(arg, Iterable) and not (
             isinstance(arg, type | str) or isinstance(get_origin(arg), type)
