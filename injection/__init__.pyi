@@ -21,6 +21,7 @@ from ._core.common.type import TypeInfo as _TypeInfo
 
 _: Module = ...
 
+constant = _.constant
 find_instance = _.find_instance
 get_instance = _.get_instance
 get_lazy_instance = _.get_lazy_instance
@@ -93,6 +94,20 @@ class Module:
         Decorator applicable to a class. It is used to specify whether an injectable
         should be registered. Raise an exception at injection time if the class isn't
         registered.
+        """
+
+    def constant[T](
+        self,
+        wrapped: Callable[..., T] = ...,
+        /,
+        *,
+        on: _TypeInfo[T] = ...,
+        mode: InjectableMode | InjectableModeStr = ...,
+    ):
+        """
+        Decorator applicable to a class or function. It is used to indicate how the
+        constant is constructed. At injection time, the injected instance will always
+        be the same. Unlike `@singleton`, dependencies will not be resolved.
         """
 
     def set_constant[T](

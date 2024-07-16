@@ -448,6 +448,25 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
+    def constant[T](
+        self,
+        wrapped: Callable[..., T] = None,
+        /,
+        *,
+        on: TypeInfo[T] = (),
+        mode: Mode | ModeStr = Mode.get_default(),
+    ):
+        def decorator(wp):
+            instance = wp()
+            self.set_constant(
+                instance,
+                on=on,
+                mode=mode,
+            )
+            return wp
+
+        return decorator(wrapped) if wrapped else decorator
+
     def set_constant[T](
         self,
         instance: T,
