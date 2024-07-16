@@ -2,7 +2,8 @@ import logging
 
 import pytest
 
-from injection.core import Module
+from injection import Module, mod
+from injection._core import Module as CoreModule
 from tests.helpers import EventHistory
 
 logging.basicConfig(level=logging.DEBUG)
@@ -11,12 +12,12 @@ logging.basicConfig(level=logging.DEBUG)
 @pytest.fixture(scope="function", autouse=True)
 def unlock():
     yield
-    Module.default().unlock()
+    mod().unlock()
 
 
 @pytest.fixture(scope="function")
-def module() -> Module:
-    return Module()
+def module() -> Module | CoreModule:
+    return CoreModule()
 
 
 @pytest.fixture(scope="function")

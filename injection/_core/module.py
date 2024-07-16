@@ -32,11 +32,11 @@ from typing import (
 )
 from uuid import uuid4
 
-from injection.common.event import Event, EventChannel, EventListener
-from injection.common.invertible import Invertible, SimpleInvertible
-from injection.common.lazy import Lazy, LazyMapping
-from injection.common.tools.threading import synchronized
-from injection.common.tools.type import (
+from injection._core.common.event import Event, EventChannel, EventListener
+from injection._core.common.invertible import Invertible, SimpleInvertible
+from injection._core.common.lazy import Lazy, LazyMapping
+from injection._core.common.threading import synchronized
+from injection._core.common.type import (
     TypeInfo,
     TypeReport,
     analyze_types,
@@ -403,9 +403,6 @@ class Module(Broker, EventListener):
                 return broker[cls]
 
         raise NoInjectable(cls)
-
-    def __setitem__[T](self, cls: type[T] | UnionType, injectable: Injectable[T], /):
-        self.update((cls,), injectable)
 
     def __contains__(self, cls: type | UnionType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
