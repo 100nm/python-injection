@@ -94,12 +94,12 @@ class TestModule:
     set_constant
     """
 
-    def test_set_constant_with_success_return_instance(self, module):
+    def test_set_constant_with_success(self, module):
         instance = SomeClass()
         module.set_constant(instance)
         assert instance is module.get_instance(SomeClass)
 
-    def test_set_constant_with_on_return_instance(self, module):
+    def test_set_constant_with_on(self, module):
         class A:
             pass
 
@@ -117,6 +117,15 @@ class TestModule:
             is module.get_instance(B)
             is module.get_instance(C)
         )
+
+    def test_set_constant_with_success_with_type_alias(self, module):
+        type HelloWorld = str
+        value = "Hello world!"
+
+        module.set_constant(value, HelloWorld, alias=True)
+
+        assert module.get_instance(str) is None
+        assert module.get_instance(HelloWorld) is value
 
     """
     init_modules

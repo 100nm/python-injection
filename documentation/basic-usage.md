@@ -158,3 +158,18 @@ from injection import injectable
 def service_d_recipe() -> ServiceD:
     """ recipe implementation """
 ```
+
+## Working with type aliases
+
+```python
+from injection import injectable, set_constant
+
+type APIKey = str
+
+set_constant("<secret_api_key>", APIKey, alias=True)
+
+@injectable
+class Client:
+    def __init__(self, api_key: APIKey):
+        ...
+```

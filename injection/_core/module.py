@@ -472,13 +472,17 @@ class Module(Broker, EventListener):
         instance: T,
         on: TypeInfo[T] = (),
         *,
+        alias: bool = False,
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Self:
-        cls = type(instance)
+        if not alias:
+            cls = type(instance)
+            on = (cls, on)
+
         self.injectable(
             lambda: instance,
             inject=False,
-            on=(cls, on),
+            on=on,
             mode=mode,
         )
         return self

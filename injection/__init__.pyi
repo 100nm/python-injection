@@ -115,6 +115,7 @@ class Module:
         instance: T,
         on: _TypeInfo[T] = ...,
         *,
+        alias: bool = ...,
         mode: InjectableMode | InjectableModeStr = ...,
     ) -> Self:
         """

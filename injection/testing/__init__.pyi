@@ -6,6 +6,7 @@ from injection import Module
 
 set_test_constant = _.set_constant
 should_be_test_injectable = _.should_be_injectable
+test_constant = _.constant
 test_injectable = _.injectable
 test_singleton = _.singleton
 
