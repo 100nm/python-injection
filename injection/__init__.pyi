@@ -204,13 +204,13 @@ class Module:
 
     def add_logger(self, logger: Logger) -> Self: ...
     @classmethod
-    def from_name(cls, name: str) -> Self:
+    def from_name(cls, name: str) -> Module:
         """
         Class method for getting or creating a module by name.
         """
 
     @classmethod
-    def default(cls) -> Self:
+    def default(cls) -> Module:
         """
         Class method for getting the default module.
         """

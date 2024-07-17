@@ -20,7 +20,7 @@ class Benchmark:
 
     @property
     def difference_rate(self) -> Decimal:
-        return ((self.y - self.x) / self.x) * 100
+        return (self.y - self.x) / self.x
 
     @classmethod
     def compare(
@@ -29,9 +29,9 @@ class Benchmark:
         y: Callable[..., Any],
         number: int = 1,
     ) -> Self:
-        x = mean(cls._time_in_ns(x, number))
-        y = mean(cls._time_in_ns(y, number))
-        return cls(x, y)
+        time_x = mean(cls._time_in_ns(x, number))
+        time_y = mean(cls._time_in_ns(y, number))
+        return cls(time_x, time_y)
 
     @staticmethod
     def _time_in_ns(callable_: Callable[..., Any], number: int) -> Iterator[Decimal]:
@@ -52,7 +52,9 @@ class BenchmarkResult:
             self.title,
             f"{self.benchmark.x:.2f}μs",
             f"{self.benchmark.y:.2f}μs",
-            f"{rate:.2f}% slower" if rate >= 0 else f"{abs(rate):.2f}% faster",
+            f"{rate:.2f} times slower"
+            if rate >= 0
+            else f"{abs(rate):.2f} times faster",
         )
 
 
@@ -118,7 +120,7 @@ def function_with_0_dependency():
     pass
 
 
-@InjectBenchmark.register(title="1 dependencies")
+@InjectBenchmark.register(title="1 dependency")
 def function_with_1_dependency(__a: A):
     pass
 
@@ -149,7 +151,7 @@ cli = Typer()
 @cli.command()
 def main(number: Annotated[int, Option("--number", "-n", min=0)] = 1000):
     results = InjectBenchmark().start(number)
-    headers = ("", "Reference Time (μs)", "@inject Time (μs)", "Difference Rate (%)")
+    headers = ("", "Reference Time (μs)", "@inject Time (μs)", "Difference Rate (×)")
     data = (result.row for result in itertools.chain(results))
     table = tabulate(data, headers=headers)
     print(table)
