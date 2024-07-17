@@ -27,15 +27,25 @@ packages = [{ include = "injection" }]
 python = ">=3.12, <4"
 
 [tool.poetry.group.dev.dependencies]
-argon2-cffi = "*"
-blacksheep = "*"
-faker = "*"
 mypy = "*"
+ruff = "*"
+
+[tool.poetry.group.test.dependencies]
+blacksheep = "*"
 pydantic = "*"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
-ruff = "*"
+
+[tool.poetry.group.example.dependencies]
+argon2-cffi = "*"
+faker = "*"
+pydantic = "*"
+
+[tool.poetry.group.bench.dependencies]
+tabulate = "*"
+typer = "*"
+types-tabulate = "*"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -46,7 +56,7 @@ exclude_lines = [
 
 [tool.mypy]
 check_untyped_defs = true
-enable_incomplete_feature = ["NewGenericSyntax"]
+# enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",
