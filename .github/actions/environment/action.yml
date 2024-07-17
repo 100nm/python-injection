@@ -23,4 +23,4 @@ runs:
         poetry config installer.modern-installation true
         poetry config virtualenvs.create false
         poetry check
-        poetry install --compile
+        poetry install --compile --without bench
