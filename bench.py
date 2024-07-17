@@ -73,14 +73,12 @@ class Benchmark:
     @classmethod
     def compare(
         cls,
-        __to: Callable[..., Any],
-        __with: Callable[..., Any],
-        /,
-        *,
+        x: Callable[..., Any],
+        y: Callable[..., Any],
         number: int = 1,
     ) -> Self:
-        x = mean(cls.__time_in_ns(__to, number))
-        y = mean(cls.__time_in_ns(__with, number))
+        x = mean(cls.__time_in_ns(x, number))
+        y = mean(cls.__time_in_ns(y, number))
         return cls(x, y)
 
     @staticmethod
@@ -141,42 +139,39 @@ cli = Typer()
 
 @cli.command()
 def main(number: Annotated[int, Option("--number", "-n", min=0)] = 1000):
-    results = (
-        inject_benchmark(
-            "0 dependency",
-            with_0_dependency,
-            (),
-            number,
-        ),
-        inject_benchmark(
-            "1 dependency",
-            with_1_dependency,
-            (A,),
-            number,
-        ),
-        inject_benchmark(
-            "2 dependencies",
-            with_2_dependencies,
-            (A, B),
-            number,
-        ),
-        inject_benchmark(
-            "3 dependencies",
-            with_3_dependencies,
-            (A, B, C),
-            number,
-        ),
-        inject_benchmark(
-            "4 dependencies",
-            with_4_dependencies,
-            (A, B, C, D),
-            number,
-        ),
-        inject_benchmark(
-            "5 dependencies",
-            with_5_dependencies,
-            (A, B, C, D, E),
-            number,
+    results = map(
+        lambda args: inject_benchmark(*args, number=number),
+        (
+            (
+                "0 dependency",
+                with_0_dependency,
+                (),
+            ),
+            (
+                "1 dependency",
+                with_1_dependency,
+                (A,),
+            ),
+            (
+                "2 dependencies",
+                with_2_dependencies,
+                (A, B),
+            ),
+            (
+                "3 dependencies",
+                with_3_dependencies,
+                (A, B, C),
+            ),
+            (
+                "4 dependencies",
+                with_4_dependencies,
+                (A, B, C, D),
+            ),
+            (
+                "5 dependencies",
+                with_5_dependencies,
+                (A, B, C, D, E),
+            ),
         ),
     )
 
