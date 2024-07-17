@@ -45,6 +45,7 @@ pydantic = "*"
 [tool.poetry.group.bench.dependencies]
 tabulate = "*"
 typer = "*"
+types-tabulate = "*"
 
 [tool.coverage.report]
 exclude_lines = [
