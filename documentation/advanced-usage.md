@@ -160,8 +160,8 @@ logging.basicConfig(level=logging.DEBUG)
 Example:
 
 ```
-DEBUG:injection.core.module:`Module(name='default')` now uses `Module(name='my_module')`.
-DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.A`.
-DEBUG:injection.core.module:`Module(name='my_module')` has propagated an event: 1 dependency have been updated: `__main__.B`.
-DEBUG:injection.core.module:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.B`.
+DEBUG:python-injection:`Module(name='default')` now uses `Module(name='my_module')`.
+DEBUG:python-injection:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.A`.
+DEBUG:python-injection:`Module(name='my_module')` has propagated an event: 1 dependency have been updated: `__main__.B`.
+DEBUG:python-injection:`Module(name='default')` has propagated an event: 1 dependency have been updated: `__main__.B`.
 ```
