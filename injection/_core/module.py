@@ -687,7 +687,7 @@ class Module(Broker, EventListener):
             ) from exc
 
     @classmethod
-    def from_name(cls, name: str) -> Self:
+    def from_name(cls, name: str) -> Module:
         with suppress(KeyError):
             return cls.__instances[name]
 
@@ -698,7 +698,7 @@ class Module(Broker, EventListener):
         return instance
 
     @classmethod
-    def default(cls) -> Self:
+    def default(cls) -> Module:
         return cls.from_name("default")
 
 
@@ -880,7 +880,7 @@ class InjectedFunction(EventListener):
     def __setup(self):
         queue = self.__setup_queue
 
-        while True:
+        while not queue.empty():
             try:
                 task = queue.get_nowait()
             except Empty:
