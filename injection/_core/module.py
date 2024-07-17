@@ -29,6 +29,7 @@ from typing import (
     Protocol,
     Self,
     TypeAliasType,
+    override,
     runtime_checkable,
 )
 from uuid import uuid4
@@ -76,6 +77,7 @@ class LocatorDependenciesUpdated(LocatorEvent):
     reports: Collection[TypeReport]
     mode: Mode
 
+    @override
     def __str__(self) -> str:
         length = len(self.reports)
         formatted_types = ", ".join(f"`{report.type}`" for report in self.reports)
@@ -94,6 +96,7 @@ class ModuleEvent(Event, ABC):
 class ModuleEventProxy(ModuleEvent):
     event: Event
 
+    @override
     def __str__(self) -> str:
         return f"`{self.module}` has propagated an event: {self.origin}"
 
@@ -114,6 +117,7 @@ class ModuleAdded(ModuleEvent):
     module_added: Module
     priority: Priority
 
+    @override
     def __str__(self) -> str:
         return f"`{self.module}` now uses `{self.module_added}`."
 
@@ -122,6 +126,7 @@ class ModuleAdded(ModuleEvent):
 class ModuleRemoved(ModuleEvent):
     module_removed: Module
 
+    @override
     def __str__(self) -> str:
         return f"`{self.module}` no longer uses `{self.module_removed}`."
 
@@ -131,6 +136,7 @@ class ModulePriorityUpdated(ModuleEvent):
     module_updated: Module
     priority: Priority
 
+    @override
     def __str__(self) -> str:
         return (
             f"In `{self.module}`, the priority `{self.priority}` "
@@ -167,6 +173,7 @@ class BaseInjectable[T](Injectable[T], ABC):
 class NewInjectable[T](BaseInjectable[T]):
     __slots__ = ()
 
+    @override
     def get_instance(self) -> T:
         return self.factory()
 
@@ -181,12 +188,15 @@ class SingletonInjectable[T](BaseInjectable[T]):
         return self.__dict__
 
     @property
+    @override
     def is_locked(self) -> bool:
         return self.__key in self.cache
 
+    @override
     def unlock(self):
         self.cache.clear()
 
+    @override
     def get_instance(self) -> T:
         with suppress(KeyError):
             return self.cache[self.__key]
@@ -202,6 +212,7 @@ class SingletonInjectable[T](BaseInjectable[T]):
 class ShouldBeInjectable[T](Injectable[T]):
     cls: type[T]
 
+    @override
     def get_instance(self) -> NoReturn:
         raise InjectionError(f"`{self.cls}` should be an injectable.")
 
@@ -269,6 +280,7 @@ class Locator(Broker):
     __records: dict[TypeReport, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
+    @override
     def __getitem__[T](
         self,
         cls: type[T] | UnionType | TypeAliasType,
@@ -285,10 +297,12 @@ class Locator(Broker):
 
         raise NoInjectable(cls)
 
+    @override
     def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool:
         return any(report in self.__records for report in analyze_types(cls))
 
     @property
+    @override
     def is_locked(self) -> bool:
         return any(injectable.is_locked for injectable in self.__injectables)
 
@@ -318,6 +332,7 @@ class Locator(Broker):
 
         return self
 
+    @override
     @synchronized()
     def unlock(self) -> Self:
         for injectable in self.__injectables:
@@ -391,7 +406,7 @@ class Module(Broker, EventListener):
         repr=False,
     )
     __loggers: list[Logger] = field(
-        default_factory=lambda: [getLogger(__name__)],
+        default_factory=lambda: [getLogger("python-injection")],
         init=False,
         repr=False,
     )
@@ -406,6 +421,7 @@ class Module(Broker, EventListener):
     def __post_init__(self):
         self.__locator.add_listener(self)
 
+    @override
     def __getitem__[T](
         self,
         cls: type[T] | UnionType | TypeAliasType,
@@ -417,10 +433,12 @@ class Module(Broker, EventListener):
 
         raise NoInjectable(cls)
 
+    @override
     def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     @property
+    @override
     def is_locked(self) -> bool:
         return any(broker.is_locked for broker in self.__brokers)
 
@@ -616,6 +634,7 @@ class Module(Broker, EventListener):
 
         return self
 
+    @override
     @synchronized()
     def unlock(self) -> Self:
         for broker in self.__brokers:
@@ -635,6 +654,7 @@ class Module(Broker, EventListener):
         self.__channel.remove_listener(listener)
         return self
 
+    @override
     def on_event(self, event: Event, /) -> ContextManager:
         self_event = ModuleEventProxy(self, event)
         return self.dispatch(self_event)
@@ -775,9 +795,11 @@ class InjectedFunction(EventListener):
         self.__setup_queue = Queue[Callable[..., Any]](maxsize=2)
         self.on_setup(self.__set_signature)
 
+    @override
     def __repr__(self) -> str:  # pragma: no cover
         return repr(self.wrapped)
 
+    @override
     def __str__(self) -> str:  # pragma: no cover
         return str(self.wrapped)
 
@@ -845,6 +867,7 @@ class InjectedFunction(EventListener):
         return decorator(wrapped) if wrapped else decorator
 
     @singledispatchmethod
+    @override
     def on_event(self, event: Event, /) -> ContextManager | None:  # type: ignore
         return None
 
