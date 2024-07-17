@@ -170,7 +170,7 @@ class BaseInjectable[T](Injectable[T], ABC):
     factory: Callable[..., T]
 
 
-class NewInjectable[T](BaseInjectable[T]):
+class SimpleInjectable[T](BaseInjectable[T]):
     __slots__ = ()
 
     @override
@@ -452,7 +452,7 @@ class Module(Broker, EventListener):
         wrapped: Callable[..., T] = None,
         /,
         *,
-        cls: InjectableFactory[T] = NewInjectable,
+        cls: InjectableFactory[T] = SimpleInjectable,
         inject: bool = True,
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
