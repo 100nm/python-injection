@@ -3,44 +3,28 @@ from inspect import get_annotations, isfunction
 from types import UnionType
 from typing import (
     Annotated,
-    Any,
-    NamedTuple,
-    Self,
     TypeAliasType,
     Union,
     get_args,
     get_origin,
 )
 
-__all__ = ("TypeInfo", "TypeReport", "analyze_types", "get_return_types")
-
-type TypeInfo[T] = (
-    type[T] | Callable[..., T] | Iterable[TypeInfo[T]] | UnionType | TypeAliasType
+__all__ = (
+    "InputType",
+    "TypeDef",
+    "TypeInfo",
+    "analyze_types",
+    "get_return_types",
 )
 
+type TypeDef[T] = type[T] | TypeAliasType
 
-class TypeReport[T](NamedTuple):
-    origin: type[T]
-    args: tuple[Any, ...]
+type InputType[T] = TypeDef[T] | UnionType
 
-    @property
-    def type(self) -> type[T]:
-        origin = self.origin
-
-        if args := self.args:
-            return origin[*args]
-
-        return origin
-
-    @property
-    def no_args(self) -> Self:
-        if self.args:
-            return type(self)(self.origin, ())
-
-        return self
+type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
 
 
-def analyze_types(*types: type | Any) -> Iterator[TypeReport[Any]]:
+def analyze_types(*types: InputType, with_origin: bool = False) -> TypeDef:
     for tp in types:
         if tp is None:
             continue
@@ -54,15 +38,17 @@ def analyze_types(*types: type | Any) -> Iterator[TypeReport[Any]]:
             inner_types = get_args(tp)[:1]
 
         else:
-            yield TypeReport(origin or tp, get_args(tp))
+            yield tp
+
+            if with_origin and origin is not None:
+                yield origin
+
             continue
 
-        yield from analyze_types(*inner_types)
+        yield from analyze_types(*inner_types, with_origin=with_origin)
 
 
-def get_return_types(
-    *args: TypeInfo[Any],
-) -> Iterator[type | UnionType | TypeAliasType]:
+def get_return_types(*args: TypeInfo) -> Iterator[InputType]:
     for arg in args:
         if isinstance(arg, Iterable) and not (
             isinstance(arg, type | str) or isinstance(get_origin(arg), type)

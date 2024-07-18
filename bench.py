@@ -62,7 +62,7 @@ class BenchmarkResult:
 class InjectBenchmark:
     callables: ClassVar[dict[str, Callable[..., Any]]] = {}
 
-    def start(self, number: int = 1) -> Iterator[BenchmarkResult]:
+    def run(self, number: int = 1) -> Iterator[BenchmarkResult]:
         for title, callable_ in self.callables.items():
             signature = inspect.signature(callable_, eval_str=True)
             dependencies = {
@@ -150,7 +150,8 @@ cli = Typer()
 
 @cli.command()
 def main(number: Annotated[int, Option("--number", "-n", min=0)] = 1000):
-    results = InjectBenchmark().start(number)
+    benchmark = InjectBenchmark()
+    results = benchmark.run(number)
     headers = ("", "Reference Time (μs)", "@inject Time (μs)", "Difference Rate (×)")
     data = (result.row for result in itertools.chain(results))
     table = tabulate(data, headers=headers)
