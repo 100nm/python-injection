@@ -74,7 +74,7 @@ class LocatorEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class LocatorDependenciesUpdated(LocatorEvent):
-    classes: Collection[TypeDef[Any]]
+    classes: Collection[TypeDef]
     mode: Mode
 
     @override
@@ -231,7 +231,7 @@ class Broker(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def __contains__(self, cls: InputType[Any], /) -> bool:
+    def __contains__(self, cls: InputType, /) -> bool:
         raise NotImplementedError
 
     @property
@@ -273,7 +273,7 @@ class Record[T](NamedTuple):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator(Broker):
-    __records: dict[TypeDef[Any], Record] = field(default_factory=dict, init=False)
+    __records: dict[TypeDef, Record] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     @override
@@ -289,7 +289,7 @@ class Locator(Broker):
         raise NoInjectable(cls)
 
     @override
-    def __contains__(self, cls: InputType[Any], /) -> bool:
+    def __contains__(self, cls: InputType, /) -> bool:
         return any(
             analyzed_class in self.__records
             for analyzed_class in analyze_types(cls, with_origin=True)
@@ -340,9 +340,9 @@ class Locator(Broker):
 
     def __prepare_for_updating(
         self,
-        classes: Iterable[InputType[Any]],
+        classes: Iterable[InputType],
         mode: Mode,
-    ) -> Iterator[TypeDef[Any]]:
+    ) -> Iterator[TypeDef]:
         rank = mode.rank
 
         for cls in frozenset(analyze_types(*classes)):
@@ -421,7 +421,7 @@ class Module(Broker, EventListener):
         raise NoInjectable(cls)
 
     @override
-    def __contains__(self, cls: InputType[Any], /) -> bool:
+    def __contains__(self, cls: InputType, /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     @property
