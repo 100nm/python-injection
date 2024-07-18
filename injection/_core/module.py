@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import itertools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import (
@@ -29,7 +28,6 @@ from typing import (
     NoReturn,
     Protocol,
     Self,
-    get_origin,
     override,
     runtime_checkable,
 )
@@ -76,7 +74,7 @@ class LocatorEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class LocatorDependenciesUpdated(LocatorEvent):
-    classes: Collection[type]
+    classes: Collection[TypeDef[Any]]
     mode: Mode
 
     @override
@@ -280,13 +278,9 @@ class Locator(Broker):
 
     @override
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
-        classes = itertools.chain.from_iterable(
-            self.__get_type_variations(c) for c in analyze_types(cls)
-        )
-
-        for cls in classes:
+        for analyzed_class in analyze_types(cls, with_origin=True):
             try:
-                injectable, _ = self.__records[cls]
+                injectable, _ = self.__records[analyzed_class]
             except KeyError:
                 continue
 
@@ -296,7 +290,10 @@ class Locator(Broker):
 
     @override
     def __contains__(self, cls: InputType[Any], /) -> bool:
-        return any(report in self.__records for report in analyze_types(cls))
+        return any(
+            analyzed_class in self.__records
+            for analyzed_class in analyze_types(cls, with_origin=True)
+        )
 
     @property
     @override
@@ -316,10 +313,7 @@ class Locator(Broker):
     ) -> Self:
         mode = Mode(mode)
         record = Record(injectable, mode)
-        records = {
-            report: record
-            for report in self.__prepare_reports_for_updating(classes, mode)
-        }
+        records = {cls: record for cls in self.__prepare_for_updating(classes, mode)}
 
         if records:
             event = LocatorDependenciesUpdated(self, records.keys(), mode)
@@ -344,7 +338,7 @@ class Locator(Broker):
     def dispatch(self, event: Event) -> ContextManager:
         return self.__channel.dispatch(event)
 
-    def __prepare_reports_for_updating(
+    def __prepare_for_updating(
         self,
         classes: Iterable[InputType[Any]],
         mode: Mode,
@@ -368,13 +362,6 @@ class Locator(Broker):
                     continue
 
             yield cls
-
-    @staticmethod
-    def __get_type_variations(cls: TypeDef[Any]) -> Iterator[TypeDef[Any]]:
-        yield cls
-
-        if origin := get_origin(cls):
-            yield origin
 
 
 """

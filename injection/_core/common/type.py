@@ -25,7 +25,7 @@ type InputType[T] = TypeDef[T] | UnionType
 type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
 
 
-def analyze_types(*types: InputType[Any]) -> TypeDef[Any]:
+def analyze_types(*types: InputType[Any], with_origin: bool = False) -> TypeDef[Any]:
     for tp in types:
         if tp is None:
             continue
@@ -40,9 +40,13 @@ def analyze_types(*types: InputType[Any]) -> TypeDef[Any]:
 
         else:
             yield tp
+
+            if with_origin and origin is not None:
+                yield origin
+
             continue
 
-        yield from analyze_types(*inner_types)
+        yield from analyze_types(*inner_types, with_origin=with_origin)
 
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:
