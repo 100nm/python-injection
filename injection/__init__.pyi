@@ -3,13 +3,11 @@ from collections.abc import Callable
 from contextlib import ContextDecorator
 from enum import Enum
 from logging import Logger
-from types import UnionType
 from typing import (
     Any,
     ContextManager,
     Protocol,
     Self,
-    TypeAliasType,
     final,
     runtime_checkable,
 )
@@ -18,6 +16,7 @@ from ._core import InjectableFactory as _InjectableFactory
 from ._core import ModeStr as InjectableModeStr
 from ._core import PriorityStr as ModulePriorityStr
 from ._core.common.invertible import Invertible as _Invertible
+from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
 
 _: Module = ...
@@ -49,7 +48,7 @@ class Module:
     """
 
     def __init__(self, name: str = ...): ...
-    def __contains__(self, cls: type | UnionType | TypeAliasType, /) -> bool: ...
+    def __contains__(self, cls: _InputType[Any], /) -> bool: ...
     @property
     def is_locked(self) -> bool: ...
     def inject(self, wrapped: Callable[..., Any] = ..., /):
@@ -125,13 +124,13 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
-    def find_instance[T](self, cls: type[T] | TypeAliasType) -> T:
+    def find_instance[T](self, cls: _InputType[T]) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.
         """
 
-    def get_instance[T](self, cls: type[T] | TypeAliasType) -> T | None:
+    def get_instance[T](self, cls: _InputType[T]) -> T | None:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or return `None`.
@@ -139,7 +138,7 @@ class Module:
 
     def get_lazy_instance[T](
         self,
-        cls: type[T] | TypeAliasType,
+        cls: _InputType[T],
         *,
         cache: bool = ...,
     ) -> _Invertible[T | None]:
