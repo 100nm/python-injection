@@ -59,7 +59,7 @@ omit = ["bench.py"]
 
 [tool.mypy]
 check_untyped_defs = true
-# enable_incomplete_feature = ["NewGenericSyntax"]
+enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",
