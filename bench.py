@@ -29,12 +29,15 @@ class Benchmark:
         y: Callable[..., Any],
         number: int = 1,
     ) -> Self:
-        time_x = mean(cls._time_in_ns(x, number))
-        time_y = mean(cls._time_in_ns(y, number))
+        time_x = mean(cls._time_in_microseconds(x, number))
+        time_y = mean(cls._time_in_microseconds(y, number))
         return cls(time_x, time_y)
 
     @staticmethod
-    def _time_in_ns(callable_: Callable[..., Any], number: int) -> Iterator[Decimal]:
+    def _time_in_microseconds(
+        callable_: Callable[..., Any],
+        number: int,
+    ) -> Iterator[Decimal]:
         for _ in range(number):
             delta = timeit(callable_, number=1)
             yield Decimal(delta) * (10**6)

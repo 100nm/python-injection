@@ -24,7 +24,7 @@ type InputType[T] = TypeDef[T] | UnionType
 type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
 
 
-def analyze_types(*types: InputType, with_origin: bool = False) -> TypeDef:
+def analyze_types(*types: InputType, with_origin: bool = False) -> Iterator[TypeDef]:
     for tp in types:
         if tp is None:
             continue
@@ -55,11 +55,13 @@ def get_return_types(*args: TypeInfo) -> Iterator[InputType]:
         ):
             inner_args = arg
 
-        elif isfunction(arg):
-            inner_args = (get_annotations(arg, eval_str=True).get("return"),)
+        elif isfunction(arg) and (
+            return_type := get_annotations(arg, eval_str=True).get("return")
+        ):
+            inner_args = (return_type,)
 
         else:
-            yield arg
+            yield arg  # type: ignore
             continue
 
         yield from get_return_types(*inner_args)
