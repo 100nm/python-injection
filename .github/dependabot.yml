@@ -8,9 +8,13 @@ updates:
     interval: "weekly"
   groups:
     safe:
+      patterns:
+        - "*"
       update-types:
         - "minor"
         - "patch"
     major:
+      patterns:
+        - "*"
       update-types:
         - "major"
