@@ -6,3 +6,11 @@ updates:
   target-branch: "dev"
   schedule:
     interval: "weekly"
+  groups:
+    safe:
+      update-types:
+        - "minor"
+        - "patch"
+    major:
+      update-types:
+        - "major"
