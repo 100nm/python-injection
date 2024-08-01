@@ -1,6 +1,6 @@
 # Utils
 
-## load_package
+## load_packages
 
 Useful for put in memory injectables hidden deep within a package. Example:
 
@@ -18,9 +18,9 @@ package
 To load Injectable1 and Injectable2 into memory you can do the following:
 
 ```python
-from injection.utils import load_package
+from injection.utils import load_packages
 
 import package
 
-load_package(package)
+load_packages(package)
 ```

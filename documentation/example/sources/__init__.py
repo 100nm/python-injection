@@ -1,3 +1,3 @@
-from injection.utils import load_package
+from injection.utils import load_packages
 
-load_package(__name__)
+load_packages(__name__)

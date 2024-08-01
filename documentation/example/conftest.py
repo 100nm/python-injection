@@ -2,14 +2,14 @@ import pytest
 from faker import Faker
 
 from injection.testing import use_test_injectables
-from injection.utils import load_package
+from injection.utils import load_packages
 
 
 @pytest.fixture(scope="session", autouse=True)
 def autouse_test_injectables():
     from .tests import injectables
 
-    load_package(injectables)
+    load_packages(injectables)
 
     with use_test_injectables():
         yield

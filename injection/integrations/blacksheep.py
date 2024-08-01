@@ -1,10 +1,16 @@
 from typing import Any, override
 
-from rodi import ContainerProtocol
-
 from injection import Module, mod
 
 __all__ = ("InjectionServices",)
+
+
+try:
+    import blacksheep  # noqa: F401
+except ImportError as exc:
+    raise ImportError(f"To use `{__name__}`, blacksheep must be installed.") from exc
+else:
+    from rodi import ContainerProtocol
 
 
 class InjectionServices(ContainerProtocol):
