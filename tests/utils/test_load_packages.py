@@ -1,13 +1,13 @@
 import pytest
 
-from injection.utils import load_package
+from injection.utils import load_packages
 
 
 class TestLoadPackage:
     def test_load_package_with_predicate(self):
         from tests.utils import package
 
-        loaded_modules = load_package(
+        loaded_modules = load_packages(
             package,
             predicate=lambda name: ".excluded_package." not in name,
         )
@@ -25,7 +25,7 @@ class TestLoadPackage:
     def test_load_package_with_success(self):
         from tests.utils import package
 
-        loaded_modules = load_package(package)
+        loaded_modules = load_packages(package)
 
         modules = (
             "tests.utils.package.module1",
@@ -37,7 +37,7 @@ class TestLoadPackage:
             assert module in loaded_modules
 
     def test_load_package_with_str(self):
-        loaded_modules = load_package("tests.utils.package")
+        loaded_modules = load_packages("tests.utils.package")
 
         modules = (
             "tests.utils.package.module1",
@@ -52,4 +52,4 @@ class TestLoadPackage:
         from tests.utils.package import module1
 
         with pytest.raises(TypeError):
-            load_package(module1)
+            load_packages(module1)

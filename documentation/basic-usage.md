@@ -105,7 +105,7 @@ In the case of inheritance, you can use the decorator parameter `on` to link the
 classes.
 
 **Warning: if the child class is in another file, make sure that file is imported before injection.**
-[_See `load_package` function._](utils.md#load_package)
+[_See `load_packages` function._](utils.md#load_packages)
 
 _Example with one class:_
 
