@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager, suppress
 from dataclasses import dataclass, field
 from typing import ContextManager, Self
@@ -24,7 +25,7 @@ class EventChannel:
     __listeners: WeakSet[EventListener] = field(default_factory=WeakSet, init=False)
 
     @contextmanager
-    def dispatch(self, event: Event):
+    def dispatch(self, event: Event) -> Iterator:
         with ExitStack() as stack:
             for listener in tuple(self.__listeners):
                 context_manager = listener.on_event(event)

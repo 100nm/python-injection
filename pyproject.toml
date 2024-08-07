@@ -4,7 +4,7 @@ version = "0.0.0"
 description = "Fast and easy dependency injection framework."
 license = "MIT"
 authors = ["remimd"]
-readme = "documentation/basic-usage.md"
+readme = "README.md"
 repository = "https://github.com/100nm/python-injection"
 keywords = ["dependencies", "dependency", "inject", "injection"]
 classifiers = [
@@ -59,12 +59,24 @@ omit = ["bench.py"]
 
 [tool.mypy]
 check_untyped_defs = true
+# disallow_any_generics = true
+# disallow_untyped_defs = true
 enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",
 ]
+follow_imports = "silent"
 implicit_optional = true
+no_implicit_reexport = true
+plugins = ["pydantic.mypy"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"
@@ -86,9 +98,6 @@ line-ending = "auto"
 extend-select = ["F", "I", "N"]
 ignore = ["N818"]
 fixable = ["ALL"]
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F403"]
 
 [build-system]
 requires = ["poetry-core"]
