@@ -280,11 +280,11 @@ class Locator(Broker):
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
         for analyzed_class in analyze_types(cls, with_origin=True):
             try:
-                injectable, _ = self.__records[analyzed_class]
+                record = self.__records[analyzed_class]
             except KeyError:
                 continue
 
-            return injectable
+            return record.injectable
 
         raise NoInjectable(cls)
 
@@ -347,12 +347,14 @@ class Locator(Broker):
 
         for cls in frozenset(analyze_types(*classes)):
             try:
-                _, current_mode = self.__records[cls]
+                record = self.__records[cls]
 
             except KeyError:
                 pass
 
             else:
+                current_mode = record.mode
+
                 if mode == current_mode and mode != Mode.OVERRIDE:
                     raise RuntimeError(
                         f"An injectable already exists for the class `{cls}`."
