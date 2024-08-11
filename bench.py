@@ -94,58 +94,47 @@ class InjectBenchmark:
 
 
 @injectable
-class A:
-    pass
+class A: ...
 
 
 @injectable
-class B:
-    pass
+class B: ...
 
 
 @injectable
-class C:
-    pass
+class C: ...
 
 
 @injectable
-class D:
-    pass
+class D: ...
 
 
 @injectable
-class E:
-    pass
+class E: ...
 
 
 @InjectBenchmark.register(title="0 dependency")
-def function_with_0_dependency():
-    pass
+def function_with_0_dependency(): ...
 
 
 @InjectBenchmark.register(title="1 dependency")
-def function_with_1_dependency(__a: A):
-    pass
+def function_with_1_dependency(__a: A): ...
 
 
 @InjectBenchmark.register(title="2 dependencies")
-def function_with_2_dependencies(__a: A, __b: B):
-    pass
+def function_with_2_dependencies(__a: A, __b: B): ...
 
 
 @InjectBenchmark.register(title="3 dependencies")
-def function_with_3_dependencies(__a: A, __b: B, __c: C):
-    pass
+def function_with_3_dependencies(__a: A, __b: B, __c: C): ...
 
 
 @InjectBenchmark.register(title="4 dependencies")
-def function_with_4_dependencies(__a: A, __b: B, __c: C, __d: D):
-    pass
+def function_with_4_dependencies(__a: A, __b: B, __c: C, __d: D): ...
 
 
 @InjectBenchmark.register(title="5 dependencies")
-def function_with_5_dependencies(__a: A, __b: B, __c: C, __d: D, __e: E):
-    pass
+def function_with_5_dependencies(__a: A, __b: B, __c: C, __d: D, __e: E): ...
 
 
 cli = Typer()

@@ -7,8 +7,7 @@ from injection.exceptions import InjectionError
 class TestShouldBeInjectable:
     def test_should_be_injectable_with_success(self):
         @should_be_injectable
-        class SomeInjectable:
-            pass
+        class SomeInjectable: ...
 
         with pytest.raises(InjectionError):
             get_instance(SomeInjectable)
@@ -22,8 +21,7 @@ class TestShouldBeInjectable:
 
     def test_should_be_injectable_with_already_injectable(self):
         @injectable
-        class SomeInjectable:
-            pass
+        class SomeInjectable: ...
 
         should_be_injectable(SomeInjectable)
 

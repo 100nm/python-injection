@@ -59,15 +59,17 @@ omit = ["bench.py"]
 
 [tool.mypy]
 check_untyped_defs = true
-# disallow_any_generics = true
-# disallow_untyped_defs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_defs = true
 enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",
+    "bench.py",
+    "conftest.py",
 ]
 follow_imports = "silent"
-implicit_optional = true
 no_implicit_reexport = true
 plugins = ["pydantic.mypy"]
 warn_redundant_casts = true

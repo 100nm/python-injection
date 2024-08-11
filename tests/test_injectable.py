@@ -9,16 +9,14 @@ from injection import get_instance, injectable
 class TestInjectable:
     def test_injectable_with_success(self):
         @injectable
-        class SomeInjectable:
-            pass
+        class SomeInjectable: ...
 
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
         assert instance_1 is not instance_2
 
     def test_injectable_with_recipe(self):
-        class SomeClass:
-            pass
+        class SomeClass: ...
 
         @injectable
         def recipe() -> SomeClass:
@@ -29,11 +27,9 @@ class TestInjectable:
         assert instance_1 is not instance_2
 
     def test_injectable_with_recipe_and_union(self):
-        class A:
-            pass
+        class A: ...
 
-        class B(A):
-            pass
+        class B(A): ...
 
         @injectable
         def recipe() -> A | B:
@@ -47,8 +43,7 @@ class TestInjectable:
         assert b is not get_instance(B)
 
     def test_injectable_with_recipe_and_no_return_type(self):
-        class SomeClass:
-            pass
+        class SomeClass: ...
 
         @injectable
         def recipe():
@@ -57,26 +52,21 @@ class TestInjectable:
         assert get_instance(SomeClass) is None
 
     def test_injectable_with_on(self):
-        class A:
-            pass
+        class A: ...
 
         @injectable(on=A)
-        class B(A):
-            pass
+        class B(A): ...
 
         a = get_instance(A)
         assert isinstance(a, B)
 
     def test_injectable_with_on_and_several_classes(self):
-        class A:
-            pass
+        class A: ...
 
-        class B(A):
-            pass
+        class B(A): ...
 
         @injectable(on=(A, B))
-        class C(B):
-            pass
+        class C(B): ...
 
         a = get_instance(A)
         b = get_instance(B)
@@ -86,8 +76,7 @@ class TestInjectable:
 
     def test_injectable_with_inject(self):
         @injectable
-        class A:
-            pass
+        class A: ...
 
         @injectable
         class B:
@@ -103,8 +92,7 @@ class TestInjectable:
 
     def test_injectable_with_dataclass_and_inject(self):
         @injectable
-        class A:
-            pass
+        class A: ...
 
         @injectable
         @dataclass(frozen=True, slots=True)
@@ -120,8 +108,7 @@ class TestInjectable:
 
     def test_injectable_with_pydantic_model_and_inject(self):
         @injectable
-        class A(BaseModel):
-            pass
+        class A(BaseModel): ...
 
         @injectable
         class B(BaseModel):
@@ -136,11 +123,9 @@ class TestInjectable:
 
     def test_injectable_with_recipe_and_inject(self):
         @injectable
-        class A:
-            pass
+        class A: ...
 
-        class B:
-            pass
+        class B: ...
 
         @injectable
         def recipe(__a: A) -> B:
@@ -154,43 +139,35 @@ class TestInjectable:
         assert isinstance(b, B)
 
     def test_injectable_with_injectable_already_exist_raise_runtime_error(self):
-        class A:
-            pass
+        class A: ...
 
         @injectable(on=A)
-        class B(A):
-            pass
+        class B(A): ...
 
         with pytest.raises(RuntimeError):
 
             @injectable(on=A)
-            class C(A):
-                pass
+            class C(A): ...
 
     def test_injectable_with_override(self):
         @injectable
-        class A:
-            pass
+        class A: ...
 
         @injectable(on=A, mode="override")
-        class B(A):
-            pass
+        class B(A): ...
 
         a = get_instance(A)
         assert isinstance(a, B)
 
     def test_injectable_with_multiple_override(self):
         @injectable
-        class A:
-            pass
+        class A: ...
 
         @injectable(on=A, mode="override")
-        class B(A):
-            pass
+        class B(A): ...
 
         @injectable(on=A, mode="override")
-        class C(B):
-            pass
+        class C(B): ...
 
         a = get_instance(A)
         assert isinstance(a, C)

@@ -9,16 +9,14 @@ from injection import get_instance, singleton
 class TestSingleton:
     def test_singleton_with_success(self):
         @singleton
-        class SomeInjectable:
-            pass
+        class SomeInjectable: ...
 
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
         assert instance_1 is instance_2
 
     def test_singleton_with_recipe(self):
-        class SomeClass:
-            pass
+        class SomeClass: ...
 
         @singleton
         def recipe() -> SomeClass:
@@ -29,11 +27,9 @@ class TestSingleton:
         assert instance_1 is instance_2
 
     def test_singleton_with_recipe_and_union(self):
-        class A:
-            pass
+        class A: ...
 
-        class B(A):
-            pass
+        class B(A): ...
 
         @singleton
         def recipe() -> A | B:
@@ -45,8 +41,7 @@ class TestSingleton:
         assert isinstance(a, B)
 
     def test_singleton_with_recipe_and_no_return_type(self):
-        class SomeClass:
-            pass
+        class SomeClass: ...
 
         @singleton
         def recipe():
@@ -55,26 +50,21 @@ class TestSingleton:
         assert get_instance(SomeClass) is None
 
     def test_singleton_with_on(self):
-        class A:
-            pass
+        class A: ...
 
         @singleton(on=A)
-        class B(A):
-            pass
+        class B(A): ...
 
         a = get_instance(A)
         assert isinstance(a, B)
 
     def test_singleton_with_on_and_several_classes(self):
-        class A:
-            pass
+        class A: ...
 
-        class B(A):
-            pass
+        class B(A): ...
 
         @singleton(on=(A, B))
-        class C(B):
-            pass
+        class C(B): ...
 
         a = get_instance(A)
         b = get_instance(B)
@@ -84,8 +74,7 @@ class TestSingleton:
 
     def test_singleton_with_inject(self):
         @singleton
-        class A:
-            pass
+        class A: ...
 
         @singleton
         class B:
@@ -101,8 +90,7 @@ class TestSingleton:
 
     def test_singleton_with_dataclass_and_inject(self):
         @singleton
-        class A:
-            pass
+        class A: ...
 
         @singleton
         @dataclass(frozen=True, slots=True)
@@ -118,8 +106,7 @@ class TestSingleton:
 
     def test_singleton_with_pydantic_model_and_inject(self):
         @singleton
-        class A(BaseModel):
-            pass
+        class A(BaseModel): ...
 
         @singleton
         class B(BaseModel):
@@ -134,11 +121,9 @@ class TestSingleton:
 
     def test_singleton_with_recipe_and_inject(self):
         @singleton
-        class A:
-            pass
+        class A: ...
 
-        class B:
-            pass
+        class B: ...
 
         @singleton
         def recipe(__a: A) -> B:
@@ -152,43 +137,35 @@ class TestSingleton:
         assert isinstance(b, B)
 
     def test_singleton_with_injectable_already_exist_raise_runtime_error(self):
-        class A:
-            pass
+        class A: ...
 
         @singleton(on=A)
-        class B(A):
-            pass
+        class B(A): ...
 
         with pytest.raises(RuntimeError):
 
             @singleton(on=A)
-            class C(A):
-                pass
+            class C(A): ...
 
     def test_singleton_with_override(self):
         @singleton
-        class A:
-            pass
+        class A: ...
 
         @singleton(on=A, mode="override")
-        class B(A):
-            pass
+        class B(A): ...
 
         a = get_instance(A)
         assert isinstance(a, B)
 
     def test_singleton_with_multiple_override(self):
         @singleton
-        class A:
-            pass
+        class A: ...
 
         @singleton(on=A, mode="override")
-        class B(A):
-            pass
+        class B(A): ...
 
         @singleton(on=A, mode="override")
-        class C(B):
-            pass
+        class C(B): ...
 
         a = get_instance(A)
         assert isinstance(a, C)

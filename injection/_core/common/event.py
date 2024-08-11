@@ -5,8 +5,6 @@ from dataclasses import dataclass, field
 from typing import ContextManager, Self
 from weakref import WeakSet
 
-__all__ = ("Event", "EventChannel", "EventListener")
-
 
 class Event(ABC):
     __slots__ = ()
@@ -16,7 +14,7 @@ class EventListener(ABC):
     __slots__ = ("__weakref__",)
 
     @abstractmethod
-    def on_event(self, event: Event, /) -> ContextManager | None:
+    def on_event(self, event: Event, /) -> ContextManager[None] | None:
         raise NotImplementedError
 
 
@@ -25,7 +23,7 @@ class EventChannel:
     __listeners: WeakSet[EventListener] = field(default_factory=WeakSet, init=False)
 
     @contextmanager
-    def dispatch(self, event: Event) -> Iterator:
+    def dispatch(self, event: Event) -> Iterator[None]:
         with ExitStack() as stack:
             for listener in tuple(self.__listeners):
                 context_manager = listener.on_event(event)

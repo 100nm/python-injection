@@ -1,6 +1,6 @@
-from ._core import Injectable, Module
-from ._core import Mode as InjectableMode
-from ._core import Priority as ModulePriority
+from ._core.module import Injectable, Module
+from ._core.module import Mode as InjectableMode
+from ._core.module import Priority as ModulePriority
 
 __all__ = (
     "Injectable",
@@ -20,7 +20,7 @@ __all__ = (
 )
 
 
-def mod(name: str = None, /) -> Module:
+def mod(name: str | None = None, /) -> Module:
     if name is None:
         return Module.default()
 

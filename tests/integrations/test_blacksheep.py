@@ -14,8 +14,7 @@ application = Application(
 
 
 @singleton
-class Dependency:
-    pass
+class Dependency: ...
 
 
 class Controller(APIController):

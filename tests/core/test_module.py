@@ -10,8 +10,7 @@ from injection.exceptions import (
 )
 
 
-class SomeClass:
-    pass
+class SomeClass: ...
 
 
 class TestModule:
@@ -20,11 +19,9 @@ class TestModule:
     """
 
     def test_contains_with_success_return_bool(self, module):
-        class A:
-            pass
+        class A: ...
 
-        class B:
-            pass
+        class B: ...
 
         module.set_constant(A())
 
@@ -32,8 +29,7 @@ class TestModule:
         assert B not in module
 
     def test_contains_with_union_return_bool(self, module):
-        class T:
-            pass
+        class T: ...
 
         module.set_constant(T())
 
@@ -64,8 +60,7 @@ class TestModule:
 
     def test_get_lazy_instance_with_success_return_lazy_instance(self, module):
         @module.injectable
-        class A:
-            pass
+        class A: ...
 
         lazy_instance = module.get_lazy_instance(A)
         instance1 = ~lazy_instance
@@ -76,8 +71,7 @@ class TestModule:
 
     def test_get_lazy_instance_with_cache_return_lazy_instance(self, module):
         @module.injectable
-        class A:
-            pass
+        class A: ...
 
         lazy_instance = module.get_lazy_instance(A, cache=True)
         instance1 = ~lazy_instance
@@ -100,14 +94,11 @@ class TestModule:
         assert instance is module.get_instance(SomeClass)
 
     def test_set_constant_with_on(self, module):
-        class A:
-            pass
+        class A: ...
 
-        class B(A):
-            pass
+        class B(A): ...
 
-        class C(B):
-            pass
+        class C(B): ...
 
         instance = C()
         module.set_constant(instance, on=(A, B))
@@ -226,12 +217,10 @@ class TestModule:
         third_module = Module()
 
         @second_module.injectable
-        class A:
-            pass
+        class A: ...
 
         @third_module.injectable(on=A)
-        class B(A):
-            pass
+        class B(A): ...
 
         module.use(second_module)
         module.use(third_module)
@@ -261,8 +250,7 @@ class TestModule:
         second_module = Module()
 
         @module.singleton
-        class A:
-            pass
+        class A: ...
 
         @module.singleton
         class B:
@@ -270,8 +258,7 @@ class TestModule:
                 self.a = a
 
         @second_module.singleton(on=A)
-        class C(A):
-            pass
+        class C(A): ...
 
         b1: B = module.get_instance(B)
 
