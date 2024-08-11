@@ -14,7 +14,7 @@ def use_test_injectables(
     *,
     module: Module = ...,
     test_module: Module = ...,
-) -> ContextManager | ContextDecorator:
+) -> ContextManager[None] | ContextDecorator:
     """
     Context manager or decorator for temporary use test module.
     """

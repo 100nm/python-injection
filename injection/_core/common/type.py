@@ -3,28 +3,23 @@ from inspect import get_annotations, isfunction
 from types import UnionType
 from typing import (
     Annotated,
+    Any,
     TypeAliasType,
     Union,
+    cast,
     get_args,
     get_origin,
 )
 
-__all__ = (
-    "InputType",
-    "TypeDef",
-    "TypeInfo",
-    "analyze_types",
-    "get_return_types",
-)
-
 type TypeDef[T] = type[T] | TypeAliasType
-
 type InputType[T] = TypeDef[T] | UnionType
-
 type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
 
 
-def analyze_types(*types: InputType, with_origin: bool = False) -> Iterator[TypeDef]:
+def analyze_types(
+    *types: InputType[Any],
+    with_origin: bool = False,
+) -> Iterator[TypeDef[Any]]:
     for tp in types:
         if tp is None:
             continue
@@ -48,7 +43,7 @@ def analyze_types(*types: InputType, with_origin: bool = False) -> Iterator[Type
         yield from analyze_types(*inner_types, with_origin=with_origin)
 
 
-def get_return_types(*args: TypeInfo) -> Iterator[InputType]:
+def get_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:
     for arg in args:
         if isinstance(arg, Iterable) and not (
             isinstance(arg, type | str) or isinstance(get_origin(arg), type)
@@ -61,7 +56,7 @@ def get_return_types(*args: TypeInfo) -> Iterator[InputType]:
             inner_args = (return_type,)
 
         else:
-            yield arg  # type: ignore
+            yield cast(InputType[Any], arg)
             continue
 
         yield from get_return_types(*inner_args)

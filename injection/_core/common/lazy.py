@@ -4,13 +4,14 @@ from typing import override
 
 from injection._core.common.invertible import Invertible
 
-__all__ = ("Lazy", "LazyMapping")
-
 
 class Lazy[T](Invertible[T]):
     __slots__ = ("__cache", "__is_set")
 
-    def __init__(self, factory: Callable[..., T]):
+    __cache: Iterator[T]
+    __is_set: bool
+
+    def __init__(self, factory: Callable[..., T]) -> None:
         self.__setup_cache(factory)
 
     @override
@@ -21,7 +22,7 @@ class Lazy[T](Invertible[T]):
     def is_set(self) -> bool:
         return self.__is_set
 
-    def __setup_cache(self, factory: Callable[..., T]):
+    def __setup_cache(self, factory: Callable[..., T]) -> None:
         def cache_generator() -> Iterator[T]:
             nonlocal factory
             cached = factory()
@@ -38,7 +39,9 @@ class Lazy[T](Invertible[T]):
 class LazyMapping[K, V](Mapping[K, V]):
     __slots__ = ("__lazy",)
 
-    def __init__(self, iterator: Iterator[tuple[K, V]]):
+    __lazy: Lazy[Mapping[K, V]]
+
+    def __init__(self, iterator: Iterator[tuple[K, V]]) -> None:
         self.__lazy = Lazy(lambda: MappingProxyType(dict(iterator)))
 
     @override

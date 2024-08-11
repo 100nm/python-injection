@@ -9,14 +9,15 @@ __all__ = (
 )
 
 
-class InjectionError(Exception):
-    pass
+class InjectionError(Exception): ...
 
 
 class NoInjectable[T](KeyError, InjectionError):
     __slots__ = ("__class",)
 
-    def __init__(self, cls: type[T] | Any):
+    __class: type[T]
+
+    def __init__(self, cls: type[T] | Any) -> None:
         super().__init__(f"No injectable for `{cls}`.")
         self.__class = cls
 
@@ -25,13 +26,10 @@ class NoInjectable[T](KeyError, InjectionError):
         return self.__class
 
 
-class ModuleError(InjectionError):
-    pass
+class ModuleError(InjectionError): ...
 
 
-class ModuleLockError(ModuleError):
-    pass
+class ModuleLockError(ModuleError): ...
 
 
-class ModuleNotUsedError(KeyError, ModuleError):
-    pass
+class ModuleNotUsedError(KeyError, ModuleError): ...

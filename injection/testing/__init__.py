@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from injection import Module, ModulePriority, mod
@@ -13,7 +14,7 @@ __all__ = (
 
 
 def tmod() -> Module:
-    return mod("testing")
+    return mod("__testing__")
 
 
 set_test_constant = tmod().set_constant
@@ -24,7 +25,11 @@ test_singleton = tmod().singleton
 
 
 @contextmanager
-def use_test_injectables(*, module: Module = None, test_module: Module = None):
+def use_test_injectables(
+    *,
+    module: Module | None = None,
+    test_module: Module | None = None,
+) -> Iterator[None]:
     module = module or mod()
     test_module = test_module or tmod()
 

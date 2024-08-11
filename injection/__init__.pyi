@@ -12,12 +12,12 @@ from typing import (
     runtime_checkable,
 )
 
-from ._core import InjectableFactory as _InjectableFactory
-from ._core import ModeStr as InjectableModeStr
-from ._core import PriorityStr as ModulePriorityStr
 from ._core.common.invertible import Invertible as _Invertible
 from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
+from ._core.module import InjectableFactory as _InjectableFactory
+from ._core.module import ModeStr as InjectableModeStr
+from ._core.module import PriorityStr as ModulePriorityStr
 
 _: Module = ...
 
@@ -47,20 +47,22 @@ class Module:
     extensively.
     """
 
-    def __init__(self, name: str = ...): ...
-    def __contains__(self, cls: _InputType, /) -> bool: ...
+    name: str
+
+    def __init__(self, name: str = ...) -> None: ...
+    def __contains__(self, cls: _InputType[Any], /) -> bool: ...
     @property
     def is_locked(self) -> bool: ...
-    def inject(self, wrapped: Callable[..., Any] = ..., /):
+    def inject[T, **P](self, wrapped: Callable[P, T] = ..., /):  # type: ignore[no-untyped-def]
         """
         Decorator applicable to a class or function. Inject function dependencies using
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
         """
 
-    def injectable[T](
+    def injectable[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., T] = ...,
+        wrapped: Callable[P, T] = ...,
         /,
         *,
         cls: _InjectableFactory[T] = ...,
@@ -74,9 +76,9 @@ class Module:
         injected each time.
         """
 
-    def singleton[T](
+    def singleton[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., T] = ...,
+        wrapped: Callable[P, T] = ...,
         /,
         *,
         inject: bool = ...,
@@ -89,16 +91,16 @@ class Module:
         always be the same.
         """
 
-    def should_be_injectable(self, wrapped: type = ..., /):
+    def should_be_injectable[T](self, wrapped: type[T] = ..., /):  # type: ignore[no-untyped-def]
         """
         Decorator applicable to a class. It is used to specify whether an injectable
         should be registered. Raise an exception at injection time if the class isn't
         registered.
         """
 
-    def constant[T](
+    def constant[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., T] = ...,
+        wrapped: Callable[P, T] = ...,
         /,
         *,
         on: _TypeInfo[T] = ...,
@@ -178,7 +180,7 @@ class Module:
         module: Module,
         *,
         priority: ModulePriority | ModulePriorityStr = ...,
-    ) -> ContextManager | ContextDecorator:
+    ) -> ContextManager[None] | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
         """
@@ -223,7 +225,7 @@ class ModulePriority(Enum):
 class Injectable[T](Protocol):
     @property
     def is_locked(self) -> bool: ...
-    def unlock(self): ...
+    def unlock(self) -> None: ...
     @abstractmethod
     def get_instance(self) -> T: ...
 

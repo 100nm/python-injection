@@ -10,17 +10,14 @@ T = TypeVar("T")
 
 
 @injectable
-class SomeGenericInjectable[_]:
-    pass
+class SomeGenericInjectable[_]: ...
 
 
 @injectable
-class SomeInjectable:
-    pass
+class SomeInjectable: ...
 
 
-class SomeClass:
-    pass
+class SomeClass: ...
 
 
 class TestInject:
@@ -55,8 +52,7 @@ class TestInject:
 
     def test_inject_with_no_parameter(self):
         @inject
-        def my_function():
-            pass
+        def my_function(): ...
 
         my_function()
 
@@ -137,8 +133,7 @@ class TestInject:
         assert isinstance(instance.injectable, SomeInjectable)
 
     def test_inject_with_register_injectable_after_injected_function(self):
-        class LateInjectable:
-            pass
+        class LateInjectable: ...
 
         @inject
         def my_function(instance: LateInjectable):

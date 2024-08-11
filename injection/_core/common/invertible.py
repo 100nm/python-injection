@@ -3,8 +3,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol, override, runtime_checkable
 
-__all__ = ("Invertible", "SimpleInvertible")
-
 
 @runtime_checkable
 class Invertible[T](Protocol):

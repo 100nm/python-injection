@@ -52,16 +52,6 @@ from injection.exceptions import (
     NoInjectable,
 )
 
-__all__ = (
-    "Injectable",
-    "InjectableFactory",
-    "Mode",
-    "ModeStr",
-    "Module",
-    "Priority",
-    "PriorityStr",
-)
-
 """
 Events
 """
@@ -73,8 +63,8 @@ class LocatorEvent(Event, ABC):
 
 
 @dataclass(frozen=True, slots=True)
-class LocatorDependenciesUpdated(LocatorEvent):
-    classes: Collection[TypeDef]
+class LocatorDependenciesUpdated[T](LocatorEvent):
+    classes: Collection[TypeDef[T]]
     mode: Mode
 
     @override
@@ -157,7 +147,7 @@ class Injectable[T](Protocol):
     def is_locked(self) -> bool:
         return False
 
-    def unlock(self):
+    def unlock(self) -> None:
         return
 
     @abstractmethod
@@ -193,7 +183,7 @@ class SingletonInjectable[T](BaseInjectable[T]):
         return self.__key in self.cache
 
     @override
-    def unlock(self):
+    def unlock(self) -> None:
         self.cache.clear()
 
     @override
@@ -231,7 +221,7 @@ class Broker(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def __contains__(self, cls: InputType, /) -> bool:
+    def __contains__(self, cls: InputType[Any], /) -> bool:
         raise NotImplementedError
 
     @property
@@ -273,7 +263,7 @@ class Record[T](NamedTuple):
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator(Broker):
-    __records: dict[TypeDef, Record] = field(default_factory=dict, init=False)
+    __records: dict[TypeDef[Any], Record[Any]] = field(default_factory=dict, init=False)
     __channel: EventChannel = field(default_factory=EventChannel, init=False)
 
     @override
@@ -289,7 +279,7 @@ class Locator(Broker):
         raise NoInjectable(cls)
 
     @override
-    def __contains__(self, cls: InputType, /) -> bool:
+    def __contains__(self, cls: InputType[Any], /) -> bool:
         return any(
             analyzed_class in self.__records
             for analyzed_class in analyze_types(cls, with_origin=True)
@@ -301,7 +291,7 @@ class Locator(Broker):
         return any(injectable.is_locked for injectable in self.__injectables)
 
     @property
-    def __injectables(self) -> frozenset[Injectable]:
+    def __injectables(self) -> frozenset[Injectable[Any]]:
         return frozenset(injectable for injectable, _ in self.__records.values())
 
     @synchronized()
@@ -335,14 +325,14 @@ class Locator(Broker):
         self.__channel.add_listener(listener)
         return self
 
-    def dispatch(self, event: Event) -> ContextManager:
+    def dispatch(self, event: Event) -> ContextManager[None]:
         return self.__channel.dispatch(event)
 
-    def __prepare_for_updating(
+    def __prepare_for_updating[T](
         self,
-        classes: Iterable[InputType],
+        classes: Iterable[InputType[T]],
         mode: Mode,
-    ) -> Iterator[TypeDef]:
+    ) -> Iterator[TypeDef[T]]:
         rank = mode.rank
 
         for cls in frozenset(analyze_types(*classes)):
@@ -350,7 +340,7 @@ class Locator(Broker):
                 record = self.__records[cls]
 
             except KeyError:
-                pass
+                ...
 
             else:
                 current_mode = record.mode
@@ -411,7 +401,7 @@ class Module(Broker, EventListener):
 
     __instances: ClassVar[dict[str, Module]] = {}
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.__locator.add_listener(self)
 
     @override
@@ -423,7 +413,7 @@ class Module(Broker, EventListener):
         raise NoInjectable(cls)
 
     @override
-    def __contains__(self, cls: InputType, /) -> bool:
+    def __contains__(self, cls: InputType[Any], /) -> bool:
         return any(cls in broker for broker in self.__brokers)
 
     @property
@@ -436,9 +426,9 @@ class Module(Broker, EventListener):
         yield from tuple(self.__modules)
         yield self.__locator
 
-    def injectable[T](
+    def injectable[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., T] = None,
+        wrapped: Callable[P, T] | None = None,
         /,
         *,
         cls: InjectableFactory[T] = SimpleInjectable,
@@ -446,7 +436,7 @@ class Module(Broker, EventListener):
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
     ):
-        def decorator(wp):
+        def decorator(wp):  # type: ignore[no-untyped-def]
             factory = self.inject(wp, return_factory=True) if inject else wp
             injectable = cls(factory)
             classes = get_return_types(wp, on)
@@ -457,8 +447,8 @@ class Module(Broker, EventListener):
 
     singleton = partialmethod(injectable, cls=SingletonInjectable)
 
-    def should_be_injectable(self, wrapped: type = None, /):
-        def decorator(wp):
+    def should_be_injectable[T](self, wrapped: type[T] | None = None, /):  # type: ignore[no-untyped-def]
+        def decorator(wp):  # type: ignore[no-untyped-def]
             self.update(
                 (wp,),
                 ShouldBeInjectable(wp),
@@ -468,15 +458,15 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def constant[T](
+    def constant[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., T] = None,
+        wrapped: Callable[P, T] | None = None,
         /,
         *,
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
     ):
-        def decorator(wp):
+        def decorator(wp):  # type: ignore[no-untyped-def]
             instance = wp()
             self.set_constant(
                 instance,
@@ -507,14 +497,14 @@ class Module(Broker, EventListener):
         )
         return self
 
-    def inject(
+    def inject[T, **P](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[..., Any] = None,
+        wrapped: Callable[P, T] | None = None,
         /,
         *,
         return_factory: bool = False,
     ):
-        def decorator(wp):
+        def decorator(wp):  # type: ignore[no-untyped-def]
             if not return_factory and isclass(wp):
                 wp.__init__ = self.inject(wp.__init__)
                 return wp
@@ -522,7 +512,7 @@ class Module(Broker, EventListener):
             function = InjectedFunction(wp)
 
             @function.on_setup
-            def listen():
+            def listen() -> None:
                 function.update(self)
                 self.add_listener(function)
 
@@ -609,7 +599,7 @@ class Module(Broker, EventListener):
         module: Module,
         *,
         priority: Priority | PriorityStr = Priority.get_default(),
-    ):
+    ) -> Iterator[None]:
         self.use(module, priority=priority)
         yield
         self.stop_using(module)
@@ -644,12 +634,12 @@ class Module(Broker, EventListener):
         return self
 
     @override
-    def on_event(self, event: Event, /) -> ContextManager:
+    def on_event(self, event: Event, /) -> ContextManager[None] | None:
         self_event = ModuleEventProxy(self, event)
         return self.dispatch(self_event)
 
     @contextmanager
-    def dispatch(self, event: Event):
+    def dispatch(self, event: Event) -> Iterator[None]:
         self.__check_locking()
 
         with self.__channel.dispatch(event):
@@ -657,15 +647,15 @@ class Module(Broker, EventListener):
             message = str(event)
             self.__debug(message)
 
-    def __debug(self, message: object):
+    def __debug(self, message: object) -> None:
         for logger in tuple(self.__loggers):
             logger.debug(message)
 
-    def __check_locking(self):
+    def __check_locking(self) -> None:
         if self.is_locked:
             raise ModuleLockError(f"`{self}` is locked.")
 
-    def __move_module(self, module: Module, priority: Priority):
+    def __move_module(self, module: Module, priority: Priority) -> None:
         last = priority != Priority.HIGH
 
         try:
@@ -688,7 +678,7 @@ class Module(Broker, EventListener):
 
     @classmethod
     def default(cls) -> Module:
-        return cls.from_name("default")
+        return cls.from_name("__default__")
 
 
 """
@@ -698,7 +688,7 @@ InjectedFunction
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Dependencies:
-    mapping: Mapping[str, Injectable]
+    mapping: Mapping[str, Injectable[Any]]
 
     def __bool__(self) -> bool:
         return bool(self.mapping)
@@ -719,7 +709,7 @@ class Dependencies:
         return OrderedDict(self)
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, Injectable]) -> Self:
+    def from_mapping(cls, mapping: Mapping[str, Injectable[Any]]) -> Self:
         return cls(mapping)
 
     @classmethod
@@ -727,7 +717,12 @@ class Dependencies:
         return cls.from_mapping({})
 
     @classmethod
-    def resolve(cls, signature: Signature, module: Module, owner: type = None) -> Self:
+    def resolve(
+        cls,
+        signature: Signature,
+        module: Module,
+        owner: type | None = None,
+    ) -> Self:
         dependencies = LazyMapping(cls.__resolver(signature, module, owner))
         return cls.from_mapping(dependencies)
 
@@ -736,11 +731,11 @@ class Dependencies:
         cls,
         signature: Signature,
         module: Module,
-        owner: type = None,
-    ) -> Iterator[tuple[str, Injectable]]:
+        owner: type | None = None,
+    ) -> Iterator[tuple[str, Injectable[Any]]]:
         for name, annotation in cls.__get_annotations(signature, owner):
             try:
-                injectable: Injectable = module[annotation]
+                injectable: Injectable[Any] = module[annotation]
             except KeyError:
                 continue
 
@@ -749,7 +744,7 @@ class Dependencies:
     @staticmethod
     def __get_annotations(
         signature: Signature,
-        owner: type = None,
+        owner: type | None = None,
     ) -> Iterator[tuple[str, type | Any]]:
         parameters = iter(signature.parameters.items())
 
@@ -766,7 +761,7 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class InjectedFunction(EventListener):
+class InjectedFunction[T, **P](EventListener):
     __slots__ = (
         "__dict__",
         "__signature__",
@@ -776,12 +771,18 @@ class InjectedFunction(EventListener):
         "__setup_queue",
     )
 
-    def __init__(self, wrapped: Callable[..., Any], /):
+    __signature__: Signature
+    __wrapped__: Callable[P, T]
+    __dependencies: Dependencies
+    __owner: type | None
+    __setup_queue: Queue[Callable[..., None]]
+
+    def __init__(self, wrapped: Callable[P, T], /) -> None:
         self.__update_vars_from(wrapped)
         update_wrapper(self, wrapped, updated=())
         self.__dependencies = Dependencies.empty()
         self.__owner = None
-        self.__setup_queue = Queue[Callable[..., Any]](maxsize=2)
+        self.__setup_queue = Queue(maxsize=2)
         self.on_setup(self.__set_signature)
 
     @override
@@ -792,18 +793,22 @@ class InjectedFunction(EventListener):
     def __str__(self) -> str:  # pragma: no cover
         return str(self.wrapped)
 
-    def __call__(self, /, *args, **kwargs) -> Any:
+    def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         self.__setup()
         arguments = self.bind(args, kwargs)
         return self.wrapped(*arguments.args, **arguments.kwargs)
 
-    def __get__(self, instance: object = None, owner: type = None) -> Self | MethodType:
+    def __get__(
+        self,
+        instance: object | None = None,
+        owner: type | None = None,
+    ) -> Self | MethodType:
         if instance is None:
             return self
 
         return MethodType(self, instance)
 
-    def __set_name__(self, owner: type, name: str):
+    def __set_name__(self, owner: type, name: str) -> None:
         self.set_owner(owner)
 
     @property
@@ -811,13 +816,13 @@ class InjectedFunction(EventListener):
         return self.__signature__
 
     @property
-    def wrapped(self) -> Callable[..., Any]:
-        return self.__wrapped__  # type: ignore
+    def wrapped(self) -> Callable[P, T]:
+        return self.__wrapped__
 
     def bind(
         self,
         args: Iterable[Any] = (),
-        kwargs: Mapping[str, Any] = None,
+        kwargs: Mapping[str, Any] | None = None,
     ) -> Arguments:
         if kwargs is None:
             kwargs = {}
@@ -840,7 +845,7 @@ class InjectedFunction(EventListener):
         if self.__owner:
             raise TypeError("Function owner is already defined.")
 
-        self.__owner = owner  # type: ignore
+        self.__owner = owner
         return self
 
     @synchronized()
@@ -848,8 +853,8 @@ class InjectedFunction(EventListener):
         self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
-    def on_setup(self, wrapped: Callable[..., Any] = None, /):
-        def decorator(wp):
+    def on_setup[_T, **_P](self, wrapped: Callable[_P, _T] | None = None, /):  # type: ignore[no-untyped-def]
+        def decorator(wp):  # type: ignore[no-untyped-def]
             self.__setup_queue.put_nowait(wp)
             return wp
 
@@ -857,16 +862,16 @@ class InjectedFunction(EventListener):
 
     @singledispatchmethod
     @override
-    def on_event(self, event: Event, /) -> ContextManager | None:  # type: ignore
+    def on_event(self, event: Event, /) -> ContextManager[None] | None:  # type: ignore[override]
         return None
 
     @on_event.register
     @contextmanager
-    def _(self, event: ModuleEvent, /):
+    def _(self, event: ModuleEvent, /) -> Iterator[None]:
         yield
         self.update(event.module)
 
-    def __setup(self):
+    def __setup(self) -> None:
         queue = self.__setup_queue
 
         while not queue.empty():
@@ -880,19 +885,18 @@ class InjectedFunction(EventListener):
 
         queue.join()
 
-    def __set_signature(self) -> Self:
+    def __set_signature(self) -> None:
         self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
-        return self
 
-    def __update_vars_from(self, obj: Any):
+    def __update_vars_from(self, obj: Any) -> None:
         try:
             variables = vars(obj)
         except TypeError:
-            pass
+            ...
         else:
             self.__update_vars(variables)
 
-    def __update_vars(self, variables: Mapping[str, Any]):
+    def __update_vars(self, variables: Mapping[str, Any]) -> None:
         restricted_vars = frozenset(
             var for var in dir(self) if not self.__is_dunder(var)
         )
