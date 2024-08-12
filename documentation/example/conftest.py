@@ -1,7 +1,7 @@
 import pytest
 from faker import Faker
 
-from injection.testing import use_test_injectables
+from injection.testing import load_test_profile
 from injection.utils import load_packages
 
 
@@ -11,7 +11,7 @@ def autouse_test_injectables():
 
     load_packages(injectables)
 
-    with use_test_injectables():
+    with load_test_profile():
         yield
 
 

@@ -53,14 +53,14 @@ class Module:
     def __contains__(self, cls: _InputType[Any], /) -> bool: ...
     @property
     def is_locked(self) -> bool: ...
-    def inject[T, **P](self, wrapped: Callable[P, T] = ..., /):  # type: ignore[no-untyped-def]
+    def inject[**P, T](self, wrapped: Callable[P, T] = ..., /):  # type: ignore[no-untyped-def]
         """
         Decorator applicable to a class or function. Inject function dependencies using
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
         """
 
-    def injectable[T, **P](  # type: ignore[no-untyped-def]
+    def injectable[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] = ...,
         /,
@@ -76,7 +76,7 @@ class Module:
         injected each time.
         """
 
-    def singleton[T, **P](  # type: ignore[no-untyped-def]
+    def singleton[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] = ...,
         /,
@@ -98,7 +98,7 @@ class Module:
         registered.
         """
 
-    def constant[T, **P](  # type: ignore[no-untyped-def]
+    def constant[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] = ...,
         /,
