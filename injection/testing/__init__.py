@@ -5,12 +5,12 @@ from injection import mod
 from injection.utils import load_profile
 
 __all__ = (
+    "load_test_profile",
     "set_test_constant",
     "should_be_test_injectable",
     "test_constant",
     "test_injectable",
     "test_singleton",
-    "load_test_profile",
 )
 
 _TEST_PROFILE_NAME: Final[str] = "__testing__"

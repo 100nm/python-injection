@@ -74,5 +74,5 @@ def main(profile_name: str = None, /):
     asyncio.run(send_sms())
 
 if __name__ == "__main__":
-    main("dev")
+    main("dev")  # One could imagine the profile name being transmitted via an environment variable or CLI parameter
 ```
