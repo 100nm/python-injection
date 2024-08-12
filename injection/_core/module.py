@@ -426,7 +426,7 @@ class Module(Broker, EventListener):
         yield from tuple(self.__modules)
         yield self.__locator
 
-    def injectable[T, **P](  # type: ignore[no-untyped-def]
+    def injectable[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] | None = None,
         /,
@@ -458,7 +458,7 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def constant[T, **P](  # type: ignore[no-untyped-def]
+    def constant[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] | None = None,
         /,
@@ -497,7 +497,7 @@ class Module(Broker, EventListener):
         )
         return self
 
-    def inject[T, **P](  # type: ignore[no-untyped-def]
+    def inject[**P, T](  # type: ignore[no-untyped-def]
         self,
         wrapped: Callable[P, T] | None = None,
         /,
@@ -761,7 +761,7 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class InjectedFunction[T, **P](EventListener):
+class InjectedFunction[**P, T](EventListener):
     __slots__ = (
         "__dict__",
         "__signature__",
@@ -853,7 +853,7 @@ class InjectedFunction[T, **P](EventListener):
         self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
-    def on_setup[_T, **_P](self, wrapped: Callable[_P, _T] | None = None, /):  # type: ignore[no-untyped-def]
+    def on_setup[**_P, _T](self, wrapped: Callable[_P, _T] | None = None, /):  # type: ignore[no-untyped-def]
         def decorator(wp):  # type: ignore[no-untyped-def]
             self.__setup_queue.put_nowait(wp)
             return wp

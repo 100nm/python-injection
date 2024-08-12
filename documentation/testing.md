@@ -8,13 +8,14 @@ Here is the [Pytest](https://github.com/pytest-dev/pytest) fixture for using tes
 # conftest.py
 
 import pytest
-from injection.testing import use_test_injectables
+from injection.testing import load_test_profile
+
 
 @pytest.fixture(scope="session", autouse=True)
 def autouse_test_injectables():
     # Ensure that test injectables have been imported here
-    
-    with use_test_injectables():
+
+    with load_test_profile():
         yield
 ```
 
