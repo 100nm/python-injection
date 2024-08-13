@@ -775,15 +775,14 @@ class InjectedFunction[**P, T](EventListener):
     __wrapped__: Callable[P, T]
     __dependencies: Dependencies
     __owner: type | None
-    __setup_queue: Queue[Callable[..., None]]
+    __setup_queue: Queue[Callable[..., Any]] | None
 
     def __init__(self, wrapped: Callable[P, T], /) -> None:
         self.__update_vars_from(wrapped)
         update_wrapper(self, wrapped, updated=())
         self.__dependencies = Dependencies.empty()
         self.__owner = None
-        self.__setup_queue = Queue(maxsize=2)
-        self.on_setup(self.__set_signature)
+        self.__setup_queue = Queue()
 
     @override
     def __repr__(self) -> str:  # pragma: no cover
@@ -813,7 +812,14 @@ class InjectedFunction[**P, T](EventListener):
 
     @property
     def signature(self) -> Signature:
-        return self.__signature__
+        with suppress(AttributeError):
+            return self.__signature__
+
+        with synchronized():
+            signature = inspect.signature(self.wrapped, eval_str=True)
+            self.__signature__ = signature
+
+        return signature
 
     @property
     def wrapped(self) -> Callable[P, T]:
@@ -855,7 +861,11 @@ class InjectedFunction[**P, T](EventListener):
 
     def on_setup[**_P, _T](self, wrapped: Callable[_P, _T] | None = None, /):  # type: ignore[no-untyped-def]
         def decorator(wp):  # type: ignore[no-untyped-def]
-            self.__setup_queue.put_nowait(wp)
+            queue = self.__setup_queue
+
+            if queue is not None:
+                queue.put_nowait(wp)
+
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -871,10 +881,20 @@ class InjectedFunction[**P, T](EventListener):
         yield
         self.update(event.module)
 
+    @synchronized()
+    def __close_setup_queue(self) -> None:
+        if self.__setup_queue is None:
+            return
+
+        self.__setup_queue = None
+
     def __setup(self) -> None:
         queue = self.__setup_queue
 
-        while not queue.empty():
+        if queue is None:
+            return
+
+        while True:
             try:
                 task = queue.get_nowait()
             except Empty:
@@ -884,6 +904,7 @@ class InjectedFunction[**P, T](EventListener):
             queue.task_done()
 
         queue.join()
+        self.__close_setup_queue()
 
     def __set_signature(self) -> None:
         self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
