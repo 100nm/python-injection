@@ -6,9 +6,9 @@ from injection._core.common.invertible import Invertible
 
 
 class Lazy[T](Invertible[T]):
-    __slots__ = ("__cache", "__is_set")
+    __slots__ = ("__iterator", "__is_set")
 
-    __cache: Iterator[T]
+    __iterator: Iterator[T]
     __is_set: bool
 
     def __init__(self, factory: Callable[..., T]) -> None:
@@ -16,14 +16,14 @@ class Lazy[T](Invertible[T]):
 
     @override
     def __invert__(self) -> T:
-        return next(self.__cache)
+        return next(self.__iterator)
 
     @property
     def is_set(self) -> bool:
         return self.__is_set
 
     def __setup_cache(self, factory: Callable[..., T]) -> None:
-        def cache_generator() -> Iterator[T]:
+        def infinite_yield() -> Iterator[T]:
             nonlocal factory
             cached = factory()
             self.__is_set = True
@@ -32,7 +32,7 @@ class Lazy[T](Invertible[T]):
             while True:
                 yield cached
 
-        self.__cache = cache_generator()
+        self.__iterator = infinite_yield()
         self.__is_set = False
 
 
