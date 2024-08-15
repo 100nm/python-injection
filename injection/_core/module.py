@@ -764,7 +764,6 @@ class Arguments(NamedTuple):
 class InjectedFunction[**P, T](EventListener):
     __slots__ = (
         "__dict__",
-        "__signature__",
         "__wrapped__",
         "__dependencies",
         "__owner",
@@ -778,8 +777,8 @@ class InjectedFunction[**P, T](EventListener):
     __setup_queue: Queue[Callable[..., Any]] | None
 
     def __init__(self, wrapped: Callable[P, T], /) -> None:
-        self.__update_vars_from(wrapped)
         update_wrapper(self, wrapped, updated=())
+        self.__update_vars_from(wrapped)
         self.__dependencies = Dependencies.empty()
         self.__owner = None
         self.__setup_queue = Queue()
@@ -863,9 +862,10 @@ class InjectedFunction[**P, T](EventListener):
         def decorator(wp):  # type: ignore[no-untyped-def]
             queue = self.__setup_queue
 
-            if queue is not None:
-                queue.put_nowait(wp)
+            if queue is None:
+                raise RuntimeError(f"`{self}` is already up.")
 
+            queue.put_nowait(wp)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -906,9 +906,6 @@ class InjectedFunction[**P, T](EventListener):
         queue.join()
         self.__close_setup_queue()
 
-    def __set_signature(self) -> None:
-        self.__signature__ = inspect.signature(self.wrapped, eval_str=True)
-
     def __update_vars_from(self, obj: Any) -> None:
         try:
             variables = vars(obj)
@@ -918,7 +915,7 @@ class InjectedFunction[**P, T](EventListener):
             self.__update_vars(variables)
 
     def __update_vars(self, variables: Mapping[str, Any]) -> None:
-        restricted_vars = frozenset(
+        restricted_vars = frozenset(("__signature__", "__wrapped__")) | frozenset(
             var for var in dir(self) if not self.__is_dunder(var)
         )
         vars(self).update(
