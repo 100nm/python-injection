@@ -1,11 +1,12 @@
 from typing import Any
 
 __all__ = (
+    "HookError",
     "InjectionError",
-    "NoInjectable",
     "ModuleError",
     "ModuleLockError",
     "ModuleNotUsedError",
+    "NoInjectable",
 )
 
 
@@ -33,3 +34,6 @@ class ModuleLockError(ModuleError): ...
 
 
 class ModuleNotUsedError(KeyError, ModuleError): ...
+
+
+class HookError(InjectionError): ...

@@ -37,13 +37,8 @@ from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.invertible import Invertible, SimpleInvertible
 from injection._core.common.lazy import Lazy, LazyMapping
 from injection._core.common.threading import synchronized
-from injection._core.common.type import (
-    InputType,
-    TypeDef,
-    TypeInfo,
-    analyze_types,
-    get_return_types,
-)
+from injection._core.common.type import InputType, TypeInfo, get_return_types
+from injection._core.hook import Hook, apply_hooks
 from injection.exceptions import (
     InjectionError,
     ModuleError,
@@ -64,7 +59,7 @@ class LocatorEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class LocatorDependenciesUpdated[T](LocatorEvent):
-    classes: Collection[TypeDef[T]]
+    classes: Collection[InputType[T]]
     mode: Mode
 
     @override
@@ -206,6 +201,13 @@ class ShouldBeInjectable[T](Injectable[T]):
     def get_instance(self) -> NoReturn:
         raise InjectionError(f"`{self.cls}` should be an injectable.")
 
+    @classmethod
+    def from_callable(cls, callable: Callable[..., T]) -> Self:
+        if not isclass(callable):
+            raise TypeError(f"`{callable}` should be a class.")
+
+        return cls(callable)
+
 
 """
 Broker
@@ -255,22 +257,58 @@ class Mode(StrEnum):
 
 type ModeStr = Literal["fallback", "normal", "override"]
 
+type InjectableFactory[T] = Callable[[Callable[..., T]], Injectable[T]]
+
 
 class Record[T](NamedTuple):
     injectable: Injectable[T]
     mode: Mode
 
 
+@dataclass(repr=False, eq=False, kw_only=True, slots=True)
+class Updater[T]:
+    factory: Callable[..., T]
+    classes: Iterable[InputType[T]]
+    injectable_factory: InjectableFactory[T]
+    mode: Mode
+
+    def make_record(self) -> Record[T]:
+        injectable = self.injectable_factory(self.factory)
+        return Record(injectable, self.mode)
+
+
+class LocatorHooks[T](NamedTuple):
+    on_conflict: Hook[[Record[T], Record[T], InputType[T]], bool]
+    on_input: Hook[[Iterable[InputType[T]]], Iterable[InputType[T]]]
+    on_update: Hook[[Updater[T]], Updater[T]]
+
+    @classmethod
+    def default(cls) -> Self:
+        return cls(
+            on_conflict=Hook(),
+            on_input=Hook(),
+            on_update=Hook(),
+        )
+
+
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator(Broker):
-    __records: dict[TypeDef[Any], Record[Any]] = field(default_factory=dict, init=False)
-    __channel: EventChannel = field(default_factory=EventChannel, init=False)
+    __records: dict[InputType[Any], Record[Any]] = field(
+        default_factory=dict,
+        init=False,
+    )
+    __channel: EventChannel = field(
+        default_factory=EventChannel,
+        init=False,
+    )
+
+    static_hooks: ClassVar[LocatorHooks[Any]] = LocatorHooks.default()
 
     @override
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
-        for analyzed_class in analyze_types(cls, with_origin=True):
+        for input_class in self.__standardize_inputs((cls,)):
             try:
-                record = self.__records[analyzed_class]
+                record = self.__records[input_class]
             except KeyError:
                 continue
 
@@ -281,8 +319,8 @@ class Locator(Broker):
     @override
     def __contains__(self, cls: InputType[Any], /) -> bool:
         return any(
-            analyzed_class in self.__records
-            for analyzed_class in analyze_types(cls, with_origin=True)
+            input_class in self.__records
+            for input_class in self.__standardize_inputs((cls,))
         )
 
     @property
@@ -292,21 +330,16 @@ class Locator(Broker):
 
     @property
     def __injectables(self) -> frozenset[Injectable[Any]]:
-        return frozenset(injectable for injectable, _ in self.__records.values())
+        return frozenset(record.injectable for record in self.__records.values())
 
     @synchronized()
-    def update[T](
-        self,
-        classes: Iterable[InputType[T]],
-        injectable: Injectable[T],
-        mode: Mode | ModeStr,
-    ) -> Self:
-        mode = Mode(mode)
-        record = Record(injectable, mode)
-        records = {cls: record for cls in self.__prepare_for_updating(classes, mode)}
+    def update[T](self, updater: Updater[T]) -> Self:
+        updater = self.__update_preprocessing(updater)
+        record = updater.make_record()
+        records = dict(self.__prepare_for_updating(updater.classes, record))
 
         if records:
-            event = LocatorDependenciesUpdated(self, records.keys(), mode)
+            event = LocatorDependenciesUpdated(self, records.keys(), record.mode)
 
             with self.dispatch(event):
                 self.__records.update(records)
@@ -331,29 +364,38 @@ class Locator(Broker):
     def __prepare_for_updating[T](
         self,
         classes: Iterable[InputType[T]],
-        mode: Mode,
-    ) -> Iterator[TypeDef[T]]:
-        rank = mode.rank
-
-        for cls in frozenset(analyze_types(*classes)):
+        record: Record[T],
+    ) -> Iterator[tuple[InputType[T], Record[T]]]:
+        for cls in classes:
             try:
-                record = self.__records[cls]
-
+                existing = self.__records[cls]
             except KeyError:
                 ...
-
             else:
-                current_mode = record.mode
-
-                if mode == current_mode and mode != Mode.OVERRIDE:
-                    raise RuntimeError(
-                        f"An injectable already exists for the class `{cls}`."
-                    )
-
-                elif rank < current_mode.rank:
+                if not self.__keep_new_record(record, existing, cls):
                     continue
 
-            yield cls
+            yield cls, record
+
+    def __keep_new_record[T](
+        self,
+        new: Record[T],
+        existing: Record[T],
+        cls: InputType[T],
+    ) -> bool:
+        return apply_hooks(
+            lambda *args, **kwargs: False,
+            self.static_hooks.on_conflict,
+        )(new, existing, cls)
+
+    def __standardize_inputs[T](
+        self,
+        classes: Iterable[InputType[T]],
+    ) -> Iterable[InputType[T]]:
+        return apply_hooks(lambda c: c, self.static_hooks.on_input)(classes)
+
+    def __update_preprocessing[T](self, updater: Updater[T]) -> Updater[T]:
+        return apply_hooks(lambda u: u, self.static_hooks.on_update)(updater)
 
 
 """
@@ -371,8 +413,6 @@ class Priority(StrEnum):
 
 
 type PriorityStr = Literal["low", "high"]
-
-type InjectableFactory[T] = Callable[[Callable[..., T]], Injectable[T]]
 
 
 @dataclass(eq=False, frozen=True, slots=True)
@@ -438,9 +478,14 @@ class Module(Broker, EventListener):
     ):
         def decorator(wp):  # type: ignore[no-untyped-def]
             factory = self.inject(wp, return_factory=True) if inject else wp
-            injectable = cls(factory)
             classes = get_return_types(wp, on)
-            self.update(classes, injectable, mode)
+            updater = Updater(
+                factory=factory,
+                classes=classes,
+                injectable_factory=cls,
+                mode=Mode(mode),
+            )
+            self.update(updater)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -449,11 +494,13 @@ class Module(Broker, EventListener):
 
     def should_be_injectable[T](self, wrapped: type[T] | None = None, /):  # type: ignore[no-untyped-def]
         def decorator(wp):  # type: ignore[no-untyped-def]
-            self.update(
-                (wp,),
-                ShouldBeInjectable(wp),
+            updater = Updater(
+                factory=wp,
+                classes=(wp,),
+                injectable_factory=ShouldBeInjectable.from_callable,
                 mode=Mode.FALLBACK,
             )
+            self.update(updater)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -543,13 +590,8 @@ class Module(Broker, EventListener):
         function.set_owner(cls)
         return SimpleInvertible(function)
 
-    def update[T](
-        self,
-        classes: Iterable[InputType[T]],
-        injectable: Injectable[T],
-        mode: Mode | ModeStr = Mode.get_default(),
-    ) -> Self:
-        self.__locator.update(classes, injectable, mode)
+    def update[T](self, updater: Updater[T]) -> Self:
+        self.__locator.update(updater)
         return self
 
     def init_modules(self, *modules: Module) -> Self:
@@ -881,11 +923,7 @@ class InjectedFunction[**P, T](EventListener):
         yield
         self.update(event.module)
 
-    @synchronized()
     def __close_setup_queue(self) -> None:
-        if self.__setup_queue is None:
-            return
-
         self.__setup_queue = None
 
     def __setup(self) -> None:
