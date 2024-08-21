@@ -16,8 +16,7 @@ from ._core.common.invertible import Invertible as _Invertible
 from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
 from ._core.module import InjectableFactory as _InjectableFactory
-from ._core.module import ModeStr as InjectableModeStr
-from ._core.module import PriorityStr as ModulePriorityStr
+from ._core.module import ModeStr, PriorityStr
 
 _: Module = ...
 
@@ -68,7 +67,7 @@ class Module:
         cls: _InjectableFactory[T] = ...,
         inject: bool = ...,
         on: _TypeInfo[T] = ...,
-        mode: InjectableMode | InjectableModeStr = ...,
+        mode: Mode | ModeStr = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -83,7 +82,7 @@ class Module:
         *,
         inject: bool = ...,
         on: _TypeInfo[T] = ...,
-        mode: InjectableMode | InjectableModeStr = ...,
+        mode: Mode | ModeStr = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -104,7 +103,7 @@ class Module:
         /,
         *,
         on: _TypeInfo[T] = ...,
-        mode: InjectableMode | InjectableModeStr = ...,
+        mode: Mode | ModeStr = ...,
     ):
         """
         Decorator applicable to a class or function. It is used to indicate how the
@@ -118,7 +117,7 @@ class Module:
         on: _TypeInfo[T] = ...,
         *,
         alias: bool = ...,
-        mode: InjectableMode | InjectableModeStr = ...,
+        mode: Mode | ModeStr = ...,
     ) -> Self:
         """
         Function for registering a specific instance to be injected. This is useful for
@@ -162,7 +161,7 @@ class Module:
         self,
         module: Module,
         *,
-        priority: ModulePriority | ModulePriorityStr = ...,
+        priority: Priority | PriorityStr = ...,
     ) -> Self:
         """
         Function for using another module. Using another module replaces the module's
@@ -179,7 +178,7 @@ class Module:
         self,
         module: Module,
         *,
-        priority: ModulePriority | ModulePriorityStr = ...,
+        priority: Priority | PriorityStr = ...,
     ) -> ContextManager[None] | ContextDecorator:
         """
         Context manager or decorator for temporary use of a module.
@@ -188,7 +187,7 @@ class Module:
     def change_priority(
         self,
         module: Module,
-        priority: ModulePriority | ModulePriorityStr,
+        priority: Priority | PriorityStr,
     ) -> Self:
         """
         Function for changing the priority of a module in use.
@@ -217,7 +216,7 @@ class Module:
         """
 
 @final
-class ModulePriority(Enum):
+class Priority(Enum):
     LOW = ...
     HIGH = ...
 
@@ -230,7 +229,7 @@ class Injectable[T](Protocol):
     def get_instance(self) -> T: ...
 
 @final
-class InjectableMode(Enum):
+class Mode(Enum):
     FALLBACK = ...
     NORMAL = ...
     OVERRIDE = ...

@@ -1,12 +1,10 @@
-from ._core.module import Injectable, Module
-from ._core.module import Mode as InjectableMode
-from ._core.module import Priority as ModulePriority
+from ._core.module import Injectable, Mode, Module, Priority
 
 __all__ = (
     "Injectable",
-    "InjectableMode",
+    "Mode",
     "Module",
-    "ModulePriority",
+    "Priority",
     "constant",
     "find_instance",
     "get_instance",
