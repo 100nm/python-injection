@@ -1,9 +1,17 @@
 from collections.abc import Awaitable, Callable, Iterable, Iterator
 from inspect import iscoroutinefunction, isfunction
 from types import GenericAlias, UnionType
-from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Annotated,
+    Any,
+    TypeAliasType,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
-type TypeDef[T] = type[T] | GenericAlias
+type TypeDef[T] = type[T] | TypeAliasType | GenericAlias
 type InputType[T] = TypeDef[T] | UnionType
 type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
 
