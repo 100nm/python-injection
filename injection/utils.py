@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterator
-from contextlib import ContextDecorator, contextmanager
+from contextlib import contextmanager
 from importlib import import_module
 from pkgutil import walk_packages
 from types import ModuleType as PythonModule
@@ -10,11 +10,7 @@ from injection import mod
 __all__ = ("load_packages", "load_profile")
 
 
-def load_profile(
-    name: str,
-    /,
-    *other_profile_names: str,
-) -> ContextManager[None] | ContextDecorator:
+def load_profile(name: str, /, *other_profile_names: str) -> ContextManager[None]:
     """
     Injection module initialization function based on profile name.
     A profile name is equivalent to an injection module name.
@@ -27,12 +23,14 @@ def load_profile(
 
     target = mod().unlock().init_modules(*modules)
 
+    del module, modules
+
     @contextmanager
-    def teardown() -> Iterator[None]:
+    def cleaner() -> Iterator[None]:
         yield
         target.unlock().init_modules()
 
-    return teardown()
+    return cleaner()
 
 
 def load_packages(

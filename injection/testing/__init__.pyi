@@ -1,4 +1,3 @@
-from contextlib import ContextDecorator
 from typing import ContextManager
 
 import injection as _
@@ -9,9 +8,7 @@ test_constant = _.constant
 test_injectable = _.injectable
 test_singleton = _.singleton
 
-def load_test_profile(
-    *additional_names: str,
-) -> ContextManager[None] | ContextDecorator:
+def load_test_profile(*additional_names: str) -> ContextManager[None]:
     """
     Context manager or decorator for temporary use test module.
     """
