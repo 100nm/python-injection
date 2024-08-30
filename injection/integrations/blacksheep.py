@@ -1,15 +1,11 @@
 from typing import Any, override
 
 from injection import Module, mod
+from injection.integrations import _is_installed
 
 __all__ = ("InjectionServices",)
 
-
-try:
-    import blacksheep  # noqa: F401
-except ImportError as exc:  # pragma: no cover
-    raise ImportError(f"To use `{__name__}`, blacksheep must be installed.") from exc
-else:
+if _is_installed("blacksheep", __name__):
     from rodi import ContainerProtocol
 
 

@@ -26,7 +26,7 @@ class Controller(APIController):
         return "tests"
 
     @post("/integration")
-    async def test_integration(self) -> Response:
+    async def integration_endpoint(self) -> Response:
         assert isinstance(self.__dependency, Dependency)
         return self.no_content()
 

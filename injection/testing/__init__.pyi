@@ -8,7 +8,7 @@ test_constant = _.constant
 test_injectable = _.injectable
 test_singleton = _.singleton
 
-def load_test_profile(*additional_names: str) -> ContextManager[None]:
+def load_test_profile(*other_profile_names: str) -> ContextManager[None]:
     """
     Context manager or decorator for temporary use test module.
     """

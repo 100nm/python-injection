@@ -32,6 +32,8 @@ ruff = "*"
 
 [tool.poetry.group.test.dependencies]
 blacksheep = "*"
+fastapi = "*"
+httpx = "*"
 pydantic = "*"
 pytest = "*"
 pytest-asyncio = "*"
