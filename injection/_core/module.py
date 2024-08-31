@@ -505,9 +505,9 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def constant[**P, T](  # type: ignore[no-untyped-def]
+    def constant[T](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[P, T] | None = None,
+        wrapped: type[T] | None = None,
         /,
         *,
         on: TypeInfo[T] = (),

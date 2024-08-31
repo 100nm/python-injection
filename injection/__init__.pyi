@@ -97,9 +97,9 @@ class Module:
         registered.
         """
 
-    def constant[**P, T](  # type: ignore[no-untyped-def]
+    def constant[T](  # type: ignore[no-untyped-def]
         self,
-        wrapped: Callable[P, T] = ...,
+        wrapped: type[T] = ...,
         /,
         *,
         on: _TypeInfo[T] = ...,
