@@ -37,7 +37,6 @@ class Printer:
         self.history.append(message)
         print(message)
 
-
 @injectable
 class Service:
     def __init__(self, printer: Printer):
@@ -46,11 +45,9 @@ class Service:
     def hello(self):
         self.printer.print("Hello world!")
 
-
 @inject
 def main(service: Service):
     service.hello()
-
 
 if __name__ == "__main__":
     main()
