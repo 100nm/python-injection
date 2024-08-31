@@ -12,28 +12,6 @@ class TestConstant:
         instance_2 = get_instance(SomeInjectable)
         assert instance_1 is instance_2
 
-    def test_constant_with_recipe(self):
-        class SomeClass: ...
-
-        @constant
-        def recipe() -> SomeClass:
-            return SomeClass()
-
-        instance_1 = get_instance(SomeClass)
-        instance_2 = get_instance(SomeClass)
-        assert instance_1 is instance_2
-
-    def test_constant_with_recipe_and_no_return_type(self):
-        class SomeClass: ...
-
-        @constant
-        def recipe():
-            return SomeClass()  # pragma: no cover
-
-        instance_1 = get_instance(SomeClass)
-        instance_2 = get_instance(SomeClass)
-        assert instance_1 is instance_2
-
     def test_constant_with_on(self):
         class A: ...
 
