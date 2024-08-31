@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from injection import Module, mod
+from injection.exceptions import InjectionError
 from injection.integrations import _is_installed
 
 __all__ = ("Inject",)
@@ -22,8 +23,15 @@ def Inject[T](cls: type[T] | Any, /, module: Module | None = None) -> Any:  # no
 class InjectionDependency[T]:
     __slots__ = ("__call__",)
 
-    __call__: Callable[[], T | None]
+    __call__: Callable[[], T]
 
     def __init__(self, cls: type[T] | Any, module: Module):
         lazy_instance = module.get_lazy_instance(cls)
-        self.__call__ = lambda: ~lazy_instance
+        self.__call__ = lambda: self.__ensure(~lazy_instance, cls)
+
+    @staticmethod
+    def __ensure[_T](instance: _T | None, cls: type[_T] | Any) -> _T:
+        if instance is None:
+            raise InjectionError(f"`{cls}` is an unknown dependency.")
+
+        return instance

@@ -42,6 +42,6 @@ from injection.integrations.fastapi import Inject
 app = FastAPI()
 
 @app.get("/")
-async def my_endpoint(service: MyService | None = Inject(MyService)):
+async def my_endpoint(service: MyService = Inject(MyService)):
     ...
 ```

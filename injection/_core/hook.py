@@ -2,7 +2,7 @@ import itertools
 from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from inspect import isclass, isgeneratorfunction
-from typing import Self
+from typing import Any, Self
 
 from injection.exceptions import HookError
 
@@ -48,11 +48,11 @@ class Hook[**P, T]:
         handler: Callable[P, T],
         function: HookFunction[P, T],
     ) -> Callable[P, T]:
-        if not isgeneratorfunction(function):
+        if not cls.__is_generator_function(function):
             return function  # type: ignore[return-value]
 
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            hook = function(*args, **kwargs)
+            hook: HookGenerator[T] = function(*args, **kwargs)  # type: ignore[assignment]
 
             try:
                 next(hook)
@@ -86,6 +86,14 @@ class Hook[**P, T]:
             return cls.__apply_stack(new_handler, stack)
 
         return handler
+
+    @staticmethod
+    def __is_generator_function(obj: Any) -> bool:
+        for o in obj, getattr(obj, "__call__", None):
+            if isgeneratorfunction(o):
+                return True
+
+        return False
 
 
 def apply_hooks[**P, T](
