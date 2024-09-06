@@ -1,21 +1,31 @@
 import pytest
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from injection import singleton
+from injection import injectable
 from injection.exceptions import InjectionError
 from injection.integrations.fastapi import Inject
 
 application = FastAPI()
 
 
-@singleton
+@injectable
 class Dependency: ...
 
 
+def some_dependency(
+    dependency: Dependency = Inject(Dependency),
+) -> Dependency:
+    return dependency
+
+
 @application.post("/integration", status_code=204)
-async def integration_endpoint(dependency: Dependency = Inject(Dependency)):
+async def integration_endpoint(
+    dependency: Dependency = Inject(Dependency),
+    inner_dependency: Dependency = Depends(some_dependency),
+):
     assert isinstance(dependency, Dependency)
+    assert dependency is inner_dependency
 
 
 @application.post("/integration-unknown-dependency")
