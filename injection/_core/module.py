@@ -556,14 +556,14 @@ class Module(Broker, EventListener):
                 wp.__init__ = self.inject(wp.__init__)
                 return wp
 
-            function = InjectedFunction(wp)
+            injected = Injected(wp)
 
-            @function.on_setup
+            @injected.on_setup
             def listen() -> None:
-                function.update(self)
-                self.add_listener(function)
+                injected.update(self)
+                self.add_listener(injected)
 
-            return function
+            return InjectedFunction(injected)
 
         return decorator(wrapped) if wrapped else decorator
 
@@ -587,7 +587,7 @@ class Module(Broker, EventListener):
             return Lazy(lambda: self.get_instance(cls))
 
         function = self.inject(lambda instance=None: instance)
-        function.set_owner(cls)
+        function.__injected__.set_owner(cls)
         return SimpleInvertible(function)
 
     def update[T](self, updater: Updater[T]) -> Self:
@@ -803,68 +803,46 @@ class Arguments(NamedTuple):
     kwargs: Mapping[str, Any]
 
 
-class InjectedFunction[**P, T](EventListener):
+class Injected[**P, T](EventListener):
     __slots__ = (
-        "__dict__",
-        "__wrapped__",
         "__dependencies",
         "__owner",
         "__setup_queue",
+        "__signature",
+        "__wrapped",
     )
 
-    __signature__: Signature
-    __wrapped__: Callable[P, T]
     __dependencies: Dependencies
     __owner: type | None
     __setup_queue: Queue[Callable[..., Any]] | None
+    __signature: Signature
+    __wrapped: Callable[P, T]
 
     def __init__(self, wrapped: Callable[P, T], /) -> None:
-        update_wrapper(self, wrapped, updated=())
-        self.__update_vars_from(wrapped)
         self.__dependencies = Dependencies.empty()
         self.__owner = None
         self.__setup_queue = Queue()
-
-    @override
-    def __repr__(self) -> str:  # pragma: no cover
-        return repr(self.wrapped)
-
-    @override
-    def __str__(self) -> str:  # pragma: no cover
-        return str(self.wrapped)
+        self.__wrapped = wrapped
 
     def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         self.__setup()
         arguments = self.bind(args, kwargs)
         return self.wrapped(*arguments.args, **arguments.kwargs)
 
-    def __get__(
-        self,
-        instance: object | None = None,
-        owner: type | None = None,
-    ) -> Self | MethodType:
-        if instance is None:
-            return self
-
-        return MethodType(self, instance)
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        self.set_owner(owner)
-
     @property
     def signature(self) -> Signature:
         with suppress(AttributeError):
-            return self.__signature__
+            return self.__signature
 
         with synchronized():
             signature = inspect.signature(self.wrapped, eval_str=True)
-            self.__signature__ = signature
+            self.__signature = signature
 
         return signature
 
     @property
     def wrapped(self) -> Callable[P, T]:
-        return self.__wrapped__
+        return self.__wrapped
 
     def bind(
         self,
@@ -944,24 +922,36 @@ class InjectedFunction[**P, T](EventListener):
         queue.join()
         self.__close_setup_queue()
 
-    def __update_vars_from(self, obj: Any) -> None:
-        try:
-            variables = vars(obj)
-        except TypeError:
-            ...
-        else:
-            self.__update_vars(variables)
 
-    def __update_vars(self, variables: Mapping[str, Any]) -> None:
-        restricted_vars = frozenset(("__signature__", "__wrapped__")) | frozenset(
-            var for var in dir(self) if not self.__is_dunder(var)
-        )
-        vars(self).update(
-            (var, value)
-            for var, value in variables.items()
-            if var not in restricted_vars
-        )
+class InjectedFunction[**P, T]:
+    __slots__ = ("__dict__", "__injected__")
 
-    @staticmethod
-    def __is_dunder(var: str) -> bool:
-        return var.startswith("__") and var.endswith("__")
+    __injected__: Injected[P, T]
+
+    def __init__(self, injected: Injected[P, T]) -> None:
+        update_wrapper(self, injected.wrapped)
+        self.__injected__ = injected
+
+    @override
+    def __repr__(self) -> str:  # pragma: no cover
+        return repr(self.__injected__.wrapped)
+
+    @override
+    def __str__(self) -> str:  # pragma: no cover
+        return str(self.__injected__.wrapped)
+
+    def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self.__injected__(*args, **kwargs)
+
+    def __get__(
+        self,
+        instance: object | None = None,
+        owner: type | None = None,
+    ) -> Self | MethodType:
+        if instance is None:
+            return self
+
+        return MethodType(self, instance)
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.__injected__.set_owner(owner)
