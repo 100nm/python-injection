@@ -125,6 +125,11 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
+    def make_injected_function[**P, T](
+        self,
+        wrapped: Callable[P, T],
+        /,
+    ) -> Callable[P, T]: ...
     def find_instance[T](self, cls: _InputType[T]) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
