@@ -84,7 +84,7 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"
-addopts = "-p no:warnings --tb=short --cov=./ --cov-report term-missing:skip-covered"
+addopts = "--tb short --cov ./ --cov-report term-missing:skip-covered"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_mode = "auto"
 testpaths = "**/tests/"
