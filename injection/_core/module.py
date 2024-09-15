@@ -477,7 +477,7 @@ class Module(Broker, EventListener):
         mode: Mode | ModeStr = Mode.get_default(),
     ):
         def decorator(wp):  # type: ignore[no-untyped-def]
-            factory = self.inject(wp, return_factory=True) if inject else wp
+            factory = self.make_injected_function(wp) if inject else wp
             classes = get_return_types(wp, on)
             updater = Updater(
                 factory=factory,
@@ -544,28 +544,29 @@ class Module(Broker, EventListener):
         )
         return self
 
-    def inject[**P, T](  # type: ignore[no-untyped-def]
-        self,
-        wrapped: Callable[P, T] | None = None,
-        /,
-        *,
-        return_factory: bool = False,
-    ):
+    def inject[**P, T](self, wrapped: Callable[P, T] | None = None, /):  # type: ignore[no-untyped-def]
         def decorator(wp):  # type: ignore[no-untyped-def]
-            if not return_factory and isclass(wp):
+            if isclass(wp):
                 wp.__init__ = self.inject(wp.__init__)
                 return wp
 
-            injected = Injected(wp)
-
-            @injected.on_setup
-            def listen() -> None:
-                injected.update(self)
-                self.add_listener(injected)
-
-            return InjectedFunction(injected)
+            return self.make_injected_function(wp)
 
         return decorator(wrapped) if wrapped else decorator
+
+    def make_injected_function[**P, T](
+        self,
+        wrapped: Callable[P, T],
+        /,
+    ) -> InjectedFunction[P, T]:
+        injected = Injected(wrapped)
+
+        @injected.on_setup
+        def listen() -> None:
+            injected.update(self)
+            self.add_listener(injected)
+
+        return InjectedFunction(injected)
 
     def find_instance[T](self, cls: InputType[T]) -> T:
         injectable = self[cls]
