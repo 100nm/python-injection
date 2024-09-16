@@ -39,8 +39,10 @@ class InjectionDependency[T]:
         self.__class = cls
 
     def __eq__(self, other: Any) -> bool:
-        cls = type(self)
-        return isinstance(other, cls) and hash(self) == hash(other)
+        if isinstance(other, type(self)):
+            return hash(self) == hash(other)
+
+        return NotImplemented
 
     def __hash__(self) -> int:
         return hash((self.__class,))
