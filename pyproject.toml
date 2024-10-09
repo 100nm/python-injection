@@ -64,7 +64,6 @@ check_untyped_defs = true
 disallow_any_generics = true
 disallow_subclassing_any = true
 disallow_untyped_defs = true
-enable_incomplete_feature = ["NewGenericSyntax"]
 exclude = [
     "documentation/example/",
     "tests/",

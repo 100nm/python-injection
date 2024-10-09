@@ -34,7 +34,7 @@ class Hook[**P, T]:
         return iter(self.__functions)
 
     def add(self, *functions: HookFunction[P, T]) -> Self:
-        self.__functions.extend(functions)
+        self.__functions.extend(reversed(functions))
         return self
 
     @classmethod
