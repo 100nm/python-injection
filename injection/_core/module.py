@@ -3,10 +3,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
 from collections.abc import (
+    AsyncGenerator,
     AsyncIterator,
     Awaitable,
     Callable,
     Collection,
+    Generator,
     Iterable,
     Iterator,
     Mapping,
@@ -360,6 +362,14 @@ class Priority(StrEnum):
 
 type PriorityStr = Literal["low", "high"]
 
+type ContextManagerLikeRecipe[**P, T] = (
+    Callable[P, ContextManager[T]] | Callable[P, AsyncContextManager[T]]
+)
+type GeneratorRecipe[**P, T] = (
+    Callable[P, Generator[T, Any, Any]] | Callable[P, AsyncGenerator[T, Any]]
+)
+type Recipe[**P, T] = Callable[P, T] | Callable[P, Awaitable[T]]
+
 
 @dataclass(eq=False, frozen=True, slots=True)
 class Module(Broker, EventListener):
@@ -411,7 +421,7 @@ class Module(Broker, EventListener):
 
     def injectable[**P, T](
         self,
-        wrapped: Callable[P, T] | Callable[P, Awaitable[T]] | None = None,
+        wrapped: Recipe[P, T] | None = None,
         /,
         *,
         cls: InjectableFactory[T] = SimpleInjectable,
@@ -420,9 +430,7 @@ class Module(Broker, EventListener):
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Any:
-        def decorator(
-            wp: Callable[P, T] | Callable[P, Awaitable[T]],
-        ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
+        def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
             factory = extract_caller(self.make_injected_function(wp) if inject else wp)
             hints = on if ignore_type_hint else (wp, on)
             updater = Updater(
@@ -447,23 +455,10 @@ class Module(Broker, EventListener):
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Any:
         def decorator(
-            wrapped: Callable[P, T]
-            | Callable[P, Awaitable[T]]
-            | Callable[P, Iterator[T]]
-            | Callable[P, AsyncIterator[T]],
-        ) -> (
-            Callable[P, T]
-            | Callable[P, Awaitable[T]]
-            | Callable[P, Iterator[T]]
-            | Callable[P, AsyncIterator[T]]
-        ):
+            wrapped: Recipe[P, T] | GeneratorRecipe[P, T],
+        ) -> Recipe[P, T] | GeneratorRecipe[P, T]:
             injectable_class: Callable[[Caller[P, Any], str], Injectable[T]]
-            wrapper: (
-                Callable[P, T]
-                | Callable[P, Awaitable[T]]
-                | Callable[P, ContextManager[T]]
-                | Callable[P, AsyncContextManager[T]]
-            )
+            wrapper: Recipe[P, T] | ContextManagerLikeRecipe[P, T]
 
             if isasyncgenfunction(wrapped):
                 hint = get_yield_hint(wrapped)
@@ -587,6 +582,18 @@ class Module(Broker, EventListener):
             return AsyncInjectedFunction(metadata)
 
         return SyncInjectedFunction(metadata)
+
+    def make_async_factory[T](
+        self,
+        wrapped: type[T],
+        /,
+        threadsafe: bool = False,
+    ) -> Callable[..., Awaitable[T]]:
+        factory: InjectedFunction[..., T] = self.make_injected_function(
+            wrapped,
+            threadsafe,
+        )
+        return factory.__inject_metadata__.acall
 
     async def afind_instance[T](self, cls: InputType[T]) -> T:
         injectable = self[cls]

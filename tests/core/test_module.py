@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Annotated
 
 import pytest
@@ -54,6 +55,27 @@ class TestModule:
         await module.all_ready()
         instance = module.get_instance(T)
         assert isinstance(instance, T)
+
+    """
+    make_async_factory
+    """
+
+    async def test_make_async_factory_with_success(self, module):
+        class Dependency: ...
+
+        @module.injectable
+        async def dependency_recipe() -> Dependency:
+            return Dependency()
+
+        @dataclass
+        class InnerClass:
+            dependency: Dependency
+
+        async_factory = module.make_async_factory(InnerClass)
+        instance = await async_factory()
+
+        assert isinstance(instance, InnerClass)
+        assert isinstance(instance.dependency, Dependency)
 
     """
     aget_instance
