@@ -10,6 +10,7 @@ from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
 from ._core.module import InjectableFactory as _InjectableFactory
 from ._core.module import ModeStr, PriorityStr
+from ._core.module import Recipe as _Recipe
 
 __MODULE: Final[Module] = ...
 
@@ -91,7 +92,7 @@ class Module:
 
     def injectable[**P, T](
         self,
-        wrapped: Callable[P, T] | Callable[P, Awaitable[T]] = ...,
+        wrapped: _Recipe[P, T] = ...,
         /,
         *,
         cls: _InjectableFactory[T] = ...,
@@ -107,7 +108,7 @@ class Module:
 
     def singleton[**P, T](
         self,
-        wrapped: Callable[P, T] | Callable[P, Awaitable[T]] = ...,
+        wrapped: _Recipe[P, T] = ...,
         /,
         *,
         inject: bool = ...,
@@ -176,6 +177,12 @@ class Module:
         /,
         threadsafe: bool = ...,
     ) -> Callable[P, T]: ...
+    def make_async_factory[T](
+        self,
+        wrapped: type[T],
+        /,
+        threadsafe: bool = ...,
+    ) -> Callable[..., Awaitable[T]]: ...
     async def afind_instance[T](self, cls: _InputType[T]) -> T: ...
     def find_instance[T](self, cls: _InputType[T]) -> T:
         """

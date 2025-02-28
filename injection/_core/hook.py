@@ -1,5 +1,4 @@
 import itertools
-from collections import deque
 from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from inspect import isclass, isgeneratorfunction
@@ -14,8 +13,8 @@ type HookFunction[**P, T] = Callable[P, T] | HookGeneratorFunction[P, T]
 
 @dataclass(eq=False, frozen=True, slots=True)
 class Hook[**P, T]:
-    __functions: deque[HookFunction[P, T]] = field(
-        default_factory=deque,
+    __functions: list[HookFunction[P, T]] = field(
+        default_factory=list,
         init=False,
         repr=False,
     )
@@ -36,7 +35,7 @@ class Hook[**P, T]:
         return iter(self.__functions)
 
     def add(self, *functions: HookFunction[P, T]) -> Self:
-        self.__functions.extendleft(functions)
+        self.__functions.extend(reversed(functions))
         return self
 
     @classmethod
@@ -65,7 +64,6 @@ class Hook[**P, T]:
                     hook.throw(exc)
                 else:
                     hook.send(value)
-                    return value
 
             except StopIteration as stop:
                 return stop.value
