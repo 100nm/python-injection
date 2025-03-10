@@ -10,6 +10,7 @@ __all__ = (
     "ScopeAlreadyDefinedError",
     "ScopeError",
     "ScopeUndefinedError",
+    "SkipInjectable",
 )
 
 
@@ -30,6 +31,9 @@ class NoInjectable[T](KeyError, InjectionError):
         return self.__class
 
 
+class SkipInjectable(InjectionError): ...
+
+
 class ModuleError(InjectionError): ...
 
 
@@ -42,7 +46,7 @@ class ModuleNotUsedError(KeyError, ModuleError): ...
 class ScopeError(InjectionError): ...
 
 
-class ScopeUndefinedError(LookupError, ScopeError): ...
+class ScopeUndefinedError(LookupError, SkipInjectable, ScopeError): ...
 
 
 class ScopeAlreadyDefinedError(ScopeError): ...

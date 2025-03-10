@@ -73,6 +73,7 @@ from injection.exceptions import (
     ModuleLockError,
     ModuleNotUsedError,
     NoInjectable,
+    SkipInjectable,
 )
 
 """
@@ -620,7 +621,7 @@ class Module(Broker, EventListener):
     async def aget_instance(self, cls, default=None):  # type: ignore[no-untyped-def]
         try:
             return await self.afind_instance(cls)
-        except KeyError:
+        except (KeyError, SkipInjectable):
             return default
 
     @overload
@@ -640,7 +641,7 @@ class Module(Broker, EventListener):
     def get_instance(self, cls, default=None):  # type: ignore[no-untyped-def]
         try:
             return self.find_instance(cls)
-        except KeyError:
+        except (KeyError, SkipInjectable):
             return default
 
     @overload
@@ -866,28 +867,27 @@ class Dependencies:
     lazy_mapping: Lazy[Mapping[str, Injectable[Any]]]
 
     def __iter__(self) -> Iterator[tuple[str, Any]]:
-        for name, injectable in self.mapping.items():
-            instance = injectable.get_instance()
-            yield name, instance
+        for name, injectable in self.items():
+            with suppress(SkipInjectable):
+                yield name, injectable.get_instance()
 
     async def __aiter__(self) -> AsyncIterator[tuple[str, Any]]:
-        for name, injectable in self.mapping.items():
-            instance = await injectable.aget_instance()
-            yield name, instance
+        for name, injectable in self.items():
+            with suppress(SkipInjectable):
+                yield name, await injectable.aget_instance()
 
     @property
     def are_resolved(self) -> bool:
         return self.lazy_mapping.is_set
-
-    @property
-    def mapping(self) -> Mapping[str, Injectable[Any]]:
-        return ~self.lazy_mapping
 
     async def aget_arguments(self) -> dict[str, Any]:
         return {key: value async for key, value in self}
 
     def get_arguments(self) -> dict[str, Any]:
         return dict(self)
+
+    def items(self) -> Iterator[tuple[str, Injectable[Any]]]:
+        return iter((~self.lazy_mapping).items())
 
     @classmethod
     def from_iterable(cls, iterable: Iterable[tuple[str, Injectable[Any]]]) -> Self:

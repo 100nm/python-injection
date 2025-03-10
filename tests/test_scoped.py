@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
+from dataclasses import dataclass
 
 import pytest
 
@@ -173,3 +174,30 @@ class TestScoped:
             instance_2 = await afind_instance(SomeInjectable)
 
         assert instance_1 is instance_2
+
+    async def test_scoped_with_scope_not_defined(self):
+        @scoped("test")
+        class A: ...
+
+        @injectable
+        @dataclass
+        class B:
+            a: A | None = None
+
+        # sync
+        b = find_instance(B)
+        assert b.a is None
+
+        with define_scope("test"):
+            b = find_instance(B)
+
+        assert isinstance(b.a, A)
+
+        # async
+        b = await afind_instance(B)
+        assert b.a is None
+
+        async with adefine_scope("test"):
+            b = await afind_instance(B)
+
+        assert isinstance(b.a, A)
