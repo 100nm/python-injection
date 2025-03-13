@@ -57,8 +57,8 @@ from injection._core.common.type import (
     TypeInfo,
     get_return_types,
     get_yield_hint,
+    standardize_types,
 )
-from injection._core.hook import Hook, apply_hooks
 from injection._core.injectables import (
     AsyncCMScopedInjectable,
     CMScopedInjectable,
@@ -223,22 +223,6 @@ class Updater[T]:
         return Record(self.injectable, self.mode)
 
 
-@dataclass(repr=False, eq=False, frozen=True, slots=True)
-class LocatorHooks[T]:
-    on_conflict: Hook[[Record[T], Record[T], InputType[T]], bool] = field(
-        default_factory=Hook,
-        init=False,
-    )
-    on_input: Hook[[Iterable[InputType[T]]], Iterable[InputType[T]]] = field(
-        default_factory=Hook,
-        init=False,
-    )
-    on_update: Hook[[Updater[T]], Updater[T]] = field(
-        default_factory=Hook,
-        init=False,
-    )
-
-
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator(Broker):
     __records: dict[InputType[Any], Record[Any]] = field(
@@ -249,8 +233,6 @@ class Locator(Broker):
         default_factory=EventChannel,
         init=False,
     )
-
-    static_hooks: ClassVar[LocatorHooks[Any]] = LocatorHooks()
 
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
         for input_class in self.__standardize_inputs((cls,)):
@@ -326,25 +308,30 @@ class Locator(Broker):
 
             yield cls, record
 
+    @staticmethod
     def __keep_new_record[T](
-        self,
         new: Record[T],
         existing: Record[T],
         cls: InputType[T],
     ) -> bool:
-        return apply_hooks(
-            lambda *args, **kwargs: False,
-            self.static_hooks.on_conflict,
-        )(new, existing, cls)
+        new_mode, existing_mode = new.mode, existing.mode
+        is_override = new_mode == Mode.OVERRIDE
 
+        if new_mode == existing_mode and not is_override:
+            raise RuntimeError(f"An injectable already exists for the class `{cls}`.")
+
+        return is_override or new_mode.rank > existing_mode.rank
+
+    @staticmethod
     def __standardize_inputs[T](
-        self,
         classes: Iterable[InputType[T]],
     ) -> Iterable[InputType[T]]:
-        return apply_hooks(lambda c: c, self.static_hooks.on_input)(classes)
+        return tuple(standardize_types(*classes, with_origin=True))
 
-    def __update_preprocessing[T](self, updater: Updater[T]) -> Updater[T]:
-        return apply_hooks(lambda u: u, self.static_hooks.on_update)(updater)
+    @staticmethod
+    def __update_preprocessing[T](updater: Updater[T]) -> Updater[T]:
+        updater.classes = frozenset(standardize_types(*updater.classes))
+        return updater
 
 
 """
