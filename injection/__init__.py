@@ -2,6 +2,7 @@ from ._core.descriptors import LazyInstance
 from ._core.injectables import Injectable
 from ._core.module import Mode, Module, Priority, mod
 from ._core.scope import adefine_scope, define_scope
+from ._core.slots import Slot
 
 __all__ = (
     "Injectable",
@@ -9,6 +10,7 @@ __all__ = (
     "Mode",
     "Module",
     "Priority",
+    "Slot",
     "adefine_scope",
     "afind_instance",
     "aget_instance",
@@ -21,6 +23,7 @@ __all__ = (
     "inject",
     "injectable",
     "mod",
+    "reserve_scoped_slot",
     "scoped",
     "set_constant",
     "should_be_injectable",
@@ -36,6 +39,7 @@ get_instance = mod().get_instance
 get_lazy_instance = mod().get_lazy_instance
 inject = mod().inject
 injectable = mod().injectable
+reserve_scoped_slot = mod().reserve_scoped_slot
 scoped = mod().scoped
 set_constant = mod().set_constant
 should_be_injectable = mod().should_be_injectable

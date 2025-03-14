@@ -107,24 +107,30 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
         raise NotImplementedError
 
     async def aget_instance(self) -> T:
-        scope = get_scope(self.scope_name)
+        scope = self.get_scope()
 
         with suppress(KeyError):
             return scope.cache[self]
 
         instance = await self.abuild(scope)
-        scope.cache[self] = instance
+        self.set_instance(instance, scope)
         return instance
 
     def get_instance(self) -> T:
-        scope = get_scope(self.scope_name)
+        scope = self.get_scope()
 
         with suppress(KeyError):
             return scope.cache[self]
 
         instance = self.build(scope)
-        scope.cache[self] = instance
+        self.set_instance(instance, scope)
         return instance
+
+    def get_scope(self) -> Scope:
+        return get_scope(self.scope_name)
+
+    def set_instance(self, instance: T, scope: Scope) -> None:
+        scope.cache[self] = instance
 
     def unlock(self) -> None:
         if self.is_locked:

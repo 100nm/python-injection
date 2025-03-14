@@ -96,3 +96,24 @@ def client_recipe() -> Iterator[Client]:
         # On scope close
         client.close_connection()
 ```
+
+### Scoped slots
+
+Scoped slots allow you to reserve a place for an instance within a predefined scope. This ensures that injected 
+functions can resolve dependencies efficiently without unnecessary recomputation. This is why the syntax can seem a 
+little verbose.
+
+Example:
+
+```python
+from injection import define_scope, reserve_scoped_slot
+
+class Request: ...
+
+request_slot = reserve_scoped_slot(Request, scope_name="request")
+
+def process_request(request: Request) -> None:
+    with define_scope("request"):
+        request_slot.set(request)
+        # ...
+```

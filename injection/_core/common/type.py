@@ -2,6 +2,7 @@ from collections.abc import (
     AsyncGenerator,
     AsyncIterable,
     AsyncIterator,
+    Awaitable,
     Callable,
     Generator,
     Iterable,
@@ -21,7 +22,12 @@ from typing import (
 
 type TypeDef[T] = type[T] | TypeAliasType | GenericAlias
 type InputType[T] = TypeDef[T] | UnionType
-type TypeInfo[T] = InputType[T] | Callable[..., T] | Iterable[TypeInfo[T]]
+type TypeInfo[T] = (
+    InputType[T]
+    | Callable[..., T]
+    | Callable[..., Awaitable[T]]
+    | Iterable[TypeInfo[T]]
+)
 
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:

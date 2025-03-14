@@ -1,7 +1,7 @@
 from typing import Any
 
 __all__ = (
-    "HookError",
+    "EmptySlotError",
     "InjectionError",
     "ModuleError",
     "ModuleLockError",
@@ -34,6 +34,9 @@ class NoInjectable[T](KeyError, InjectionError):
 class SkipInjectable(InjectionError): ...
 
 
+class EmptySlotError(SkipInjectable, InjectionError): ...
+
+
 class ModuleError(InjectionError): ...
 
 
@@ -50,6 +53,3 @@ class ScopeUndefinedError(LookupError, SkipInjectable, ScopeError): ...
 
 
 class ScopeAlreadyDefinedError(ScopeError): ...
-
-
-class HookError(InjectionError): ...

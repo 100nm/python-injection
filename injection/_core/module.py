@@ -16,7 +16,7 @@ from collections.abc import (
 from contextlib import asynccontextmanager, contextmanager, nullcontext, suppress
 from dataclasses import dataclass, field
 from enum import StrEnum
-from functools import partialmethod, singledispatchmethod, update_wrapper
+from functools import partial, partialmethod, singledispatchmethod, update_wrapper
 from inspect import (
     Signature,
     isasyncgenfunction,
@@ -63,12 +63,15 @@ from injection._core.injectables import (
     AsyncCMScopedInjectable,
     CMScopedInjectable,
     Injectable,
+    ScopedInjectable,
     ShouldBeInjectable,
     SimpleInjectable,
     SimpleScopedInjectable,
     SingletonInjectable,
 )
+from injection._core.slots import ScopedSlot, Slot
 from injection.exceptions import (
+    EmptySlotError,
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
@@ -221,6 +224,20 @@ class Updater[T]:
 
     def make_record(self) -> Record[T]:
         return Record(self.injectable, self.mode)
+
+    @classmethod
+    def with_basics(
+        cls,
+        on: TypeInfo[T],
+        /,
+        injectable: Injectable[T],
+        mode: Mode | ModeStr,
+    ) -> Self:
+        return cls(
+            classes=get_return_types(on),
+            injectable=injectable,
+            mode=Mode(mode),
+        )
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -420,12 +437,9 @@ class Module(Broker, EventListener):
     ) -> Any:
         def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
             factory = extract_caller(self.make_injected_function(wp) if inject else wp)
+            injectable = cls(factory)  # type: ignore[arg-type]
             hints = on if ignore_type_hint else (wp, on)
-            updater = Updater(
-                classes=get_return_types(hints),
-                injectable=cls(factory),  # type: ignore[arg-type]
-                mode=Mode(mode),
-            )
+            updater = Updater.with_basics(hints, injectable, mode)
             self.update(updater)
             return wp
 
@@ -445,7 +459,7 @@ class Module(Broker, EventListener):
         def decorator(
             wrapped: Recipe[P, T] | GeneratorRecipe[P, T],
         ) -> Recipe[P, T] | GeneratorRecipe[P, T]:
-            injectable_class: Callable[[Caller[P, Any], str], Injectable[T]]
+            injectable_class: type[ScopedInjectable[Any, T]]
             wrapper: Recipe[P, T] | ContextManagerLikeRecipe[P, T]
 
             if isasyncgenfunction(wrapped):
@@ -465,7 +479,7 @@ class Module(Broker, EventListener):
             hints = on if hint is None else (hint, on)
             self.injectable(
                 wrapper,
-                cls=lambda factory: injectable_class(factory, scope_name),
+                cls=partial(injectable_class, scope_name=scope_name),
                 ignore_type_hint=True,
                 inject=inject,
                 on=hints,
@@ -525,6 +539,24 @@ class Module(Broker, EventListener):
             mode=mode,
         )
         return self
+
+    def reserve_scoped_slot[T](
+        self,
+        on: TypeInfo[T],
+        /,
+        scope_name: str,
+        *,
+        mode: Mode | ModeStr = Mode.get_default(),
+    ) -> Slot[T]:
+        def when_empty() -> T:
+            raise EmptySlotError(
+                f"The slot for `{on}` is unset in the current `{scope_name}` scope."
+            )
+
+        injectable = SimpleScopedInjectable(SyncCaller(when_empty), scope_name)
+        updater = Updater.with_basics(on, injectable, mode)
+        self.update(updater)
+        return ScopedSlot(injectable)
 
     def inject[**P, T](
         self,

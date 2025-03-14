@@ -135,7 +135,7 @@ there may be a problem with this instance. It may contain an obsolete dependency
 
 _First of all, make sure that all scripts containing injectables have been imported before executing the main function._
 
-> **Tips**
+> [!TIP]
 > * Avoid local imports
 > * Avoid singletons if not necessary
 
