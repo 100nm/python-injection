@@ -4,6 +4,7 @@ from injection import Module
 
 __MODULE: Final[Module] = ...
 
+reserve_scoped_test_slot = __MODULE.reserve_scoped_slot
 set_test_constant = __MODULE.set_constant
 should_be_test_injectable = __MODULE.should_be_injectable
 test_constant = __MODULE.constant

@@ -5,6 +5,7 @@ from injection.utils import load_profile
 
 __all__ = (
     "load_test_profile",
+    "reserve_scoped_test_slot",
     "set_test_constant",
     "should_be_test_injectable",
     "test_constant",
@@ -15,6 +16,7 @@ __all__ = (
 
 _TEST_PROFILE_NAME: Final[str] = "__testing__"
 
+reserve_scoped_test_slot = mod(_TEST_PROFILE_NAME).reserve_scoped_slot
 set_test_constant = mod(_TEST_PROFILE_NAME).set_constant
 should_be_test_injectable = mod(_TEST_PROFILE_NAME).should_be_injectable
 test_constant = mod(_TEST_PROFILE_NAME).constant

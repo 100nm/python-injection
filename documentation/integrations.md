@@ -50,7 +50,7 @@ from contextlib import asynccontextmanager
 from enum import StrEnum, auto
 
 from fastapi import FastAPI, Request, Response
-from injection import adefine_scope
+from injection import adefine_scope, reserve_scoped_slot
 
 class InjectionScope(StrEnum):
     LIFESPAN = auto()
@@ -63,11 +63,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
+request_slot = reserve_scoped_slot(Request, InjectionScope.REQUEST)
+
 @app.middleware("http")
 async def define_request_scope_middleware(
     request: Request,
     handler: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     async with adefine_scope(InjectionScope.REQUEST):
+        request_slot.set(request)
         return await handler(request)
 ```

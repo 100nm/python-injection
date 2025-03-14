@@ -2,7 +2,8 @@
 
 ## Register an injectable
 
-> **Note**: If the class needs dependencies, these will be resolved when the instance is retrieved.
+> [!NOTE]
+> If the class needs dependencies, these will be resolved when the instance is retrieved.
 
 If you wish to inject a singleton, use `singleton` decorator.
 
@@ -65,7 +66,8 @@ def some_function(service_a: ServiceA):
 If `inject` decorates a class, it will be applied to the `__init__` method.
 _Especially useful for dataclasses:_
 
-> **Note**: Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
+> [!NOTE]
+> Doesn't work with Pydantic `BaseModel` because the signature of the `__init__` method doesn't contain the
 > dependencies.
 
 ```python
@@ -132,8 +134,9 @@ service_a = await lazy_service_a
 In the case of inheritance, you can use the decorator parameter `on` to link the injection to one or several other
 classes.
 
-**Warning: if the child class is in another file, make sure that file is imported before injection.**
-[_See `load_packages` function._](utils.md#load_packages)
+> [!WARNING]
+> If the child class is in another file, make sure that file is imported before injection.
+> [_See `load_packages` function._](utils.md#load_packages)
 
 _Example with one class:_
 

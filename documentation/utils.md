@@ -30,7 +30,8 @@ load_packages(package)
 `load_profile` is an injection module initialization function based on profile name.
 This is very useful when you want to use a set of dependencies based on the execution profile.
 
-> **Note:** A profile name is equivalent to an injection module name.
+> [!NOTE]
+> A profile name is equivalent to an injection module name.
 
 For example, when I'm doing my development tests, I don't really feel like sending SMS messages.
 

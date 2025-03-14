@@ -23,6 +23,7 @@ get_instance = __MODULE.get_instance
 get_lazy_instance = __MODULE.get_lazy_instance
 inject = __MODULE.inject
 injectable = __MODULE.injectable
+reserve_scoped_slot = __MODULE.reserve_scoped_slot
 scoped = __MODULE.scoped
 set_constant = __MODULE.set_constant
 should_be_injectable = __MODULE.should_be_injectable
@@ -45,6 +46,11 @@ class Injectable[T](Protocol):
     async def aget_instance(self) -> T: ...
     @abstractmethod
     def get_instance(self) -> T: ...
+
+@runtime_checkable
+class Slot[T](Protocol):
+    @abstractmethod
+    def set(self, instance: T, /) -> Self: ...
 
 class LazyInstance[T]:
     def __init__(
@@ -171,6 +177,14 @@ class Module:
         that no dependencies are resolved, so the module doesn't need to be locked.
         """
 
+    def reserve_scoped_slot[T](
+        self,
+        on: _TypeInfo[T],
+        /,
+        scope_name: str,
+        *,
+        mode: Mode | ModeStr = ...,
+    ) -> Slot[T]: ...
     def make_injected_function[**P, T](
         self,
         wrapped: Callable[P, T],

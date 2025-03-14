@@ -20,7 +20,7 @@ def autouse_test_injectables():
 
 ## Register a test injectable
 
-> **Notes**
+> [!NOTE]
 > * Test injectables replace conventional injectables if they are registered on the same type.
 > * A test injectable can't depend on a conventional injectable.
 

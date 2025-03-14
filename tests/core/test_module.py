@@ -6,6 +6,7 @@ import pytest
 
 from injection import Module, define_scope
 from injection.exceptions import (
+    EmptySlotError,
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
@@ -206,6 +207,58 @@ class TestModule:
 
         assert module.get_instance(str) is None
         assert module.get_instance(HelloWorld) is value
+
+    """
+    reserve_scoped_slot
+    """
+
+    def test_reserve_scoped_slot_with_success(self, module):
+        scope_name = "test"
+        slot = module.reserve_scoped_slot(SomeClass, scope_name)
+
+        with define_scope(scope_name):
+            instance = SomeClass()
+            slot.set(instance)
+
+            assert module.get_instance(SomeClass) is instance
+
+        assert module.get_instance(SomeClass) is None
+
+    def test_reserve_scoped_slot_with_multiple_types(self, module):
+        class A: ...
+
+        class B(A): ...
+
+        class C(B): ...
+
+        scope_name = "test"
+        slot = module.reserve_scoped_slot((A, B, C), scope_name)
+
+        with define_scope(scope_name):
+            instance = C()
+            slot.set(instance)
+
+            assert (
+                instance
+                is module.get_instance(A)
+                is module.get_instance(B)
+                is module.get_instance(C)
+            )
+
+        assert (
+            module.get_instance(A)
+            is module.get_instance(B)
+            is module.get_instance(C)
+            is None
+        )
+
+    def test_reserve_scoped_slot_with_empty_raise_empty_slot_error(self, module):
+        scope_name = "test"
+        module.reserve_scoped_slot(SomeClass, scope_name)
+
+        with define_scope(scope_name):
+            with pytest.raises(EmptySlotError):
+                module.find_instance(SomeClass)
 
     """
     init_modules
