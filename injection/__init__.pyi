@@ -50,7 +50,7 @@ class Injectable[T](Protocol):
 @runtime_checkable
 class Slot[T](Protocol):
     @abstractmethod
-    def set(self, instance: T, /) -> Self: ...
+    def set(self, instance: T, /) -> None: ...
 
 class LazyInstance[T]:
     def __init__(

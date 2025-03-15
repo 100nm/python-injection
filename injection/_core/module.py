@@ -550,7 +550,7 @@ class Module(Broker, EventListener):
     ) -> Slot[T]:
         def when_empty() -> T:
             raise EmptySlotError(
-                f"The slot for `{on}` is unset in the current `{scope_name}` scope."
+                f"The slot for `{on}` isn't set in the current `{scope_name}` scope."
             )
 
         injectable = SimpleScopedInjectable(SyncCaller(when_empty), scope_name)
