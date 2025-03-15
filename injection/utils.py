@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable, Collection, Iterator
 from importlib import import_module
 from importlib.util import find_spec
@@ -89,7 +90,7 @@ def __iter_modules_from(
     for info in walk_packages(path=package_path, prefix=f"{package_name}."):
         name = info.name
 
-        if info.ispkg or not predicate(name):
+        if info.ispkg or name in sys.modules or not predicate(name):
             continue
 
         yield name, import_module(name)
