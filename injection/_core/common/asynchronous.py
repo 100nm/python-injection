@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Generator
 from dataclasses import dataclass
-from typing import Any, NoReturn, Protocol, runtime_checkable
+from typing import Any, AsyncContextManager, NoReturn, Protocol, runtime_checkable
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
@@ -45,3 +45,15 @@ class SyncCaller[**P, T](Caller[P, T]):
 
     def call(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         return self.callable(*args, **kwargs)
+
+
+try:
+    import anyio
+
+    def create_semaphore(value: int) -> AsyncContextManager[Any]:
+        return anyio.Semaphore(value)
+except ImportError:  # pragma: no cover
+    import asyncio
+
+    def create_semaphore(value: int) -> AsyncContextManager[Any]:
+        return asyncio.Semaphore(value)
