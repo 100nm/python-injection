@@ -7,6 +7,7 @@ import pytest
 from injection import Module, define_scope
 from injection.exceptions import (
     EmptySlotError,
+    InjectionError,
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
@@ -259,6 +260,22 @@ class TestModule:
         with define_scope(scope_name):
             with pytest.raises(EmptySlotError):
                 module.find_instance(SomeClass)
+
+    def test_reserve_scoped_slot_with_several_definitions_raise_injection_error(
+        self,
+        module,
+    ):
+        scope_name = "test"
+        slot = module.reserve_scoped_slot(SomeClass, scope_name)
+
+        with define_scope(scope_name):
+            instance1 = SomeClass()
+            slot.set(instance1)
+
+            instance2 = SomeClass()
+
+            with pytest.raises(InjectionError):
+                slot.set(instance2)
 
     """
     init_modules

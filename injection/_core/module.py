@@ -300,7 +300,8 @@ class Locator(Broker):
             if injectable.is_locked:
                 continue
 
-            await injectable.aget_instance()
+            with suppress(SkipInjectable):
+                await injectable.aget_instance()
 
     def add_listener(self, listener: EventListener) -> Self:
         self.__channel.add_listener(listener)

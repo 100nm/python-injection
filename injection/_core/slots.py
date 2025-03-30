@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from injection._core.injectables import ScopedInjectable
+from injection.exceptions import InjectionError
 
 
 @runtime_checkable
@@ -19,6 +20,5 @@ class ScopedSlot[T](Slot[T]):
     injectable: ScopedInjectable[Any, T]
 
     def set(self, instance: T, /) -> None:
-        injectable = self.injectable
-        scope = injectable.get_scope()
-        injectable.set_instance(instance, scope)
+        if self.injectable.setdefault(instance) is not instance:
+            raise InjectionError("Slot already set.")

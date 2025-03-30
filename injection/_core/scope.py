@@ -98,13 +98,18 @@ def define_scope(name: str, *, shared: bool = False) -> Iterator[None]:
 
 
 def get_active_scopes(name: str) -> tuple[Scope, ...]:
-    return tuple(__SCOPES[name].active_scopes)
+    state = __SCOPES.get(name)
+
+    if state is None:
+        return ()
+
+    return tuple(state.active_scopes)
 
 
 def get_scope(name: str) -> Scope:
-    scope = __SCOPES[name].get_scope()
+    state = __SCOPES.get(name)
 
-    if scope is None:
+    if state is None or (scope := state.get_scope()) is None:
         raise ScopeUndefinedError(
             f"Scope `{name}` isn't defined in the current context."
         )

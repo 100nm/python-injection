@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from collections.abc import MutableMapping
+from collections.abc import Awaitable, Callable, MutableMapping
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import partial
 from typing import (
     Any,
     AsyncContextManager,
@@ -12,7 +13,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.asynchronous import Caller
+from injection._core.common.asynchronous import Caller, create_semaphore
 from injection._core.scope import Scope, get_active_scopes, get_scope
 from injection.exceptions import InjectionError
 
@@ -37,12 +38,12 @@ class Injectable[T](Protocol):
         raise NotImplementedError
 
 
-@dataclass(repr=False, frozen=True, slots=True)
-class BaseInjectable[T](Injectable[T], ABC):
-    factory: Caller[..., T]
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class BaseInjectable[R, T](Injectable[T], ABC):
+    factory: Caller[..., R]
 
 
-class SimpleInjectable[T](BaseInjectable[T]):
+class SimpleInjectable[T](BaseInjectable[T, T]):
     __slots__ = ()
 
     async def aget_instance(self) -> T:
@@ -52,7 +53,44 @@ class SimpleInjectable[T](BaseInjectable[T]):
         return self.factory.call()
 
 
-class SingletonInjectable[T](BaseInjectable[T]):
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class CachedInjectable[R, T](BaseInjectable[R, T], ABC):
+    __semaphore: AsyncContextManager[Any] = field(
+        default_factory=partial(create_semaphore, 1),
+        init=False,
+        hash=False,
+    )
+
+    async def aget_or_create[K](
+        self,
+        cache: MutableMapping[K, T],
+        key: K,
+        factory: Callable[..., Awaitable[T]],
+    ) -> T:
+        async with self.__semaphore:
+            with suppress(KeyError):
+                return cache[key]
+
+            instance = await factory()
+            cache[key] = instance
+
+        return instance
+
+    def get_or_create[K](
+        self,
+        cache: MutableMapping[K, T],
+        key: K,
+        factory: Callable[..., T],
+    ) -> T:
+        with suppress(KeyError):
+            return cache[key]
+
+        instance = factory()
+        cache[key] = instance
+        return instance
+
+
+class SingletonInjectable[T](CachedInjectable[T, T]):
     __slots__ = ("__dict__",)
 
     __key: ClassVar[str] = "$instance"
@@ -66,32 +104,17 @@ class SingletonInjectable[T](BaseInjectable[T]):
         return self.__dict__
 
     async def aget_instance(self) -> T:
-        cache = self.__cache
-
-        with suppress(KeyError):
-            return cache[self.__key]
-
-        instance = await self.factory.acall()
-        cache[self.__key] = instance
-        return instance
+        return await self.aget_or_create(self.__cache, self.__key, self.factory.acall)
 
     def get_instance(self) -> T:
-        cache = self.__cache
-
-        with suppress(KeyError):
-            return cache[self.__key]
-
-        instance = self.factory.call()
-        cache[self.__key] = instance
-        return instance
+        return self.get_or_create(self.__cache, self.__key, self.factory.call)
 
     def unlock(self) -> None:
         self.__cache.pop(self.__key, None)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
-class ScopedInjectable[R, T](Injectable[T], ABC):
-    factory: Caller[..., R]
+class ScopedInjectable[R, T](CachedInjectable[R, T], ABC):
     scope_name: str
 
     @property
@@ -108,29 +131,20 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
 
     async def aget_instance(self) -> T:
         scope = self.get_scope()
-
-        with suppress(KeyError):
-            return scope.cache[self]
-
-        instance = await self.abuild(scope)
-        self.set_instance(instance, scope)
-        return instance
+        factory = partial(self.abuild, scope)
+        return await self.aget_or_create(scope.cache, self, factory)
 
     def get_instance(self) -> T:
         scope = self.get_scope()
-
-        with suppress(KeyError):
-            return scope.cache[self]
-
-        instance = self.build(scope)
-        self.set_instance(instance, scope)
-        return instance
+        factory = partial(self.build, scope)
+        return self.get_or_create(scope.cache, self, factory)
 
     def get_scope(self) -> Scope:
         return get_scope(self.scope_name)
 
-    def set_instance(self, instance: T, scope: Scope) -> None:
-        scope.cache[self] = instance
+    def setdefault(self, instance: T) -> T:
+        scope = self.get_scope()
+        return self.get_or_create(scope.cache, self, lambda: instance)
 
     def unlock(self) -> None:
         if self.is_locked:
@@ -174,7 +188,7 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
             scope.cache.pop(self, None)
 
 
-@dataclass(repr=False, frozen=True, slots=True)
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ShouldBeInjectable[T](Injectable[T]):
     cls: type[T]
 

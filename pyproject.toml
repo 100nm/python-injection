@@ -9,6 +9,7 @@ bench = [
     "types-tabulate",
 ]
 dev = [
+    "anyio",
     "hatch",
     "mypy",
     "ruff",
