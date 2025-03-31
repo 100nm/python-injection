@@ -6,6 +6,8 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class Invertible[T](Protocol):
+    __slots__ = ()
+
     @abstractmethod
     def __invert__(self) -> T:
         raise NotImplementedError
