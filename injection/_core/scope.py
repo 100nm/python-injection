@@ -157,18 +157,18 @@ def get_scope(name, default=...):  # type: ignore[no-untyped-def]
 def _bind_scope(name: str, scope: Scope, shared: bool) -> Iterator[None]:
     if shared:
         is_already_defined = bool(get_active_scopes(name))
-        state = __SHARED_SCOPES[name]
+        states = __SHARED_SCOPES
 
     else:
         is_already_defined = bool(get_scope(name, default=None))
-        state = __CONTEXTUAL_SCOPES[name]
+        states = __CONTEXTUAL_SCOPES
 
     if is_already_defined:
         raise ScopeAlreadyDefinedError(
             f"Scope `{name}` is already defined in the current context."
         )
 
-    with state.bind(scope):
+    with states[name].bind(scope):
         yield
 
 

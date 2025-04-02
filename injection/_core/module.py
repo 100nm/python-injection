@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
 from collections.abc import (
@@ -27,7 +28,6 @@ from inspect import (
 )
 from inspect import signature as inspect_signature
 from logging import Logger, getLogger
-from threading import Lock
 from types import MethodType
 from typing import (
     Any,
@@ -982,7 +982,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
 
     def __init__(self, wrapped: Callable[P, T], /, threadsafe: bool) -> None:
         self.__dependencies = Dependencies.empty()
-        self.__lock = Lock() if threadsafe else nullcontext()
+        self.__lock = threading.Lock() if threadsafe else nullcontext()
         self.__owner = None
         self.__tasks = deque()
         self.__wrapped = wrapped
