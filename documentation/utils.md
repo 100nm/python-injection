@@ -31,7 +31,7 @@ def predicate(module_name: str) -> bool:
 PythonModuleLoader(predicate).load(package)
 ```
 
-### Factory method
+### Factory methods
 
 * `from_keywords`
 
