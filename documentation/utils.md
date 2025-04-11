@@ -1,8 +1,8 @@
 # Utils
 
-## load_packages
+## PythonModuleLoader
 
-Useful for put in memory injectables hidden deep within a package. Example:
+Useful for put in memory injectables hidden deep within a package.
 
 ```
 package
@@ -16,6 +16,52 @@ package
 ```
 
 To load Injectable1 and Injectable2 into memory you can do the following:
+
+```python
+# Imports
+from injection.utils import PythonModuleLoader
+import package
+```
+
+```python
+def predicate(module_name: str) -> bool:
+    # logic to determine whether the module should be imported or not
+    return True
+
+PythonModuleLoader(predicate).load(package)
+```
+
+### Factory methods
+
+* `from_keywords`
+
+Automatically imports modules whose Python script contains one of the keywords passed in parameter.
+
+```python
+PythonModuleLoader.from_keywords("# Auto-import").load(package)
+```
+
+* `startswith`
+
+Automatically imports modules whose Python script name begins with one of the prefixes passed in parameter.
+
+```python
+profile: str = ...
+PythonModuleLoader.startswith(f"{profile}_").load(package)
+```
+
+* `endswith`
+
+Automatically imports modules whose Python script name ends with one of the suffixes passed in parameter.
+
+```python
+profile: str = ...
+PythonModuleLoader.endswith(f"_{profile}").load(package)
+```
+
+## load_packages
+
+`load_packages` is a simplified version of `PythonModuleLoader`.
 
 ```python
 from injection.utils import load_packages
