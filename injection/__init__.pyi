@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
 from contextlib import asynccontextmanager, contextmanager
 from enum import Enum
 from logging import Logger
@@ -11,6 +11,7 @@ from ._core.common.type import TypeInfo as _TypeInfo
 from ._core.module import InjectableFactory as _InjectableFactory
 from ._core.module import ModeStr, PriorityStr
 from ._core.module import Recipe as _Recipe
+from ._core.scope import ScopeKindStr
 
 __MODULE: Final[Module] = ...
 
@@ -30,9 +31,15 @@ should_be_injectable = __MODULE.should_be_injectable
 singleton = __MODULE.singleton
 
 @asynccontextmanager
-def adefine_scope(name: str, *, shared: bool = ...) -> AsyncIterator[None]: ...
+def adefine_scope(
+    name: str,
+    kind: ScopeKind | ScopeKindStr = ...,
+) -> AsyncIterator[Scope]: ...
 @contextmanager
-def define_scope(name: str, *, shared: bool = ...) -> Iterator[None]: ...
+def define_scope(
+    name: str,
+    kind: ScopeKind | ScopeKindStr = ...,
+) -> Iterator[Scope]: ...
 def mod(name: str = ..., /) -> Module:
     """
     Short syntax for `Module.from_name`.
@@ -47,10 +54,16 @@ class Injectable[T](Protocol):
     @abstractmethod
     def get_instance(self) -> T: ...
 
-@runtime_checkable
-class Slot[T](Protocol):
-    @abstractmethod
-    def set(self, instance: T, /) -> None: ...
+@final
+class ScopeKind(Enum):
+    CONTEXTUAL = ...
+    SHARED = ...
+
+class Scope:
+    def set_slot[T](self, slot: Slot[T], value: T) -> Self: ...
+    def slot_map(self, values: Mapping[Slot[Any], Any]) -> Self: ...
+
+class Slot[T]: ...
 
 class LazyInstance[T]:
     def __init__(
@@ -179,7 +192,7 @@ class Module:
 
     def reserve_scoped_slot[T](
         self,
-        on: _TypeInfo[T],
+        cls: type[T],
         /,
         scope_name: str,
         *,

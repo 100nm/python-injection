@@ -58,7 +58,7 @@ class InjectionScope(StrEnum):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    async with adefine_scope(InjectionScope.LIFESPAN, shared=True):
+    async with adefine_scope(InjectionScope.LIFESPAN, kind="shared"):
         yield
 
 app = FastAPI(lifespan=lifespan)
@@ -70,7 +70,7 @@ async def define_request_scope_middleware(
     request: Request,
     handler: Callable[[Request], Awaitable[Response]],
 ) -> Response:
-    async with adefine_scope(InjectionScope.REQUEST):
-        request_slot.set(request)
+    async with adefine_scope(InjectionScope.REQUEST) as scope:
+        scope.set_slot(request_slot, request)
         return await handler(request)
 ```

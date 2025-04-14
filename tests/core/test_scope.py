@@ -22,7 +22,7 @@ def test_define_shared_scope_with_success():
         instance = find_instance(Dependency)
         assert isinstance(instance, Dependency)
 
-    with define_scope("test", shared=True):
+    with define_scope("test", kind="shared"):
         Thread(target=assertion).run()
 
 

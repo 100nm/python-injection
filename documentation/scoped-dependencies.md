@@ -19,7 +19,7 @@ There are two kinds of scopes:
 
 First of all, the scope must be defined:
 
-_By default, the `shared` parameter is `False`._
+_By default, the `kind` parameter is `"contextual"`._
 
 > Define an asynchronous scope:
 
@@ -27,7 +27,7 @@ _By default, the `shared` parameter is `False`._
 from injection import adefine_scope
 
 async def main() -> None:
-    async with adefine_scope("<scope-name>", shared=True):
+    async with adefine_scope("<scope-name>"):
         ...
 ```
 
@@ -37,7 +37,7 @@ async def main() -> None:
 from injection import define_scope
 
 def main() -> None:
-    with define_scope("<scope-name>", shared=True):
+    with define_scope("<scope-name>"):
         ...
 ```
 
@@ -113,7 +113,7 @@ class Request: ...
 request_slot = reserve_scoped_slot(Request, scope_name="request")
 
 def process_request(request: Request) -> None:
-    with define_scope("request"):
-        request_slot.set(request)
+    with define_scope("request") as scope:
+        scope.set_slot(request_slot, request)
         # ...
 ```
