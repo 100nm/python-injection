@@ -117,3 +117,6 @@ def process_request(request: Request) -> None:
         scope.set_slot(request_slot_key, request)
         # ...
 ```
+
+> [!NOTE]
+> You can set several slots at once with the `slot_map` method.
