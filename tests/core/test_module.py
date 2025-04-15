@@ -215,11 +215,11 @@ class TestModule:
 
     def test_reserve_scoped_slot_with_success(self, module):
         scope_name = "test"
-        slot = module.reserve_scoped_slot(SomeClass, scope_name)
+        slot_key = module.reserve_scoped_slot(SomeClass, scope_name)
 
         with define_scope(scope_name) as scope:
             instance = SomeClass()
-            scope.set_slot(slot, instance)
+            scope.set_slot(slot_key, instance)
 
             assert module.get_instance(SomeClass) is instance
 
@@ -238,16 +238,16 @@ class TestModule:
         module,
     ):
         scope_name = "test"
-        slot = module.reserve_scoped_slot(SomeClass, scope_name)
+        slot_key = module.reserve_scoped_slot(SomeClass, scope_name)
 
         with define_scope(scope_name) as scope:
             instance1 = SomeClass()
-            scope.set_slot(slot, instance1)
+            scope.set_slot(slot_key, instance1)
 
             instance2 = SomeClass()
 
             with pytest.raises(InjectionError):
-                scope.set_slot(slot, instance2)
+                scope.set_slot(slot_key, instance2)
 
     """
     init_modules

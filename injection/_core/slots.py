@@ -1,2 +1,2 @@
-class Slot[T]:
+class SlotKey[T]:
     __slots__ = ()

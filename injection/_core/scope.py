@@ -23,7 +23,7 @@ from typing import (
 )
 
 from injection._core.common.key import new_short_key
-from injection._core.slots import Slot
+from injection._core.slots import SlotKey
 from injection.exceptions import (
     InjectionError,
     ScopeAlreadyDefinedError,
@@ -127,6 +127,7 @@ __SHARED_SCOPES: Final[Mapping[str, ScopeState]] = defaultdict(
 @asynccontextmanager
 async def adefine_scope(
     name: str,
+    /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
 ) -> AsyncIterator[ScopeFacade]:
     async with AsyncScope() as scope:
@@ -137,6 +138,7 @@ async def adefine_scope(
 @contextmanager
 def define_scope(
     name: str,
+    /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
 ) -> Iterator[ScopeFacade]:
     with SyncScope() as scope:
@@ -208,7 +210,7 @@ def _bind_scope(
         )
 
     with states[name].bind(scope):
-        yield ScopeFacade(scope)
+        yield _UserScope(scope)
 
 
 @runtime_checkable
@@ -286,19 +288,32 @@ class SyncScope(BaseScope[ExitStack]):
         return self.delegate.enter_context(context_manager)
 
 
+@runtime_checkable
+class ScopeFacade(Protocol):
+    __slots__ = ()
+
+    @abstractmethod
+    def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
+        raise NotImplementedError
+
+    @abstractmethod
+    def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self:
+        raise NotImplementedError
+
+
 @dataclass(repr=False, frozen=True, slots=True)
-class ScopeFacade:
+class _UserScope(ScopeFacade):
     scope: Scope
 
-    def set_slot[T](self, slot: Slot[T], value: T) -> Self:
-        return self.slot_map({slot: value})
+    def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
+        return self.slot_map({key: value})
 
-    def slot_map(self, values: Mapping[Slot[Any], Any]) -> Self:
+    def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self:
         cache = self.scope.cache
 
-        for slot in values:
-            if slot in cache:
+        for slot_key in mapping:
+            if slot_key in cache:
                 raise InjectionError("Slot already set.")
 
-        cache.update(values)
+        cache.update(mapping)
         return self

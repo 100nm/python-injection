@@ -63,7 +63,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
-request_slot = reserve_scoped_slot(Request, InjectionScope.REQUEST)
+request_slot_key = reserve_scoped_slot(Request, InjectionScope.REQUEST)
 
 @app.middleware("http")
 async def define_request_scope_middleware(
@@ -71,6 +71,6 @@ async def define_request_scope_middleware(
     handler: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     async with adefine_scope(InjectionScope.REQUEST) as scope:
-        scope.set_slot(request_slot, request)
+        scope.set_slot(request_slot_key, request)
         return await handler(request)
 ```

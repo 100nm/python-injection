@@ -110,10 +110,10 @@ from injection import define_scope, reserve_scoped_slot
 
 class Request: ...
 
-request_slot = reserve_scoped_slot(Request, scope_name="request")
+request_slot_key = reserve_scoped_slot(Request, scope_name="request")
 
 def process_request(request: Request) -> None:
     with define_scope("request") as scope:
-        scope.set_slot(request_slot, request)
+        scope.set_slot(request_slot_key, request)
         # ...
 ```

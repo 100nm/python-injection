@@ -70,7 +70,7 @@ from injection._core.injectables import (
     SimpleScopedInjectable,
     SingletonInjectable,
 )
-from injection._core.slots import Slot
+from injection._core.slots import SlotKey
 from injection.exceptions import (
     ModuleError,
     ModuleLockError,
@@ -492,11 +492,8 @@ class Module(Broker, EventListener):
 
     def should_be_injectable[T](self, wrapped: type[T] | None = None, /) -> Any:
         def decorator(wp: type[T]) -> type[T]:
-            updater = Updater(
-                classes=(wp,),
-                injectable=ShouldBeInjectable(wp),
-                mode=Mode.FALLBACK,
-            )
+            injectable = ShouldBeInjectable(wp)
+            updater = Updater.with_basics(wp, injectable, Mode.FALLBACK)
             self.update(updater)
             return wp
 
@@ -548,11 +545,11 @@ class Module(Broker, EventListener):
         scope_name: str,
         *,
         mode: Mode | ModeStr = Mode.get_default(),
-    ) -> Slot[T]:
+    ) -> SlotKey[T]:
         injectable = ScopedSlotInjectable(cls, scope_name)
         updater = Updater.with_basics(cls, injectable, mode)
         self.update(updater)
-        return injectable.slot
+        return injectable.key
 
     def inject[**P, T](
         self,

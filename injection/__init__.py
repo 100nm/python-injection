@@ -3,7 +3,7 @@ from ._core.injectables import Injectable
 from ._core.module import Mode, Module, Priority, mod
 from ._core.scope import ScopeFacade as Scope
 from ._core.scope import ScopeKind, adefine_scope, define_scope
-from ._core.slots import Slot
+from ._core.slots import SlotKey
 
 __all__ = (
     "Injectable",
@@ -13,7 +13,7 @@ __all__ = (
     "Priority",
     "Scope",
     "ScopeKind",
-    "Slot",
+    "SlotKey",
     "adefine_scope",
     "afind_instance",
     "aget_instance",

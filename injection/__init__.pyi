@@ -33,11 +33,13 @@ singleton = __MODULE.singleton
 @asynccontextmanager
 def adefine_scope(
     name: str,
+    /,
     kind: ScopeKind | ScopeKindStr = ...,
 ) -> AsyncIterator[Scope]: ...
 @contextmanager
 def define_scope(
     name: str,
+    /,
     kind: ScopeKind | ScopeKindStr = ...,
 ) -> Iterator[Scope]: ...
 def mod(name: str = ..., /) -> Module:
@@ -59,11 +61,14 @@ class ScopeKind(Enum):
     CONTEXTUAL = ...
     SHARED = ...
 
-class Scope:
-    def set_slot[T](self, slot: Slot[T], value: T) -> Self: ...
-    def slot_map(self, values: Mapping[Slot[Any], Any]) -> Self: ...
+@runtime_checkable
+class Scope(Protocol):
+    @abstractmethod
+    def set_slot[T](self, key: SlotKey[T], value: T) -> Self: ...
+    @abstractmethod
+    def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self: ...
 
-class Slot[T]: ...
+class SlotKey[T]: ...
 
 class LazyInstance[T]:
     def __init__(
@@ -197,7 +202,7 @@ class Module:
         scope_name: str,
         *,
         mode: Mode | ModeStr = ...,
-    ) -> Slot[T]: ...
+    ) -> SlotKey[T]: ...
     def make_injected_function[**P, T](
         self,
         wrapped: Callable[P, T],

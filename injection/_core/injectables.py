@@ -23,7 +23,7 @@ from injection._core.scope import (
     in_scope_cache,
     remove_scoped_values,
 )
-from injection._core.slots import Slot
+from injection._core.slots import SlotKey
 from injection.exceptions import EmptySlotError, InjectionError
 
 
@@ -197,11 +197,11 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
 class ScopedSlotInjectable[T](Injectable[T]):
     cls: type[T]
     scope_name: str
-    slot: Slot[T] = field(default_factory=Slot)
+    key: SlotKey[T] = field(default_factory=SlotKey)
 
     @property
     def is_locked(self) -> bool:
-        return in_scope_cache(self.slot, self.scope_name)
+        return in_scope_cache(self.key, self.scope_name)
 
     async def aget_instance(self) -> T:
         return self.get_instance()
@@ -211,14 +211,14 @@ class ScopedSlotInjectable[T](Injectable[T]):
         scope = get_scope(scope_name)
 
         try:
-            return scope.cache[self.slot]
+            return scope.cache[self.key]
         except KeyError as exc:
             raise EmptySlotError(
                 f"The slot for `{self.cls}` isn't set in the current `{scope_name}` scope."
             ) from exc
 
     def unlock(self) -> None:
-        remove_scoped_values(self.slot, self.scope_name)
+        remove_scoped_values(self.key, self.scope_name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
