@@ -64,14 +64,14 @@ from injection._core.injectables import (
     CMScopedInjectable,
     Injectable,
     ScopedInjectable,
+    ScopedSlotInjectable,
     ShouldBeInjectable,
     SimpleInjectable,
     SimpleScopedInjectable,
     SingletonInjectable,
 )
-from injection._core.slots import ScopedSlot, Slot
+from injection._core.slots import SlotKey
 from injection.exceptions import (
-    EmptySlotError,
     ModuleError,
     ModuleLockError,
     ModuleNotUsedError,
@@ -492,11 +492,8 @@ class Module(Broker, EventListener):
 
     def should_be_injectable[T](self, wrapped: type[T] | None = None, /) -> Any:
         def decorator(wp: type[T]) -> type[T]:
-            updater = Updater(
-                classes=(wp,),
-                injectable=ShouldBeInjectable(wp),
-                mode=Mode.FALLBACK,
-            )
+            injectable = ShouldBeInjectable(wp)
+            updater = Updater.with_basics(wp, injectable, Mode.FALLBACK)
             self.update(updater)
             return wp
 
@@ -543,21 +540,16 @@ class Module(Broker, EventListener):
 
     def reserve_scoped_slot[T](
         self,
-        on: TypeInfo[T],
+        cls: type[T],
         /,
         scope_name: str,
         *,
         mode: Mode | ModeStr = Mode.get_default(),
-    ) -> Slot[T]:
-        def when_empty() -> T:
-            raise EmptySlotError(
-                f"The slot for `{on}` isn't set in the current `{scope_name}` scope."
-            )
-
-        injectable = SimpleScopedInjectable(SyncCaller(when_empty), scope_name)
-        updater = Updater.with_basics(on, injectable, mode)
+    ) -> SlotKey[T]:
+        injectable = ScopedSlotInjectable(cls, scope_name)
+        updater = Updater.with_basics(cls, injectable, mode)
         self.update(updater)
-        return ScopedSlot(injectable)
+        return injectable.key
 
     def inject[**P, T](
         self,

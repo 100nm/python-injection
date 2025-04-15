@@ -7,12 +7,14 @@ from collections.abc import AsyncIterator, Iterator, Mapping, MutableMapping
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from enum import StrEnum
 from types import EllipsisType, TracebackType
 from typing import (
     Any,
     AsyncContextManager,
     ContextManager,
     Final,
+    Literal,
     NoReturn,
     Protocol,
     Self,
@@ -21,11 +23,25 @@ from typing import (
 )
 
 from injection._core.common.key import new_short_key
+from injection._core.slots import SlotKey
 from injection.exceptions import (
+    InjectionError,
     ScopeAlreadyDefinedError,
     ScopeError,
     ScopeUndefinedError,
 )
+
+
+class ScopeKind(StrEnum):
+    CONTEXTUAL = "contextual"
+    SHARED = "shared"
+
+    @classmethod
+    def get_default(cls) -> ScopeKind:
+        return cls.CONTEXTUAL
+
+
+type ScopeKindStr = Literal["contextual", "shared"]
 
 
 @runtime_checkable
@@ -109,17 +125,25 @@ __SHARED_SCOPES: Final[Mapping[str, ScopeState]] = defaultdict(
 
 
 @asynccontextmanager
-async def adefine_scope(name: str, *, shared: bool = False) -> AsyncIterator[None]:
+async def adefine_scope(
+    name: str,
+    /,
+    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+) -> AsyncIterator[ScopeFacade]:
     async with AsyncScope() as scope:
-        scope.enter(_bind_scope(name, scope, shared))
-        yield
+        with _bind_scope(name, scope, kind) as facade:
+            yield facade
 
 
 @contextmanager
-def define_scope(name: str, *, shared: bool = False) -> Iterator[None]:
+def define_scope(
+    name: str,
+    /,
+    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+) -> Iterator[ScopeFacade]:
     with SyncScope() as scope:
-        scope.enter(_bind_scope(name, scope, shared))
-        yield
+        with _bind_scope(name, scope, kind) as facade:
+            yield facade
 
 
 def get_active_scopes(name: str) -> tuple[Scope, ...]:
@@ -153,15 +177,32 @@ def get_scope(name, default=...):  # type: ignore[no-untyped-def]
     return default
 
 
-@contextmanager
-def _bind_scope(name: str, scope: Scope, shared: bool) -> Iterator[None]:
-    if shared:
-        is_already_defined = bool(get_active_scopes(name))
-        states = __SHARED_SCOPES
+def in_scope_cache(key: Any, scope_name: str) -> bool:
+    return any(key in scope.cache for scope in get_active_scopes(scope_name))
 
-    else:
-        is_already_defined = bool(get_scope(name, default=None))
-        states = __CONTEXTUAL_SCOPES
+
+def remove_scoped_values(key: Any, scope_name: str) -> None:
+    for scope in get_active_scopes(scope_name):
+        scope.cache.pop(key, None)
+
+
+@contextmanager
+def _bind_scope(
+    name: str,
+    scope: Scope,
+    kind: ScopeKind | ScopeKindStr,
+) -> Iterator[ScopeFacade]:
+    match ScopeKind(kind):
+        case ScopeKind.CONTEXTUAL:
+            is_already_defined = bool(get_scope(name, default=None))
+            states = __CONTEXTUAL_SCOPES
+
+        case ScopeKind.SHARED:
+            is_already_defined = bool(get_active_scopes(name))
+            states = __SHARED_SCOPES
+
+        case _:
+            raise NotImplementedError
 
     if is_already_defined:
         raise ScopeAlreadyDefinedError(
@@ -169,7 +210,7 @@ def _bind_scope(name: str, scope: Scope, shared: bool) -> Iterator[None]:
         )
 
     with states[name].bind(scope):
-        yield
+        yield _UserScope(scope)
 
 
 @runtime_checkable
@@ -245,3 +286,34 @@ class SyncScope(BaseScope[ExitStack]):
 
     def enter[T](self, context_manager: ContextManager[T]) -> T:
         return self.delegate.enter_context(context_manager)
+
+
+@runtime_checkable
+class ScopeFacade(Protocol):
+    __slots__ = ()
+
+    @abstractmethod
+    def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
+        raise NotImplementedError
+
+    @abstractmethod
+    def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self:
+        raise NotImplementedError
+
+
+@dataclass(repr=False, frozen=True, slots=True)
+class _UserScope(ScopeFacade):
+    scope: Scope
+
+    def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
+        return self.slot_map({key: value})
+
+    def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self:
+        cache = self.scope.cache
+
+        for slot_key in mapping:
+            if slot_key in cache:
+                raise InjectionError("Slot already set.")
+
+        cache.update(mapping)
+        return self

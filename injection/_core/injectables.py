@@ -17,8 +17,14 @@ from injection._core.common.asynchronous import Caller
 from injection._core.common.asynchronous import (
     create_semaphore as _create_async_semaphore,
 )
-from injection._core.scope import Scope, get_active_scopes, get_scope
-from injection.exceptions import InjectionError
+from injection._core.scope import (
+    Scope,
+    get_scope,
+    in_scope_cache,
+    remove_scoped_values,
+)
+from injection._core.slots import SlotKey
+from injection.exceptions import EmptySlotError, InjectionError
 
 
 @runtime_checkable
@@ -123,7 +129,7 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
 
     @property
     def is_locked(self) -> bool:
-        return any(self in scope.cache for scope in get_active_scopes(self.scope_name))
+        return in_scope_cache(self, self.scope_name)
 
     @abstractmethod
     async def abuild(self, scope: Scope) -> T:
@@ -142,10 +148,6 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
         scope = self.__get_scope()
         factory = partial(self.build, scope)
         return self.logic.get_or_create(scope.cache, self, factory)
-
-    def setdefault(self, instance: T) -> T:
-        scope = self.__get_scope()
-        return self.logic.get_or_create(scope.cache, self, lambda: instance)
 
     def unlock(self) -> None:
         if self.is_locked:
@@ -188,8 +190,35 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
         return self.factory.call()
 
     def unlock(self) -> None:
-        for scope in get_active_scopes(self.scope_name):
-            scope.cache.pop(self, None)
+        remove_scoped_values(self, self.scope_name)
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class ScopedSlotInjectable[T](Injectable[T]):
+    cls: type[T]
+    scope_name: str
+    key: SlotKey[T] = field(default_factory=SlotKey)
+
+    @property
+    def is_locked(self) -> bool:
+        return in_scope_cache(self.key, self.scope_name)
+
+    async def aget_instance(self) -> T:
+        return self.get_instance()
+
+    def get_instance(self) -> T:
+        scope_name = self.scope_name
+        scope = get_scope(scope_name)
+
+        try:
+            return scope.cache[self.key]
+        except KeyError as exc:
+            raise EmptySlotError(
+                f"The slot for `{self.cls}` isn't set in the current `{scope_name}` scope."
+            ) from exc
+
+    def unlock(self) -> None:
+        remove_scoped_values(self.key, self.scope_name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
