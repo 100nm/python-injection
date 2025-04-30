@@ -3,7 +3,7 @@ before_commit: lint mypy pytest
 install:
 	uv sync
 
-upgrade:
+update:
 	uv lock --upgrade
 	uv sync
 
