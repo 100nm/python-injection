@@ -11,6 +11,6 @@ runs:
     - name: Publish
       shell: bash
       run: |
-        uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version ${{ inputs.version }}
+        uv version ${{ inputs.version }}
         uv build
         uv publish
