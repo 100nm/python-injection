@@ -11,7 +11,7 @@ Here's how to inject an instance into a FastAPI endpoint.
 > Import:
 
 ```python
-from injection.integrations.fastapi import Inject
+from injection.ext.fastapi import Inject
 ```
 
 > With **Annotated**:

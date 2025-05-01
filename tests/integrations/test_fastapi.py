@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from injection import injectable
-from injection.integrations.fastapi import Inject
+from injection.ext.fastapi import Inject
 
 application = FastAPI()
 
