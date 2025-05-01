@@ -45,11 +45,11 @@ _For a better understanding of the scopes, [here's the associated documentation]
 Here's how to configure FastAPI:
 
 ```python
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from enum import StrEnum, auto
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request
 from injection import adefine_scope, reserve_scoped_slot
 
 class InjectionScope(StrEnum):
@@ -61,16 +61,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     async with adefine_scope(InjectionScope.LIFESPAN, kind="shared"):
         yield
 
-app = FastAPI(lifespan=lifespan)
-
 request_slot_key = reserve_scoped_slot(Request, InjectionScope.REQUEST)
 
-@app.middleware("http")
-async def define_request_scope_middleware(
-    request: Request,
-    handler: Callable[[Request], Awaitable[Response]],
-) -> Response:
+async def request_scope(request: Request) -> AsyncIterator[None]:
     async with adefine_scope(InjectionScope.REQUEST) as scope:
         scope.set_slot(request_slot_key, request)
-        return await handler(request)
+        yield
+
+app = FastAPI(
+    dependencies=[Depends(request_scope)],
+    lifespan=lifespan,
+)
 ```
