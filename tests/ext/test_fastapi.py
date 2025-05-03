@@ -13,12 +13,12 @@ class Dependency: ...
 
 
 @application.post("/integration", status_code=204)
-async def integration_endpoint(dependency: Dependency = Inject(Dependency)):
+async def integration_endpoint(dependency: Inject[Dependency]):
     assert isinstance(dependency, Dependency)
 
 
 @application.post("/integration-unknown-dependency", status_code=204)
-async def integration_unknown_dependency_endpoint(dependency: object = Inject(object)):
+async def integration_unknown_dependency_endpoint(dependency: Inject[object]):
     assert dependency is NotImplemented
 
 
