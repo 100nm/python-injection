@@ -8,29 +8,11 @@
 
 Here's how to inject an instance into a FastAPI endpoint.
 
-> Import:
-
 ```python
 from injection.ext.fastapi import Inject
-```
 
-> With **Annotated**:
-
-```python
 @app.get("/")
-async def my_endpoint(
-    service: Annotated[MyService, Inject(MyService)],
-) -> None:
-    ...
-```
-
-> Without **Annotated**:
-
-```python
-@app.get("/")
-async def my_endpoint(
-    service: MyService = Inject(MyService),
-) -> None:
+async def my_endpoint(service: Inject[MyService]) -> None:
     ...
 ```
 
