@@ -163,7 +163,7 @@ def get_scope(name: str, default: EllipsisType = ...) -> Scope: ...
 def get_scope[T](name: str, default: T) -> Scope | T: ...
 
 
-def get_scope(name, default=...):  # type: ignore[no-untyped-def]
+def get_scope[T](name: str, default: T | EllipsisType = ...) -> Scope | T:
     for states in (__CONTEXTUAL_SCOPES, __SHARED_SCOPES):
         state = states.get(name)
         if state and (scope := state.get_scope()):

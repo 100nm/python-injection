@@ -48,7 +48,7 @@ class Injectable[T](Protocol):
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
-class SimpleInjectable[T](Injectable[T]):
+class TransientInjectable[T](Injectable[T]):
     factory: Caller[..., T]
 
     async def aget_instance(self) -> T:

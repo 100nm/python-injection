@@ -66,9 +66,9 @@ from injection._core.injectables import (
     ScopedInjectable,
     ScopedSlotInjectable,
     ShouldBeInjectable,
-    SimpleInjectable,
     SimpleScopedInjectable,
     SingletonInjectable,
+    TransientInjectable,
 )
 from injection._core.slots import SlotKey
 from injection.exceptions import (
@@ -430,7 +430,7 @@ class Module(Broker, EventListener):
         wrapped: Recipe[P, T] | None = None,
         /,
         *,
-        cls: InjectableFactory[T] = SimpleInjectable,
+        cls: InjectableFactory[T] = TransientInjectable,
         ignore_type_hint: bool = False,
         inject: bool = True,
         on: TypeInfo[T] = (),
@@ -583,7 +583,12 @@ class Module(Broker, EventListener):
         threadsafe: bool = ...,
     ) -> AsyncInjectedFunction[P, T]: ...
 
-    def make_injected_function(self, wrapped, /, threadsafe=False):  # type: ignore[no-untyped-def]
+    def make_injected_function[**P, T](
+        self,
+        wrapped: Callable[P, T],
+        /,
+        threadsafe: bool = False,
+    ) -> InjectedFunction[P, T]:
         metadata = InjectMetadata(wrapped, threadsafe)
 
         @metadata.task
@@ -592,7 +597,7 @@ class Module(Broker, EventListener):
             self.add_listener(metadata)
 
         if iscoroutinefunction(wrapped):
-            return AsyncInjectedFunction(metadata)
+            return AsyncInjectedFunction(metadata)  # type: ignore[arg-type, return-value]
 
         return SyncInjectedFunction(metadata)
 
@@ -630,7 +635,11 @@ class Module(Broker, EventListener):
         default: None = ...,
     ) -> T | None: ...
 
-    async def aget_instance(self, cls, default=None):  # type: ignore[no-untyped-def]
+    async def aget_instance[T, Default](
+        self,
+        cls: InputType[T],
+        default: Default | None = None,
+    ) -> T | Default | None:
         try:
             return await self.afind_instance(cls)
         except (KeyError, SkipInjectable):
@@ -650,7 +659,11 @@ class Module(Broker, EventListener):
         default: None = ...,
     ) -> T | None: ...
 
-    def get_instance(self, cls, default=None):  # type: ignore[no-untyped-def]
+    def get_instance[T, Default](
+        self,
+        cls: InputType[T],
+        default: Default | None = None,
+    ) -> T | Default | None:
         try:
             return self.find_instance(cls)
         except (KeyError, SkipInjectable):
@@ -674,7 +687,13 @@ class Module(Broker, EventListener):
         cache: bool = ...,
     ) -> Awaitable[T | None]: ...
 
-    def aget_lazy_instance(self, cls, default=None, *, cache=False):  # type: ignore[no-untyped-def]
+    def aget_lazy_instance[T, Default](
+        self,
+        cls: InputType[T],
+        default: Default | None = None,
+        *,
+        cache: bool = False,
+    ) -> Awaitable[T | Default | None]:
         if cache:
             return alazy(lambda: self.aget_instance(cls, default))
 
@@ -700,7 +719,13 @@ class Module(Broker, EventListener):
         cache: bool = ...,
     ) -> Invertible[T | None]: ...
 
-    def get_lazy_instance(self, cls, default=None, *, cache=False):  # type: ignore[no-untyped-def]
+    def get_lazy_instance[T, Default](
+        self,
+        cls: InputType[T],
+        default: Default | None = None,
+        *,
+        cache: bool = False,
+    ) -> Invertible[T | Default | None]:
         if cache:
             return lazy(lambda: self.get_instance(cls, default))
 
@@ -789,8 +814,6 @@ class Module(Broker, EventListener):
             module.unlock()
 
         self.unlock().init_modules(*modules)
-
-        del module, modules
 
         @contextmanager
         def cleaner() -> Iterator[Self]:

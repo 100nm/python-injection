@@ -18,25 +18,23 @@ class FastAPIInject:
         default: T = NotImplemented,
         module: Module | None = None,
     ) -> Any:
-        module = module or mod()
-        lazy_instance = module.aget_lazy_instance(cls, default)
+        ainstance = (module or mod()).aget_lazy_instance(cls, default)
 
-        async def getter() -> T:
-            return await lazy_instance
+        async def dependency() -> T:
+            return await ainstance
 
-        return Depends(getter, use_cache=False)
+        class_name = getattr(cls, "__name__", str(cls))
+        dependency.__name__ = f"inject({class_name})"
+        return Depends(dependency, use_cache=False)
 
     def __getitem__(self, params: Any, /) -> Any:
-        if not isinstance(params, tuple):
-            params = (params,)
-
-        iter_params = iter(params)
+        iter_params = iter(params if isinstance(params, tuple) else (params,))
         cls = next(iter_params)
         return Annotated[cls, self(cls), *iter_params]
 
 
 if TYPE_CHECKING:
-    type Inject[T, *Args] = Annotated[T, Depends(), *Args]
+    type Inject[T, *Metadata] = Annotated[T, Depends(...), *Metadata]
 
 else:
     Inject = FastAPIInject()
