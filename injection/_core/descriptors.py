@@ -17,8 +17,7 @@ class LazyInstance[T]:
         default: T = NotImplemented,
         module: Module | None = None,
     ) -> None:
-        module = module or mod()
-        self.__value = module.get_lazy_instance(cls, default)
+        self.__value = (module or mod()).get_lazy_instance(cls, default)
 
     def __get__(
         self,
