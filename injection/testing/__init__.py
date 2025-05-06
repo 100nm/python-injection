@@ -1,7 +1,7 @@
 from typing import ContextManager, Final
 
 from injection import Module, mod
-from injection.utils import load_profile
+from injection.loaders import load_profile
 
 __all__ = (
     "load_test_profile",

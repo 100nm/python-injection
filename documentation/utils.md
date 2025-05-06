@@ -19,7 +19,7 @@ To load Injectable1 and Injectable2 into memory you can do the following:
 
 ```python
 # Imports
-from injection.utils import PythonModuleLoader
+from injection.loaders import PythonModuleLoader
 import package
 ```
 
@@ -64,7 +64,7 @@ PythonModuleLoader.endswith(f"_{profile}").load(package)
 `load_packages` is a simplified version of `PythonModuleLoader`.
 
 ```python
-from injection.utils import load_packages
+from injection.loaders import load_packages
 
 import package
 
@@ -87,7 +87,7 @@ from abc import abstractmethod
 from typing import Protocol
 
 from injection import inject, mod, should_be_injectable, singleton
-from injection.utils import load_profile
+from injection.loaders import load_profile
 
 @should_be_injectable
 class SMSService(Protocol):

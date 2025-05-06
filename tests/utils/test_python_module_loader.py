@@ -1,6 +1,6 @@
 import pytest
 
-from injection.utils import PythonModuleLoader, load_packages
+from injection.loaders import PythonModuleLoader, load_packages
 
 
 class TestPythonModuleLoader:
