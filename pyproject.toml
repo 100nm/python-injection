@@ -9,7 +9,6 @@ bench = [
     "types-tabulate",
 ]
 dev = [
-    "anyio",
     "hatch",
     "mypy",
     "ruff",
@@ -47,6 +46,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = []
+
+[project.optional-dependencies]
+async = [
+    "anyio",
+]
 
 [project.urls]
 Repository = "https://github.com/100nm/python-injection"

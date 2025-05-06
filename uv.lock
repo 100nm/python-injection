@@ -597,6 +597,11 @@ name = "python-injection"
 version = "0.0.0"
 source = { editable = "." }
 
+[package.optional-dependencies]
+async = [
+    { name = "anyio" },
+]
+
 [package.dev-dependencies]
 bench = [
     { name = "tabulate" },
@@ -604,7 +609,6 @@ bench = [
     { name = "types-tabulate" },
 ]
 dev = [
-    { name = "anyio" },
     { name = "hatch" },
     { name = "mypy" },
     { name = "ruff" },
@@ -619,6 +623,8 @@ test = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "anyio", marker = "extra == 'async'" }]
+provides-extras = ["async"]
 
 [package.metadata.requires-dev]
 bench = [
@@ -627,7 +633,6 @@ bench = [
     { name = "types-tabulate" },
 ]
 dev = [
-    { name = "anyio" },
     { name = "hatch" },
     { name = "mypy" },
     { name = "ruff" },
@@ -851,16 +856,16 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "20.30.0"
+version = "20.31.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
     { name = "filelock" },
     { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/e0/633e369b91bbc664df47dcb5454b6c7cf441e8f5b9d0c250ce9f0546401e/virtualenv-20.30.0.tar.gz", hash = "sha256:800863162bcaa5450a6e4d721049730e7f2dae07720e0902b0e4040bd6f9ada8", size = 4346945, upload-time = "2025-03-31T16:33:29.185Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/07/655f4fb9592967f49197b00015bb5538d3ed1f8f96621a10bebc3bb822e2/virtualenv-20.31.1.tar.gz", hash = "sha256:65442939608aeebb9284cd30baca5865fcd9f12b58bb740a24b220030df46d26", size = 6076234, upload-time = "2025-05-05T22:45:39.829Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/ed/3cfeb48175f0671ec430ede81f628f9fb2b1084c9064ca67ebe8c0ed6a05/virtualenv-20.30.0-py3-none-any.whl", hash = "sha256:e34302959180fca3af42d1800df014b35019490b119eba981af27f2fa486e5d6", size = 4329461, upload-time = "2025-03-31T16:33:26.758Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/67/7d7559264a6f8ec9ce4e397ddd9157a510be1e174dc98be898b6c18eeef4/virtualenv-20.31.1-py3-none-any.whl", hash = "sha256:f448cd2f1604c831afb9ea238021060be2c0edbcad8eb0a4e8b4e14ff11a5482", size = 6057843, upload-time = "2025-05-05T22:45:37.127Z" },
 ]
 
 [[package]]
