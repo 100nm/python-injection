@@ -1,5 +1,5 @@
 from types import GenericAlias
-from typing import TYPE_CHECKING, Annotated, Any, TypeAliasType
+from typing import Annotated, Any, TypeAliasType
 
 from fastapi import Depends
 
@@ -33,10 +33,6 @@ class FastAPIInject:
         return Annotated[cls, self(cls), *iter_params]
 
 
-if TYPE_CHECKING:
-    type Inject[T, *Metadata] = Annotated[T, Depends(...), *Metadata]
-
-else:
-    Inject = FastAPIInject()
+Inject = FastAPIInject()
 
 del FastAPIInject

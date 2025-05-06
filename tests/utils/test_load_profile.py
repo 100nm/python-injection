@@ -1,5 +1,5 @@
 from injection import find_instance, injectable, mod
-from injection.utils import load_profile
+from injection.loaders import load_profile
 
 
 class TestLoadProfile:

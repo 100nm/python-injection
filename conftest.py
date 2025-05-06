@@ -6,7 +6,7 @@ import pytest
 
 from injection import Module, mod
 from injection._core.module import Module as CoreModule
-from injection.utils import PythonModuleLoader
+from injection.loaders import PythonModuleLoader
 from tests.helpers import EventHistory
 
 logging.basicConfig(level=logging.DEBUG)
