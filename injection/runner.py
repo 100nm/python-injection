@@ -53,12 +53,18 @@ class Runner[**P, T]:
         *,
         inject: bool = True,
     ) -> Self:
-        decorator = (
-            self.module.make_injected_function(decorator_factory)
-            if inject
-            else decorator_factory
-        )()
-        return self.decorate(decorator)
+        function = self.function
+
+        if not inject:
+            return self.decorate(decorator_factory())
+
+        decorator_factory = self.module.make_injected_function(decorator_factory)
+
+        @wraps(function)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            return decorator_factory()(function)(*args, **kwargs)
+
+        return self.__recreate(wrapper)
 
     def inject(self) -> Self:
         return self.decorate(self.module.make_injected_function)
