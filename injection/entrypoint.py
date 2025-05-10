@@ -12,14 +12,14 @@ from typing import Any, Self, final
 from injection import Module, mod
 from injection.loaders import PythonModuleLoader
 
-__all__ = ("AsyncRunner", "Runner")
+__all__ = ("AsyncEntrypoint", "Entrypoint")
 
-type AsyncRunner[**P, T] = Runner[P, Coroutine[Any, Any, T]]
+type AsyncEntrypoint[**P, T] = Entrypoint[P, Coroutine[Any, Any, T]]
 
 
 @final
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
-class Runner[**P, T]:
+class Entrypoint[**P, T]:
     function: Callable[P, T]
     module: Module = field(default_factory=mod)
 
@@ -27,10 +27,10 @@ class Runner[**P, T]:
         return self.function(*args, **kwargs)
 
     def async_to_sync[_T](
-        self: AsyncRunner[P, _T],
+        self: AsyncEntrypoint[P, _T],
         run: Callable[[Coroutine[Any, Any, _T]], _T] = asyncio.run,
         /,
-    ) -> Runner[P, _T]:
+    ) -> Entrypoint[P, _T]:
         function = self.function
 
         @wraps(function)
@@ -53,11 +53,10 @@ class Runner[**P, T]:
         *,
         inject: bool = True,
     ) -> Self:
-        function = self.function
-
         if not inject:
             return self.decorate(decorator_factory())
 
+        function = self.function
         decorator_factory = self.module.make_injected_function(decorator_factory)
 
         @wraps(function)
@@ -86,46 +85,44 @@ class Runner[**P, T]:
     ) -> Self:
         @contextmanager
         @wraps(function)
-        def decorator(*args: _P.args, **kwargs: _P.kwargs) -> Iterator[None]:
-            function(*args, **kwargs)
-            yield
+        def decorator(*args: _P.args, **kwargs: _P.kwargs) -> Iterator[Any]:
+            yield function(*args, **kwargs)
 
         return self.decorate_from_callable(decorator, inject=inject)
 
     def async_setup[**_P, _T](
-        self: AsyncRunner[P, _T],
+        self: AsyncEntrypoint[P, _T],
         function: Callable[_P, Awaitable[Any]],
         /,
         *,
         inject: bool = True,
-    ) -> AsyncRunner[P, _T]:
+    ) -> AsyncEntrypoint[P, _T]:
         @asynccontextmanager
         @wraps(function)
-        async def decorator(*args: _P.args, **kwargs: _P.kwargs) -> AsyncIterator[None]:
-            await function(*args, **kwargs)
-            yield
+        async def decorator(*args: _P.args, **kwargs: _P.kwargs) -> AsyncIterator[Any]:
+            yield await function(*args, **kwargs)
 
         return self.decorate_from_callable(decorator, inject=inject)
 
     def __recreate[**_P, _T](
-        self: Runner[Any, Any],
+        self: Entrypoint[Any, Any],
         function: Callable[_P, _T],
         /,
-    ) -> Runner[_P, _T]:
+    ) -> Entrypoint[_P, _T]:
         return type(self)(function, self.module)
 
     @classmethod
-    def builder[_T, *Args](
+    def make_decorator[_T, *Args](
         cls,
-        setup: Callable[[Self, *Args], Runner[P, _T]],
+        setup_method: Callable[[Self, *Args], Entrypoint[P, _T]],
         /,
         module: Module | None = None,
     ) -> Callable[[Callable[P, T]], Callable[P, _T]]:
         module = module or mod()
-        setup = module.make_injected_function(setup)
+        setup_method = module.make_injected_function(setup_method)
 
         def decorator(function: Callable[P, T]) -> Callable[P, _T]:
             self = cls(function, module)
-            return MethodType(setup, self)().function
+            return MethodType(setup_method, self)().function
 
         return decorator
