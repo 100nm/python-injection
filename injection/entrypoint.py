@@ -46,25 +46,6 @@ class Entrypoint[**P, T]:
     ) -> Self:
         return self.__recreate(decorator(self.function))
 
-    def decorate_from_callable(
-        self,
-        decorator_factory: Callable[..., Callable[[Callable[P, T]], Callable[P, T]]],
-        /,
-        *,
-        inject: bool = True,
-    ) -> Self:
-        if not inject:
-            return self.decorate(decorator_factory())
-
-        function = self.function
-        decorator_factory = self.module.make_injected_function(decorator_factory)
-
-        @wraps(function)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            return decorator_factory()(function)(*args, **kwargs)
-
-        return self.__recreate(wrapper)
-
     def inject(self) -> Self:
         return self.decorate(self.module.make_injected_function)
 
@@ -74,35 +55,25 @@ class Entrypoint[**P, T]:
         loader: PythonModuleLoader,
         *packages: PythonModule | str,
     ) -> Self:
-        return self.setup(lambda: loader.load(*packages), inject=False)
+        return self.setup(lambda: loader.load(*packages))
 
-    def setup[**_P](
-        self,
-        function: Callable[_P, Any],
-        /,
-        *,
-        inject: bool = True,
-    ) -> Self:
+    def setup(self, function: Callable[..., Any], /) -> Self:
         @contextmanager
-        @wraps(function)
-        def decorator(*args: _P.args, **kwargs: _P.kwargs) -> Iterator[Any]:
-            yield function(*args, **kwargs)
+        def decorator() -> Iterator[Any]:
+            yield function()
 
-        return self.decorate_from_callable(decorator, inject=inject)
+        return self.decorate(decorator())
 
-    def async_setup[**_P, _T](
+    def async_setup[_T](
         self: AsyncEntrypoint[P, _T],
-        function: Callable[_P, Awaitable[Any]],
+        function: Callable[..., Awaitable[Any]],
         /,
-        *,
-        inject: bool = True,
     ) -> AsyncEntrypoint[P, _T]:
         @asynccontextmanager
-        @wraps(function)
-        async def decorator(*args: _P.args, **kwargs: _P.kwargs) -> AsyncIterator[Any]:
-            yield await function(*args, **kwargs)
+        async def decorator() -> AsyncIterator[Any]:
+            yield await function()
 
-        return self.decorate_from_callable(decorator, inject=inject)
+        return self.decorate(decorator())
 
     def __recreate[**_P, _T](
         self: Entrypoint[Any, Any],
