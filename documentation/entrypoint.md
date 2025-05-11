@@ -2,25 +2,23 @@
 
 ## What is it?
 
-_The entrypoint refers to the first function executed by the software._
+_An entrypoint is the first function executed when a software component starts._
 
-Using `python-injection`, you may need to do several things at each entrypoint _(inject dependencies, open a scope or
-even import Python modules)_.
+When using `python-injection`, you often need to perform several setup actions at the entrypoint _(such as injecting
+dependencies, opening a scope, or importing Python modules)_.
 
-To solve this problem, the package contains an `Entrypoint` class, a builder that simplifies the preparation of an
-entrypoint.
+To solve this problem, the package provides an `Entrypoint` class, a builder-style utility that simplifies
+entrypoint preparation.
 
-## Create an entrypoint decorator
+## Creating an entrypoint decorator
 
-`Entrypoint.make_decorator` is a decorator for creating a decorator for an entrypoint function.
+`Entrypoint.make_decorator` allows you to define a custom decorator for your entrypoint functions.
 
-The decorate function is the method used to set up the `Entrypoint` object. The first parameter of the function is the
-`Entrypoint` instance that will be built when the entrypoint function is decorated. It's possible to inject dependencies
-into the setup method, but beware: at this stage, not everything can be configured, so make sure you only use
-`injectables` or `constants`.
+The function you decorate with `make_decorator` serves to configure the `Entrypoint` instance. Its first parameter must
+be the `Entrypoint` instance being built. You can inject dependencies into this setup function, but **only** `constants`
+or `injectables`, because everything is not yet fully configured at this stage.
 
-**The order of instructions matters**: internally, each builder instruction applies a decorator to the entrypoint
-function and recreates an `Entrypoint` instance.
+**Instruction order matters**: each configuration step applies a decorator and returns a new `Entrypoint` instance.
 
 ```python
 # src/entrypoint.py
@@ -46,8 +44,8 @@ def entrypoint[**P, T](self: AsyncEntrypoint[P, T]) -> Entrypoint[P, T]:
 > [!IMPORTANT]
 > **Typing rule**
 > 
-> If you want to create a decorator for async entrypoints, it's important to annotate `self` with `AsyncEntrypoint`,
-> otherwise just use `Entrypoint`.
+> When creating a decorator for async entrypoints, make sure to type `self` as `AsyncEntrypoint`. 
+> For sync code, use `Entrypoint` instead.
 
 ## Example of use
 
