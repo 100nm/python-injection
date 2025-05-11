@@ -136,7 +136,7 @@ classes.
 
 > [!WARNING]
 > If the child class is in another file, make sure that file is imported before injection.
-> [_See `load_packages` function._](utils.md#load_packages)
+> [_See `load_packages` function._](loaders.md#load_packages)
 
 _Example with one class:_
 

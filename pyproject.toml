@@ -13,6 +13,11 @@ dev = [
     "mypy",
     "ruff",
 ]
+doc = [
+    "fastapi",
+    "typer",
+    "uvloop",
+]
 test = [
     "fastapi",
     "httpx",
@@ -119,5 +124,5 @@ ignore = ["N818"]
 fixable = ["ALL"]
 
 [tool.uv]
-default-groups = ["bench", "dev", "test"]
+default-groups = ["bench", "dev", "doc", "test"]
 package = true
