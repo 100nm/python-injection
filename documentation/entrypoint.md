@@ -12,9 +12,9 @@ entrypoint preparation.
 
 ## Creating an entrypoint decorator
 
-`Entrypoint.make_decorator` allows you to define a custom decorator for your entrypoint functions.
+`entrypoint_maker` allows you to define a custom decorator for your entrypoint functions.
 
-The function you decorate with `make_decorator` serves to configure the `Entrypoint` instance. Its first parameter must
+The function you decorate with `entrypoint_maker` serves to configure the `Entrypoint` instance. Its first parameter must
 be the `Entrypoint` instance being built. You can inject dependencies into this setup function, but **only** `constants`
 or `injectables`, because everything is not yet fully configured at this stage.
 
@@ -25,10 +25,10 @@ or `injectables`, because everything is not yet fully configured at this stage.
 
 import uvloop
 from injection import adefine_scope
-from injection.entrypoint import AsyncEntrypoint, Entrypoint
+from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypoint_maker
 from injection.loaders import PythonModuleLoader
 
-@Entrypoint.make_decorator
+@entrypoint_maker
 def entrypoint[**P, T](self: AsyncEntrypoint[P, T]) -> Entrypoint[P, T]:
     import src
     
@@ -54,6 +54,7 @@ Developing a CLI is a good example of using multiple entrypoints:
 ```python
 # src/cli.py
 
+from injection.entrypoint import autocall
 from typer import Typer
 
 from src.entrypoint import entrypoint
@@ -63,19 +64,17 @@ app = Typer()
 
 @app.command()
 def hello(name: str) -> None:
+    @autocall   # allows automatically calling the function
     @entrypoint
-    async def main(logger: AsyncLogger) -> None:
+    async def _(logger: AsyncLogger) -> None:
         await logger.info(f"Hello {name}!")
-
-    main()
     
 @app.command()
 def goodbye(name: str) -> None:
+    @autocall
     @entrypoint
-    async def main(logger: AsyncLogger) -> None:
+    async def _(logger: AsyncLogger) -> None:
         await logger.info(f"Goodbye {name}!")
-        
-    main()
 
 if __name__ == "__main__":
     app()

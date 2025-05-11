@@ -7,14 +7,62 @@ from dataclasses import dataclass, field
 from functools import wraps
 from types import MethodType
 from types import ModuleType as PythonModule
-from typing import Any, Self, final
+from typing import Any, Self, final, overload
 
 from injection import Module, mod
 from injection.loaders import PythonModuleLoader
 
-__all__ = ("AsyncEntrypoint", "Entrypoint")
+__all__ = ("AsyncEntrypoint", "Entrypoint", "autocall", "entrypoint_maker")
 
 type AsyncEntrypoint[**P, T] = Entrypoint[P, Coroutine[Any, Any, T]]
+type EntrypointDecorator[**P, T1, T2] = Callable[[Callable[P, T1]], Callable[P, T2]]
+type EntrypointSetupMethod[*Ts, **P, T1, T2] = Callable[
+    [Entrypoint[P, T1], *Ts],
+    Entrypoint[P, T2],
+]
+
+
+def autocall[**P, T](wrapped: Callable[P, T] | None = None, /) -> Any:
+    def decorator(wp: Callable[P, T]) -> Callable[P, T]:
+        wp()  # type: ignore[call-arg]
+        return wp
+
+    return decorator(wrapped) if wrapped else decorator
+
+
+@overload
+def entrypoint_maker[*Ts, **P, T1, T2](
+    wrapped: EntrypointSetupMethod[*Ts, P, T1, T2],
+    /,
+    *,
+    module: Module | None = ...,
+) -> EntrypointDecorator[P, T1, T2]: ...
+
+
+@overload
+def entrypoint_maker[*Ts, **P, T1, T2](
+    wrapped: None = ...,
+    /,
+    *,
+    module: Module | None = ...,
+) -> Callable[
+    [EntrypointSetupMethod[*Ts, P, T1, T2]],
+    EntrypointDecorator[P, T1, T2],
+]: ...
+
+
+def entrypoint_maker[*Ts, **P, T1, T2](
+    wrapped: EntrypointSetupMethod[*Ts, P, T1, T2] | None = None,
+    /,
+    *,
+    module: Module | None = None,
+) -> Any:
+    def decorator(
+        wp: EntrypointSetupMethod[*Ts, P, T1, T2],
+    ) -> EntrypointDecorator[P, T1, T2]:
+        return Entrypoint._make_decorator(wp, module)
+
+    return decorator(wrapped) if wrapped else decorator
 
 
 @final
@@ -83,12 +131,12 @@ class Entrypoint[**P, T]:
         return type(self)(function, self.module)
 
     @classmethod
-    def make_decorator[_T, *Args](
+    def _make_decorator[*Ts, _T](
         cls,
-        setup_method: Callable[[Self, *Args], Entrypoint[P, _T]],
+        setup_method: EntrypointSetupMethod[*Ts, P, T, _T],
         /,
         module: Module | None = None,
-    ) -> Callable[[Callable[P, T]], Callable[P, _T]]:
+    ) -> EntrypointDecorator[P, T, _T]:
         module = module or mod()
         setup_method = module.make_injected_function(setup_method)
 
