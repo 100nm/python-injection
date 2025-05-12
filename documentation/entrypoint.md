@@ -12,9 +12,9 @@ entrypoint preparation.
 
 ## Creating an entrypoint decorator
 
-`entrypoint_maker` allows you to define a custom decorator for your entrypoint functions.
+`entrypointmaker` allows you to define a custom decorator for your entrypoint functions.
 
-The function you decorate with `entrypoint_maker` serves to configure the `Entrypoint` instance. Its first parameter must
+The function you decorate with `entrypointmaker` serves to configure the `Entrypoint` instance. Its first parameter must
 be the `Entrypoint` instance being built. You can inject dependencies into this setup function, but **only** `constants`
 or `injectables`, because everything is not yet fully configured at this stage.
 
