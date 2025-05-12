@@ -31,7 +31,8 @@ test = [
 name = "python-injection"
 version = "0.0.0"
 description = "Fast and easy dependency injection framework."
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12, <4"
 authors = [{ name = "remimd" }]
