@@ -35,7 +35,7 @@ def entrypointmaker[*Ts, **P, T1, T2](
     wrapped: EntrypointSetupMethod[*Ts, P, T1, T2],
     /,
     *,
-    module: Module | None = ...,
+    module: Module = ...,
 ) -> EntrypointDecorator[P, T1, T2]: ...
 
 
@@ -44,7 +44,7 @@ def entrypointmaker[*Ts, **P, T1, T2](
     wrapped: None = ...,
     /,
     *,
-    module: Module | None = ...,
+    module: Module = ...,
 ) -> Callable[
     [EntrypointSetupMethod[*Ts, P, T1, T2]],
     EntrypointDecorator[P, T1, T2],
