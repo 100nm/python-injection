@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from injection import injectable
+from injection import injectable, mod
 from injection.entrypoint import Entrypoint
 
 
@@ -39,6 +39,18 @@ class TestEntrypoint:
             return isinstance(service, Service)
 
         entrypoint = Entrypoint(function).inject()
+        assert entrypoint()
+
+    def test_load_profile_with_success_return_entrypoint(self):
+        profile_name = "test"
+
+        @mod(profile_name).injectable
+        class Service: ...
+
+        def function(service: Service) -> bool:
+            return isinstance(service, Service)
+
+        entrypoint = Entrypoint(function).inject().load_profile(profile_name)
         assert entrypoint()
 
     def test_setup_with_success_return_entrypoint(self):

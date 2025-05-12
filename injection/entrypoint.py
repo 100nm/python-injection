@@ -105,6 +105,14 @@ class Entrypoint[**P, T]:
     ) -> Self:
         return self.setup(lambda: loader.load(*packages))
 
+    def load_profile(self, /, *names: str) -> Self:
+        @contextmanager
+        def decorator(module: Module) -> Iterator[None]:
+            with module.load_profile(*names):
+                yield
+
+        return self.decorate(decorator(self.module))
+
     def setup(self, function: Callable[..., Any], /) -> Self:
         @contextmanager
         def decorator() -> Iterator[Any]:
