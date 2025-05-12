@@ -25,13 +25,13 @@ or `injectables`, because everything is not yet fully configured at this stage.
 
 import uvloop
 from injection import adefine_scope
-from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypoint_maker
+from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypointmaker
 from injection.loaders import PythonModuleLoader
 
-@entrypoint_maker
+@entrypointmaker
 def entrypoint[**P, T](self: AsyncEntrypoint[P, T]) -> Entrypoint[P, T]:
     import src
-    
+
     loader = PythonModuleLoader.from_keywords("# Auto-import")
     return (
         self.inject()

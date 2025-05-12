@@ -12,7 +12,7 @@ from typing import Any, Self, final, overload
 from injection import Module, mod
 from injection.loaders import PythonModuleLoader
 
-__all__ = ("AsyncEntrypoint", "Entrypoint", "autocall", "entrypoint_maker")
+__all__ = ("AsyncEntrypoint", "Entrypoint", "autocall", "entrypointmaker")
 
 type AsyncEntrypoint[**P, T] = Entrypoint[P, Coroutine[Any, Any, T]]
 type EntrypointDecorator[**P, T1, T2] = Callable[[Callable[P, T1]], Callable[P, T2]]
@@ -31,7 +31,7 @@ def autocall[**P, T](wrapped: Callable[P, T] | None = None, /) -> Any:
 
 
 @overload
-def entrypoint_maker[*Ts, **P, T1, T2](
+def entrypointmaker[*Ts, **P, T1, T2](
     wrapped: EntrypointSetupMethod[*Ts, P, T1, T2],
     /,
     *,
@@ -40,7 +40,7 @@ def entrypoint_maker[*Ts, **P, T1, T2](
 
 
 @overload
-def entrypoint_maker[*Ts, **P, T1, T2](
+def entrypointmaker[*Ts, **P, T1, T2](
     wrapped: None = ...,
     /,
     *,
@@ -51,7 +51,7 @@ def entrypoint_maker[*Ts, **P, T1, T2](
 ]: ...
 
 
-def entrypoint_maker[*Ts, **P, T1, T2](
+def entrypointmaker[*Ts, **P, T1, T2](
     wrapped: EntrypointSetupMethod[*Ts, P, T1, T2] | None = None,
     /,
     *,
