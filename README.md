@@ -62,6 +62,7 @@ if __name__ == "__main__":
 * [**Scoped dependencies**](https://github.com/100nm/python-injection/tree/prod/documentation/scoped-dependencies.md)
 * [**Testing**](https://github.com/100nm/python-injection/tree/prod/documentation/testing.md)
 * [**Advanced usage**](https://github.com/100nm/python-injection/tree/prod/documentation/advanced-usage.md)
-* [**Utils**](https://github.com/100nm/python-injection/tree/prod/documentation/utils.md)
+* [**Loaders**](https://github.com/100nm/python-injection/tree/prod/documentation/loaders.md)
+* [**Entrypoint**](https://github.com/100nm/python-injection/tree/prod/documentation/entrypoint.md)
 * [**Integrations**](https://github.com/100nm/python-injection/tree/prod/documentation/integrations.md)
 * [**Concrete example**](https://github.com/100nm/python-injection-example)

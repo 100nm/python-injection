@@ -57,7 +57,7 @@ class PythonModuleLoader:
 
     def load(self, *packages: PythonModule | str) -> Self:
         modules = itertools.chain.from_iterable(
-            self.__iter_modules(package) for package in packages
+            self.__iter_modules_from(package) for package in packages
         )
         self.__modules.update(modules)
         return self
@@ -67,7 +67,7 @@ class PythonModuleLoader:
             module_name in modules for modules in (self.__modules, self._sys_modules)
         )
 
-    def __iter_modules(
+    def __iter_modules_from(
         self,
         package: PythonModule | str,
     ) -> Iterator[tuple[str, PythonModule | None]]:
