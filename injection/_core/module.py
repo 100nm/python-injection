@@ -816,11 +816,11 @@ class Module(Broker, EventListener):
         self.unlock().init_modules(*modules)
 
         @contextmanager
-        def cleaner() -> Iterator[Self]:
+        def unload() -> Iterator[Self]:
             yield self
             self.unlock().init_modules()
 
-        return cleaner()
+        return unload()
 
     async def all_ready(self) -> None:
         for broker in self.__brokers:
