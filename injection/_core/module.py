@@ -156,12 +156,6 @@ class ModulePriorityUpdated(ModuleEvent):
         )
 
 
-@dataclass(frozen=True, slots=True)
-class UnlockCalled(Event):
-    def __str__(self) -> str:
-        return "An `unlock` method has been called."
-
-
 """
 Broker
 """
@@ -808,11 +802,8 @@ class Module(Broker, EventListener):
         return self
 
     def unlock(self) -> Self:
-        event = UnlockCalled()
-
-        with self.dispatch(event, lock_bypass=True):
-            for broker in self.__brokers:
-                broker.unlock()
+        for broker in self.__brokers:
+            broker.unlock()
 
         return self
 
@@ -848,9 +839,8 @@ class Module(Broker, EventListener):
         return self.dispatch(self_event)
 
     @contextmanager
-    def dispatch(self, event: Event, *, lock_bypass: bool = False) -> Iterator[None]:
-        if not lock_bypass:
-            self.__check_locking()
+    def dispatch(self, event: Event) -> Iterator[None]:
+        self.__check_locking()
 
         with self.__channel.dispatch(event):
             try:
