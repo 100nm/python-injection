@@ -422,8 +422,6 @@ class TestModule:
         assert a is not module.get_instance(A)
         assert b is not module.get_instance(B)
 
-    # TODO: not yet implemented
-    @pytest.mark.skip
     def test_unlock_with_module_in_use_raise_module_lock_error(self, module):
         second_module = Module()
         module.use(second_module)
