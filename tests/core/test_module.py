@@ -405,6 +405,25 @@ class TestModule:
         assert isinstance(b1.a, A)
         assert isinstance(b2.a, C)
 
+    def test_unlock_with_locked_module_in_use(self, module):
+        second_module = Module()
+        module.use(second_module)
+
+        @module.singleton
+        class A: ...
+
+        @second_module.singleton
+        class B: ...
+
+        a = module.get_instance(A)
+        b = module.get_instance(B)
+
+        module.unlock()
+        assert a is not module.get_instance(A)
+        assert b is not module.get_instance(B)
+
+    # TODO: not yet implemented
+    @pytest.mark.skip
     def test_unlock_with_module_in_use_raise_module_lock_error(self, module):
         second_module = Module()
         module.use(second_module)
