@@ -817,11 +817,7 @@ class Module(Broker, EventListener):
         return self
 
     def load_profile(self, *names: str) -> ContextManager[Self]:
-        modules = tuple(self.from_name(name) for name in names)
-
-        for module in modules:
-            module.unlock()
-
+        modules = (self.from_name(name) for name in names)
         self.unlock().init_modules(*modules)
 
         @contextmanager
