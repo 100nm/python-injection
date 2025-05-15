@@ -405,6 +405,22 @@ class TestModule:
         assert isinstance(b1.a, A)
         assert isinstance(b2.a, C)
 
+    def test_unlock_with_module_in_use_raise_module_lock_error(self, module):
+        second_module = Module()
+        module.use(second_module)
+
+        @module.singleton
+        class A: ...
+
+        @second_module.singleton
+        class B: ...
+
+        module.get_instance(A)
+        second_module.get_instance(B)
+
+        with pytest.raises(ModuleLockError):
+            second_module.unlock()
+
     def test_unlock_with_scoped_dependency(self, module):
         @module.scoped("test")
         class Dependency: ...
