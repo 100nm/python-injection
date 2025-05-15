@@ -156,6 +156,12 @@ class ModulePriorityUpdated(ModuleEvent):
         )
 
 
+@dataclass(frozen=True, slots=True)
+class UnlockCalled(Event):
+    def __str__(self) -> str:
+        return "An `unlock` method has been called."
+
+
 """
 Broker
 """
@@ -179,7 +185,7 @@ class Broker(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def unlock(self) -> Self:
+    def unsafe_unlocking(self) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -289,11 +295,9 @@ class Locator(Broker):
 
         return self
 
-    def unlock(self) -> Self:
+    def unsafe_unlocking(self) -> None:
         for injectable in self.__injectables:
             injectable.unlock()
-
-        return self
 
     async def all_ready(self) -> None:
         for injectable in self.__injectables:
@@ -802,10 +806,16 @@ class Module(Broker, EventListener):
         return self
 
     def unlock(self) -> Self:
-        for broker in self.__brokers:
-            broker.unlock()
+        event = UnlockCalled()
+
+        with self.dispatch(event, lock_bypass=True):
+            self.unsafe_unlocking()
 
         return self
+
+    def unsafe_unlocking(self) -> None:
+        for broker in self.__brokers:
+            broker.unsafe_unlocking()
 
     def load_profile(self, *names: str) -> ContextManager[Self]:
         modules = (self.from_name(name) for name in names)
@@ -839,8 +849,9 @@ class Module(Broker, EventListener):
         return self.dispatch(self_event)
 
     @contextmanager
-    def dispatch(self, event: Event) -> Iterator[None]:
-        self.__check_locking()
+    def dispatch(self, event: Event, *, lock_bypass: bool = False) -> Iterator[None]:
+        if not lock_bypass:
+            self.__check_locking()
 
         with self.__channel.dispatch(event):
             try:
