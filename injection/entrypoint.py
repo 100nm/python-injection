@@ -153,7 +153,9 @@ class Entrypoint[**P, T]:
         setup_method = profile_loader.module.make_injected_function(setup_method)
 
         def decorator(function: Callable[P, T]) -> Callable[P, _T]:
-            profile_loader.init()
+            if profile_loader.module_subsets:
+                profile_loader.init()
+
             self = cls(function, profile_loader)
             return MethodType(setup_method, self)().function
 
