@@ -1,6 +1,7 @@
-from typing import ContextManager, Final
+from typing import Final
 
 from injection import Module
+from injection.loaders import LoadedProfile, ProfileLoader
 
 __MODULE: Final[Module] = ...
 
@@ -12,7 +13,7 @@ test_injectable = __MODULE.injectable
 test_scoped = __MODULE.scoped
 test_singleton = __MODULE.singleton
 
-def load_test_profile(*names: str) -> ContextManager[Module]:
+def load_test_profile(loader: ProfileLoader = ...) -> LoadedProfile:
     """
-    Context manager or decorator for temporary use test module.
+    Context manager for temporary use test module.
     """

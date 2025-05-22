@@ -817,17 +817,6 @@ class Module(Broker, EventListener):
         for broker in self.__brokers:
             broker.unsafe_unlocking()
 
-    def load_profile(self, *names: str) -> ContextManager[Self]:
-        modules = (self.from_name(name) for name in names)
-        self.unlock().init_modules(*modules)
-
-        @contextmanager
-        def unload() -> Iterator[Self]:
-            yield self
-            self.unlock().init_modules()
-
-        return unload()
-
     async def all_ready(self) -> None:
         for broker in self.__brokers:
             await broker.all_ready()
