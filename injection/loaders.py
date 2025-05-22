@@ -141,28 +141,28 @@ class PythonModuleLoader:
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ProfileLoader:
-    dependencies: Mapping[str, Sequence[str]] = field(default=MappingProxyType({}))
+    module_subsets: Mapping[str, Sequence[str]] = field(default=MappingProxyType({}))
     module: Module = field(default_factory=mod, kw_only=True)
     __initialized_modules: set[str] = field(default_factory=set, init=False)
 
     def init(self) -> Self:
-        self.__init_module_dependencies(self.module)
+        self.__init_subsets_for(self.module)
         return self
 
     def load(self, name: str, /) -> LoadedProfile:
         self.init()
-        target_module = self.__init_module_dependencies(mod(name))
+        target_module = self.__init_subsets_for(mod(name))
         self.module.use(target_module, priority=Priority.HIGH)
         return _UserLoadedProfile(self, name)
 
     def _unload(self, name: str, /) -> None:
         self.module.unlock().stop_using(mod(name))
 
-    def __init_module_dependencies(self, module: Module) -> Module:
+    def __init_subsets_for(self, module: Module) -> Module:
         if not self.__is_initialized(module):
             target_modules = tuple(
-                self.__init_module_dependencies(mod(profile_name))
-                for profile_name in self.dependencies.get(module.name, ())
+                self.__init_subsets_for(mod(name))
+                for name in self.module_subsets.get(module.name, ())
             )
             module.unlock().init_modules(*target_modules)
             self.__mark_initialized(module)
