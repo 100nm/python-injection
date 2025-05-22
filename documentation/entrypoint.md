@@ -2,7 +2,7 @@
 
 ## What is it?
 
-_An entrypoint is the first function executed when a software component starts._
+_An entrypoint is the first function executed when software starts._
 
 When using `python-injection`, you often need to perform several setup actions at the entrypoint _(such as injecting
 dependencies, opening a scope, or importing Python modules)_.

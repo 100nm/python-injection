@@ -1,27 +1,27 @@
+from __future__ import annotations
+
 import itertools
 import sys
-from collections.abc import Callable, Iterator, Mapping
+from abc import abstractmethod
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib import import_module
 from importlib.util import find_spec
 from os.path import isfile
 from pkgutil import walk_packages
-from types import MappingProxyType
+from types import MappingProxyType, TracebackType
 from types import ModuleType as PythonModule
-from typing import ClassVar, ContextManager, Self
+from typing import ClassVar, Protocol, Self, runtime_checkable
 
-from injection import Module, mod
+from injection import Module, Priority, mod
 
-__all__ = ("PythonModuleLoader", "load_packages", "load_profile")
-
-
-def load_profile(*names: str) -> ContextManager[Module]:
-    """
-    Injection module initialization function based on profile name.
-    A profile name is equivalent to an injection module name.
-    """
-
-    return mod().load_profile(*names)
+__all__ = (
+    "LoadedProfile",
+    "ProfileLoader",
+    "PythonModuleLoader",
+    "load_packages",
+    "load_profile",
+)
 
 
 def load_packages(
@@ -34,6 +34,15 @@ def load_packages(
     """
 
     return PythonModuleLoader(predicate).load(*packages).modules
+
+
+def load_profile(name: str, /, loader: ProfileLoader | None = None) -> LoadedProfile:
+    """
+    Injection module initialization function based on a profile name.
+    A profile name is equivalent to an injection module name.
+    """
+
+    return (loader or ProfileLoader()).load(name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
@@ -128,3 +137,78 @@ class PythonModuleLoader:
             return any(script_name.endswith(suffix) for suffix in suffixes)
 
         return cls(predicate)
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class ProfileLoader:
+    dependencies: Mapping[str, Sequence[str]] = field(default=MappingProxyType({}))
+    module: Module = field(default_factory=mod, kw_only=True)
+    __initialized_modules: set[str] = field(default_factory=set, init=False)
+
+    def init(self) -> Self:
+        self.__init_module_dependencies(self.module)
+        return self
+
+    def load(self, name: str, /) -> LoadedProfile:
+        self.init()
+        target_module = self.__init_module_dependencies(mod(name))
+        self.module.use(target_module, priority=Priority.HIGH)
+        return _UserLoadedProfile(self, name)
+
+    def _unload(self, name: str, /) -> None:
+        self.module.unlock().stop_using(mod(name))
+
+    def __init_module_dependencies(self, module: Module) -> Module:
+        if not self.__is_initialized(module):
+            target_modules = tuple(
+                self.__init_module_dependencies(mod(profile_name))
+                for profile_name in self.dependencies.get(module.name, ())
+            )
+            module.unlock().init_modules(*target_modules)
+            self.__mark_initialized(module)
+
+        return module
+
+    def __is_initialized(self, module: Module) -> bool:
+        return module.name in self.__initialized_modules
+
+    def __mark_initialized(self, module: Module) -> None:
+        self.__initialized_modules.add(module.name)
+
+
+@runtime_checkable
+class LoadedProfile(Protocol):
+    __slots__ = ()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.unload()
+
+    @abstractmethod
+    def reload(self) -> Self:
+        raise NotImplementedError
+
+    @abstractmethod
+    def unload(self) -> Self:
+        raise NotImplementedError
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class _UserLoadedProfile(LoadedProfile):
+    loader: ProfileLoader
+    name: str
+
+    def reload(self) -> Self:
+        self.loader.load(self.name)
+        return self
+
+    def unload(self) -> Self:
+        self.loader._unload(self.name)
+        return self

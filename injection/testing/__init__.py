@@ -1,7 +1,7 @@
-from typing import ContextManager, Final
+from typing import Final
 
-from injection import Module, mod
-from injection.loaders import load_profile
+from injection import mod
+from injection.loaders import LoadedProfile, ProfileLoader, load_profile
 
 __all__ = (
     "load_test_profile",
@@ -25,5 +25,5 @@ test_scoped = mod(_TEST_PROFILE_NAME).scoped
 test_singleton = mod(_TEST_PROFILE_NAME).singleton
 
 
-def load_test_profile(*names: str) -> ContextManager[Module]:
-    return load_profile(_TEST_PROFILE_NAME, *names)
+def load_test_profile(loader: ProfileLoader | None = None) -> LoadedProfile:
+    return load_profile(_TEST_PROFILE_NAME, loader)
