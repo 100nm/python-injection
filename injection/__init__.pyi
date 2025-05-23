@@ -35,12 +35,14 @@ def adefine_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ...,
+    threadsafe: bool = ...,
 ) -> AsyncIterator[Scope]: ...
 @contextmanager
 def define_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ...,
+    threadsafe: bool = ...,
 ) -> Iterator[Scope]: ...
 def mod(name: str = ..., /) -> Module:
     """

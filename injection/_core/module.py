@@ -996,7 +996,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
 
     def __init__(self, wrapped: Callable[P, T], /, threadsafe: bool) -> None:
         self.__dependencies = Dependencies.empty()
-        self.__lock = threading.Lock() if threadsafe else nullcontext()
+        self.__lock = threading.RLock() if threadsafe else nullcontext()
         self.__owner = None
         self.__tasks = deque()
         self.__wrapped = wrapped
