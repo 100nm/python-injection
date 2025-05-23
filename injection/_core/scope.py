@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import itertools
+import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import AsyncIterator, Iterator, Mapping, MutableMapping
-from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
+from contextlib import (
+    AsyncExitStack,
+    ExitStack,
+    asynccontextmanager,
+    contextmanager,
+    nullcontext,
+)
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -129,9 +136,10 @@ async def adefine_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+    threadsafe: bool = False,
 ) -> AsyncIterator[ScopeFacade]:
     async with AsyncScope() as scope:
-        with _bind_scope(name, scope, kind) as facade:
+        with _bind_scope(name, scope, kind, threadsafe) as facade:
             yield facade
 
 
@@ -140,9 +148,10 @@ def define_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+    threadsafe: bool = False,
 ) -> Iterator[ScopeFacade]:
     with SyncScope() as scope:
-        with _bind_scope(name, scope, kind) as facade:
+        with _bind_scope(name, scope, kind, threadsafe) as facade:
             yield facade
 
 
@@ -191,26 +200,38 @@ def _bind_scope(
     name: str,
     scope: Scope,
     kind: ScopeKind | ScopeKindStr,
+    threadsafe: bool,
 ) -> Iterator[ScopeFacade]:
-    match ScopeKind(kind):
-        case ScopeKind.CONTEXTUAL:
-            is_already_defined = bool(get_scope(name, default=None))
-            states = __CONTEXTUAL_SCOPES
+    lock = threading.RLock() if threadsafe else nullcontext()
 
-        case ScopeKind.SHARED:
-            is_already_defined = bool(get_active_scopes(name))
-            states = __SHARED_SCOPES
+    with lock:
+        match ScopeKind(kind):
+            case ScopeKind.CONTEXTUAL:
+                is_already_defined = bool(get_scope(name, default=None))
+                states = __CONTEXTUAL_SCOPES
 
-        case _:
-            raise NotImplementedError
+            case ScopeKind.SHARED:
+                is_already_defined = bool(get_active_scopes(name))
+                states = __SHARED_SCOPES
 
-    if is_already_defined:
-        raise ScopeAlreadyDefinedError(
-            f"Scope `{name}` is already defined in the current context."
-        )
+            case _:
+                raise NotImplementedError
 
-    with states[name].bind(scope):
+        if is_already_defined:
+            raise ScopeAlreadyDefinedError(
+                f"Scope `{name}` is already defined in the current context."
+            )
+
+        stack = ExitStack()
+        binder = states[name].bind(scope)
+        stack.enter_context(binder)
+
+    try:
         yield _UserScope(scope)
+
+    finally:
+        with lock:
+            stack.close()
 
 
 @runtime_checkable
