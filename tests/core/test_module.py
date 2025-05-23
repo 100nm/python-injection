@@ -339,6 +339,23 @@ class TestModule:
         some_function()
         event_history.assert_length(2)
 
+    def test_use_temporarily_with_unlock(self, module):
+        second_module = Module()
+
+        @module.singleton
+        class A: ...
+
+        with pytest.raises(ModuleLockError):
+            with module.use_temporarily(second_module):
+                module.find_instance(A)
+
+        # Cleaning
+        module.unlock().stop_using(second_module)
+
+        # Ensure there are no errors
+        with module.use_temporarily(second_module, unlock=True):
+            module.find_instance(A)
+
     """
     change_priority
     """

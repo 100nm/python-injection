@@ -123,3 +123,43 @@ def main(profile_name: str = None, /):
 if __name__ == "__main__":
     main("dev")  # One could imagine the profile name being transmitted via an environment variable or CLI parameter
 ```
+
+## ProfileLoader
+
+_This is a slightly more complete version of `load_profile`._
+
+If you use modules as subsets of dependencies, this class will make your life easier.
+
+It is recommended to use a single instance of `ProfileLoader` to avoid unexpected behavior. If it exists, this instance
+must be passed to `entrypointmaker` and `load_test_profile`.
+
+Here's an example of its use:
+
+```python
+from injection import mod
+from injection.loaders import ProfileLoader
+
+profile_loader = ProfileLoader(
+    {
+        mod().name: ["global"],
+        "dev": ["stub", "global"],
+        "test": ["stub", "global"],
+        "stub": ["global"]
+    }
+)
+
+# Ensures that dependent modules are used properly.
+# If `init` isn't called, it will be automatically called with `load`.
+profile_loader.init()
+
+# Load `dev` profile.
+profile_loader.load("dev")
+```
+
+> [!NOTE]
+> `load` can also be used as a context manager:
+>
+> ```python
+> with profile_loader.load("<profile-name>"):
+>     ...
+> ```

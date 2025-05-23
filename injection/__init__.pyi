@@ -320,6 +320,7 @@ class Module:
         module: Module,
         *,
         priority: Priority | PriorityStr = ...,
+        unlock: bool = ...,
     ) -> Iterator[Self]:
         """
         Context manager or decorator for temporary use of a module.

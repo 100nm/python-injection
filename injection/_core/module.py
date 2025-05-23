@@ -788,12 +788,16 @@ class Module(Broker, EventListener):
         module: Module,
         *,
         priority: Priority | PriorityStr = Priority.get_default(),
+        unlock: bool = False,
     ) -> Iterator[Self]:
         self.use(module, priority=priority)
 
         try:
             yield self
         finally:
+            if unlock:
+                self.unlock()
+
             self.stop_using(module)
 
     def change_priority(self, module: Module, priority: Priority | PriorityStr) -> Self:

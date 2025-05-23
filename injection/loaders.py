@@ -145,6 +145,10 @@ class ProfileLoader:
     module: Module = field(default_factory=mod, kw_only=True)
     __initialized_modules: set[str] = field(default_factory=set, init=False)
 
+    @property
+    def __is_empty(self) -> bool:
+        return not self.module_subsets
+
     def init(self) -> Self:
         self.__init_subsets_for(self.module)
         return self
@@ -159,12 +163,12 @@ class ProfileLoader:
         self.module.unlock().stop_using(mod(name))
 
     def __init_subsets_for(self, module: Module) -> Module:
-        if not self.__is_initialized(module):
+        if not self.__is_empty and not self.__is_initialized(module):
             target_modules = tuple(
                 self.__init_subsets_for(mod(name))
                 for name in self.module_subsets.get(module.name, ())
             )
-            module.unlock().init_modules(*target_modules)
+            module.init_modules(*target_modules)
             self.__mark_initialized(module)
 
         return module
