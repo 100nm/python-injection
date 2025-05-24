@@ -223,11 +223,10 @@ def _bind_scope(
             )
 
         stack = ExitStack()
-        binder = states[name].bind(scope)
-        stack.enter_context(binder)
+        stack.enter_context(states[name].bind(scope))
 
     try:
-        yield _UserScope(scope)
+        yield _UserScope(scope, lock)
 
     finally:
         with lock:
@@ -325,6 +324,7 @@ class ScopeFacade(Protocol):
 @dataclass(repr=False, frozen=True, slots=True)
 class _UserScope(ScopeFacade):
     scope: Scope
+    lock: ContextManager[Any]
 
     def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
         return self.slot_map({key: value})
@@ -332,9 +332,11 @@ class _UserScope(ScopeFacade):
     def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self:
         cache = self.scope.cache
 
-        for slot_key in mapping:
-            if slot_key in cache:
-                raise InjectionError("Slot already set.")
+        with self.lock:
+            for slot_key in mapping:
+                if slot_key in cache:
+                    raise InjectionError("Slot already set.")
 
-        cache.update(mapping)
+            cache.update(mapping)
+
         return self
