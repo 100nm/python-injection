@@ -16,9 +16,15 @@ class FastAPIInject:
         cls: type[T] | TypeAliasType | GenericAlias,
         /,
         default: T = NotImplemented,
+        *,
         module: Module | None = None,
+        threadsafe: bool = False,
     ) -> Any:
-        ainstance = (module or mod()).aget_lazy_instance(cls, default)
+        ainstance = (module or mod()).aget_lazy_instance(
+            cls,
+            default,
+            threadsafe=threadsafe,
+        )
 
         async def dependency() -> T:
             return await ainstance

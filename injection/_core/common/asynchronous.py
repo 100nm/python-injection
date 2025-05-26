@@ -52,6 +52,7 @@ try:
 
     def create_semaphore(value: int) -> AsyncContextManager[Any]:
         return anyio.Semaphore(value)
+
 except ImportError:  # pragma: no cover
     import asyncio
 

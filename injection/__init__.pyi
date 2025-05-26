@@ -217,8 +217,13 @@ class Module:
         /,
         threadsafe: bool = ...,
     ) -> Callable[..., Awaitable[T]]: ...
-    async def afind_instance[T](self, cls: _InputType[T]) -> T: ...
-    def find_instance[T](self, cls: _InputType[T]) -> T:
+    async def afind_instance[T](
+        self,
+        cls: _InputType[T],
+        *,
+        threadsafe: bool = ...,
+    ) -> T: ...
+    def find_instance[T](self, cls: _InputType[T], *, threadsafe: bool = ...) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.
@@ -229,18 +234,24 @@ class Module:
         self,
         cls: _InputType[T],
         default: Default,
+        *,
+        threadsafe: bool = ...,
     ) -> T | Default: ...
     @overload
     async def aget_instance[T](
         self,
         cls: _InputType[T],
         default: None = ...,
+        *,
+        threadsafe: bool = ...,
     ) -> T | None: ...
     @overload
     def get_instance[T, Default](
         self,
         cls: _InputType[T],
         default: Default,
+        *,
+        threadsafe: bool = ...,
     ) -> T | Default:
         """
         Function used to retrieve an instance associated with the type passed in
@@ -252,6 +263,8 @@ class Module:
         self,
         cls: _InputType[T],
         default: None = ...,
+        *,
+        threadsafe: bool = ...,
     ) -> T | None: ...
     @overload
     def aget_lazy_instance[T, Default](
@@ -259,7 +272,7 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        cache: bool = ...,
+        threadsafe: bool = ...,
     ) -> Awaitable[T | Default]: ...
     @overload
     def aget_lazy_instance[T](
@@ -267,7 +280,7 @@ class Module:
         cls: _InputType[T],
         default: None = ...,
         *,
-        cache: bool = ...,
+        threadsafe: bool = ...,
     ) -> Awaitable[T | None]: ...
     @overload
     def get_lazy_instance[T, Default](
@@ -275,13 +288,12 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        cache: bool = ...,
+        threadsafe: bool = ...,
     ) -> _Invertible[T | Default]:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or `None`. Return a `Invertible` object. To access the instance
         contained in an invertible object, simply use a wavy line (~).
-        With `cache=True`, the instance retrieved will always be the same.
 
         Example: instance = ~lazy_instance
         """
@@ -292,7 +304,7 @@ class Module:
         cls: _InputType[T],
         default: None = ...,
         *,
-        cache: bool = ...,
+        threadsafe: bool = ...,
     ) -> _Invertible[T | None]: ...
     def init_modules(self, *modules: Module) -> Self:
         """

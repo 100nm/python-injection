@@ -1,17 +1,10 @@
 from __future__ import annotations
 
 import itertools
-import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import AsyncIterator, Iterator, Mapping, MutableMapping
-from contextlib import (
-    AsyncExitStack,
-    ExitStack,
-    asynccontextmanager,
-    contextmanager,
-    nullcontext,
-)
+from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -30,6 +23,7 @@ from typing import (
 )
 
 from injection._core.common.key import new_short_key
+from injection._core.common.threading import get_lock
 from injection._core.slots import SlotKey
 from injection.exceptions import (
     InjectionError,
@@ -202,7 +196,7 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool,
 ) -> Iterator[ScopeFacade]:
-    lock = threading.RLock() if threadsafe else nullcontext()
+    lock = get_lock(threadsafe)
 
     with lock:
         match ScopeKind(kind):

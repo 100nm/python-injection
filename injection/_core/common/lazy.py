@@ -1,7 +1,6 @@
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import Callable, Iterator
 from functools import partial
 
-from injection._core.common.asynchronous import SimpleAwaitable
 from injection._core.common.invertible import Invertible, SimpleInvertible
 
 
@@ -16,19 +15,6 @@ def lazy[T](factory: Callable[..., T]) -> Invertible[T]:
 
     getter = partial(next, cache())
     return SimpleInvertible(getter)
-
-
-def alazy[T](factory: Callable[..., Awaitable[T]]) -> Awaitable[T]:
-    async def cache() -> AsyncIterator[T]:
-        nonlocal factory
-        value = await factory()
-        del factory
-
-        while True:
-            yield value
-
-    getter = partial(anext, cache())
-    return SimpleAwaitable(getter)
 
 
 class Lazy[T](Invertible[T]):

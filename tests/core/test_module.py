@@ -130,17 +130,6 @@ class TestModule:
         assert isinstance(instance2, A)
         assert instance1 is not instance2
 
-    async def test_aget_lazy_instance_with_cache_return_lazy_instance(self, module):
-        @module.injectable
-        class A: ...
-
-        lazy_instance = module.aget_lazy_instance(A, cache=True)
-        instance1 = await lazy_instance
-        instance2 = await lazy_instance
-        assert isinstance(instance1, A)
-        assert isinstance(instance2, A)
-        assert instance1 is instance2
-
     async def test_aget_lazy_instance_with_no_injectable_return_lazy_none(self, module):
         lazy_instance = module.aget_lazy_instance(SomeClass)
         assert await lazy_instance is None
@@ -159,17 +148,6 @@ class TestModule:
         assert isinstance(instance1, A)
         assert isinstance(instance2, A)
         assert instance1 is not instance2
-
-    def test_get_lazy_instance_with_cache_return_lazy_instance(self, module):
-        @module.injectable
-        class A: ...
-
-        lazy_instance = module.get_lazy_instance(A, cache=True)
-        instance1 = ~lazy_instance
-        instance2 = ~lazy_instance
-        assert isinstance(instance1, A)
-        assert isinstance(instance2, A)
-        assert instance1 is instance2
 
     def test_get_lazy_instance_with_no_injectable_return_lazy_none(self, module):
         lazy_instance = module.get_lazy_instance(SomeClass)
