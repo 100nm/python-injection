@@ -78,7 +78,9 @@ class LazyInstance[T]:
         cls: _InputType[T],
         /,
         default: T = ...,
+        *,
         module: Module = ...,
+        threadsafe: bool = ...,
     ) -> None: ...
     @overload
     def __get__(self, instance: object, owner: type | None = ...) -> T: ...
@@ -292,8 +294,8 @@ class Module:
     ) -> _Invertible[T | Default]:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or `NotImplemented`. Return a `Invertible` object. To access the instance
-        contained in an invertible object, simply use a wavy line (~).
+        parameter or `NotImplemented`. Return an `Invertible` object. To access the
+        instance contained in an invertible object, simply use a wavy line (~).
 
         Example: instance = ~lazy_instance
         """

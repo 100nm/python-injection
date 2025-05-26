@@ -83,7 +83,7 @@ class SomeDataClass:
 
 ### Threadsafe injection
 
-With `threadsafe=True`, the injection logic is wrapped in a `threading.Lock`.
+With `threadsafe=True`, the injection logic is wrapped in a `threading.RLock`.
 
 ```python
 @inject(threadsafe=True)
