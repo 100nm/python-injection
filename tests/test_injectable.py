@@ -63,7 +63,7 @@ class TestInjectable:
         def recipe():
             return SomeClass()  # pragma: no cover
 
-        assert get_instance(SomeClass) is None
+        assert get_instance(SomeClass) is NotImplemented
 
     def test_injectable_with_on(self):
         class A: ...

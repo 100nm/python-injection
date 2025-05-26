@@ -89,13 +89,17 @@ class TestModule:
         instance = await module.aget_instance(SomeClass)
         assert isinstance(instance, SomeClass)
 
-    async def test_aget_instance_with_no_injectable_return_none(self, module):
+    async def test_aget_instance_with_no_injectable_return_not_implemented(
+        self, module
+    ):
         instance = await module.aget_instance(SomeClass)
-        assert instance is None
+        assert instance is NotImplemented
 
-    async def test_aget_instance_with_empty_annotated_return_none(self, module):
+    async def test_aget_instance_with_empty_annotated_return_not_implemented(
+        self, module
+    ):
         instance = await module.aget_instance(Annotated)
-        assert instance is None
+        assert instance is NotImplemented
 
     """
     get_instance
@@ -107,13 +111,13 @@ class TestModule:
         instance = module.get_instance(SomeClass)
         assert isinstance(instance, SomeClass)
 
-    def test_get_instance_with_no_injectable_return_none(self, module):
+    def test_get_instance_with_no_injectable_return_not_implemented(self, module):
         instance = module.get_instance(SomeClass)
-        assert instance is None
+        assert instance is NotImplemented
 
-    def test_get_instance_with_empty_annotated_return_none(self, module):
+    def test_get_instance_with_empty_annotated_return_not_implemented(self, module):
         instance = module.get_instance(Annotated)
-        assert instance is None
+        assert instance is NotImplemented
 
     """
     aget_lazy_instance
@@ -130,9 +134,11 @@ class TestModule:
         assert isinstance(instance2, A)
         assert instance1 is not instance2
 
-    async def test_aget_lazy_instance_with_no_injectable_return_lazy_none(self, module):
+    async def test_aget_lazy_instance_with_no_injectable_return_lazy_not_implemented(
+        self, module
+    ):
         lazy_instance = module.aget_lazy_instance(SomeClass)
-        assert await lazy_instance is None
+        assert await lazy_instance is NotImplemented
 
     """
     get_lazy_instance
@@ -149,9 +155,11 @@ class TestModule:
         assert isinstance(instance2, A)
         assert instance1 is not instance2
 
-    def test_get_lazy_instance_with_no_injectable_return_lazy_none(self, module):
+    def test_get_lazy_instance_with_no_injectable_return_lazy_not_implemented(
+        self, module
+    ):
         lazy_instance = module.get_lazy_instance(SomeClass)
-        assert ~lazy_instance is None
+        assert ~lazy_instance is NotImplemented
 
     """
     set_constant
@@ -184,7 +192,7 @@ class TestModule:
 
         module.set_constant(value, HelloWorld, alias=True)
 
-        assert module.get_instance(str) is None
+        assert module.get_instance(str) is NotImplemented
         assert module.get_instance(HelloWorld) is value
 
     """
@@ -201,7 +209,7 @@ class TestModule:
 
             assert module.get_instance(SomeClass) is instance
 
-        assert module.get_instance(SomeClass) is None
+        assert module.get_instance(SomeClass) is NotImplemented
 
     def test_reserve_scoped_slot_with_empty_raise_empty_slot_error(self, module):
         scope_name = "test"

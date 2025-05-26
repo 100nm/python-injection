@@ -241,10 +241,10 @@ class Module:
     async def aget_instance[T](
         self,
         cls: _InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> T | None: ...
+    ) -> T: ...
     @overload
     def get_instance[T, Default](
         self,
@@ -255,17 +255,17 @@ class Module:
     ) -> T | Default:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or return `None`.
+        parameter or return `NotImplemented`.
         """
 
     @overload
     def get_instance[T](
         self,
         cls: _InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> T | None: ...
+    ) -> T: ...
     @overload
     def aget_lazy_instance[T, Default](
         self,
@@ -278,10 +278,10 @@ class Module:
     def aget_lazy_instance[T](
         self,
         cls: _InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> Awaitable[T | None]: ...
+    ) -> Awaitable[T]: ...
     @overload
     def get_lazy_instance[T, Default](
         self,
@@ -292,7 +292,7 @@ class Module:
     ) -> _Invertible[T | Default]:
         """
         Function used to retrieve an instance associated with the type passed in
-        parameter or `None`. Return a `Invertible` object. To access the instance
+        parameter or `NotImplemented`. Return a `Invertible` object. To access the instance
         contained in an invertible object, simply use a wavy line (~).
 
         Example: instance = ~lazy_instance
@@ -302,10 +302,10 @@ class Module:
     def get_lazy_instance[T](
         self,
         cls: _InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> _Invertible[T | None]: ...
+    ) -> _Invertible[T]: ...
     def init_modules(self, *modules: Module) -> Self:
         """
         Function to clean modules in use and to use those passed as parameters.

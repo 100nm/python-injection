@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from types import GenericAlias
 from typing import Annotated, Any, TypeAliasType
 
@@ -5,11 +6,13 @@ from fastapi import Depends
 
 from injection import Module, mod
 
-__all__ = ("Inject",)
+__all__ = ("Inject", "InjectThreadSafe")
 
 
+@dataclass(eq=False, frozen=True, slots=True)
 class FastAPIInject:
-    __slots__ = ()
+    module: Module = field(default_factory=mod)
+    threadsafe: bool = field(default=False)
 
     def __call__[T](
         self,
@@ -18,13 +21,11 @@ class FastAPIInject:
         default: T = NotImplemented,
         *,
         module: Module | None = None,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> Any:
-        ainstance = (module or mod()).aget_lazy_instance(
-            cls,
-            default,
-            threadsafe=threadsafe,
-        )
+        module = module or self.module
+        threadsafe = self.threadsafe if threadsafe is None else threadsafe
+        ainstance = module.aget_lazy_instance(cls, default, threadsafe=threadsafe)
 
         async def dependency() -> T:
             return await ainstance
@@ -40,5 +41,6 @@ class FastAPIInject:
 
 
 Inject = FastAPIInject()
+InjectThreadSafe = FastAPIInject(threadsafe=True)
 
 del FastAPIInject

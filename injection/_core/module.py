@@ -645,18 +645,18 @@ class Module(Broker, EventListener):
     async def aget_instance[T](
         self,
         cls: InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> T | None: ...
+    ) -> T: ...
 
     async def aget_instance[T, Default](
         self,
         cls: InputType[T],
-        default: Default | None = None,
+        default: Default = NotImplemented,
         *,
         threadsafe: bool = False,
-    ) -> T | Default | None:
+    ) -> T | Default:
         try:
             return await self.afind_instance(cls, threadsafe=threadsafe)
         except (KeyError, SkipInjectable):
@@ -675,18 +675,18 @@ class Module(Broker, EventListener):
     def get_instance[T](
         self,
         cls: InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> T | None: ...
+    ) -> T: ...
 
     def get_instance[T, Default](
         self,
         cls: InputType[T],
-        default: Default | None = None,
+        default: Default = NotImplemented,
         *,
         threadsafe: bool = False,
-    ) -> T | Default | None:
+    ) -> T | Default:
         try:
             return self.find_instance(cls, threadsafe=threadsafe)
         except (KeyError, SkipInjectable):
@@ -705,18 +705,18 @@ class Module(Broker, EventListener):
     def aget_lazy_instance[T](
         self,
         cls: InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> Awaitable[T | None]: ...
+    ) -> Awaitable[T]: ...
 
     def aget_lazy_instance[T, Default](
         self,
         cls: InputType[T],
-        default: Default | None = None,
+        default: Default = NotImplemented,
         *,
         threadsafe: bool = False,
-    ) -> Awaitable[T | Default | None]:
+    ) -> Awaitable[T | Default]:
         function = self.make_injected_function(
             lambda instance=default: instance,
             threadsafe=threadsafe,
@@ -737,18 +737,18 @@ class Module(Broker, EventListener):
     def get_lazy_instance[T](
         self,
         cls: InputType[T],
-        default: None = ...,
+        default: T = ...,
         *,
         threadsafe: bool = ...,
-    ) -> Invertible[T | None]: ...
+    ) -> Invertible[T]: ...
 
     def get_lazy_instance[T, Default](
         self,
         cls: InputType[T],
-        default: Default | None = None,
+        default: Default = NotImplemented,
         *,
         threadsafe: bool = False,
-    ) -> Invertible[T | Default | None]:
+    ) -> Invertible[T | Default]:
         function = self.make_injected_function(
             lambda instance=default: instance,
             threadsafe=threadsafe,
