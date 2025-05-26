@@ -178,9 +178,9 @@ class Module:
         mode: Mode | ModeStr = ...,
     ) -> Any:
         """
-        Decorator applicable to a class or function. It is used to indicate how the
-        constant is constructed. At injection time, the injected instance will always
-        be the same. Unlike `@singleton`, dependencies will not be resolved.
+        Decorator applicable to a class. It is used to indicate how the constant is
+        constructed. At injection time, the injected instance will always be the same.
+        Unlike `@singleton`, dependencies will not be resolved.
         """
 
     def set_constant[T](
