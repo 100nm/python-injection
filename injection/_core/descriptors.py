@@ -15,9 +15,12 @@ class LazyInstance[T]:
         cls: InputType[T],
         /,
         default: T = NotImplemented,
+        *,
         module: Module | None = None,
+        threadsafe: bool = False,
     ) -> None:
-        self.__value = (module or mod()).get_lazy_instance(cls, default)
+        module = module or mod()
+        self.__value = module.get_lazy_instance(cls, default, threadsafe=threadsafe)
 
     def __get__(
         self,
