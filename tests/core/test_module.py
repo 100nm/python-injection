@@ -90,13 +90,15 @@ class TestModule:
         assert isinstance(instance, SomeClass)
 
     async def test_aget_instance_with_no_injectable_return_not_implemented(
-        self, module
+        self,
+        module,
     ):
         instance = await module.aget_instance(SomeClass)
         assert instance is NotImplemented
 
     async def test_aget_instance_with_empty_annotated_return_not_implemented(
-        self, module
+        self,
+        module,
     ):
         instance = await module.aget_instance(Annotated)
         assert instance is NotImplemented
