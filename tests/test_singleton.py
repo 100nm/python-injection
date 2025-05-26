@@ -61,7 +61,7 @@ class TestSingleton:
         def recipe():
             return SomeClass()  # pragma: no cover
 
-        assert get_instance(SomeClass) is None
+        assert get_instance(SomeClass) is NotImplemented
 
     def test_singleton_with_on(self):
         class A: ...
