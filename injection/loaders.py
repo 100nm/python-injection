@@ -149,6 +149,15 @@ class ProfileLoader:
     def __is_empty(self) -> bool:
         return not self.module_subsets
 
+    def required_module_names(self, name: str | None = None, /) -> frozenset[str]:
+        names = {self.module.name}
+
+        if name is not None:
+            names.add(name)
+
+        subsets = (self.__walk_subsets_for(name) for name in names)
+        return frozenset(itertools.chain.from_iterable(subsets))
+
     def init(self) -> Self:
         self.__init_subsets_for(self.module)
         return self
@@ -178,6 +187,12 @@ class ProfileLoader:
 
     def __mark_initialized(self, module: Module) -> None:
         self.__initialized_modules.add(module.name)
+
+    def __walk_subsets_for(self, module_name: str) -> Iterator[str]:
+        yield module_name
+
+        for name in self.module_subsets.get(module_name, ()):
+            yield from self.__walk_subsets_for(name)
 
 
 @runtime_checkable
