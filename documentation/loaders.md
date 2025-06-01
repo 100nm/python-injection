@@ -38,7 +38,7 @@ PythonModuleLoader(predicate).load(package)
 Automatically imports modules whose Python script contains one of the keywords passed in parameter.
 
 ```python
-PythonModuleLoader.from_keywords("# Auto-import").load(package)
+PythonModuleLoader.from_keywords("# auto-import").load(package)
 ```
 
 * `startswith`

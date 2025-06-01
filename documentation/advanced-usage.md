@@ -41,6 +41,13 @@ def some_function(service_a: ServiceA, service_b: ServiceB):
 
 ### Module interconnections
 
+> [!IMPORTANT]
+> This section contains operations that can be performed between modules. In most cases, you don't need to worry about 
+> them. 
+> 
+> Instead, use [`ProfileLoader`](loaders.md#ProfileLoader) or [`load_profile`](loaders.md#load_profile), which are much 
+> simpler and easier to understand.
+
 > **Use a module**
 
 When a module is used by another module, the module's dependencies are replaced by those of the module used.

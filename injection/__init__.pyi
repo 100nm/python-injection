@@ -115,7 +115,7 @@ class Module:
         parameter type annotations. If applied to a class, the dependencies resolved
         will be those of the `__init__` method.
 
-        With `threadsafe=True`, the injection logic is wrapped in a `threading.Lock`.
+        With `threadsafe=True`, the injection logic is wrapped in a `threading.RLock`.
         """
 
     def injectable[**P, T](
@@ -171,18 +171,18 @@ class Module:
         registered.
         """
 
-    def constant[T](
+    def constant[**P, T](
         self,
-        wrapped: type[T] = ...,
+        wrapped: _Recipe[P, T] = ...,
         /,
         *,
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
     ) -> Any:
         """
-        Decorator applicable to a class. It is used to indicate how the constant is
-        constructed. At injection time, the injected instance will always be the same.
-        Unlike `@singleton`, dependencies will not be resolved.
+        Decorator applicable to a class or function. It is used to indicate how the
+        constant is constructed. At injection time, the injected instance will always
+        be the same. Unlike `@singleton`, dependencies will not be resolved.
         """
 
     def set_constant[T](

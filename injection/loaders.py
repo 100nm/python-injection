@@ -164,8 +164,11 @@ class ProfileLoader:
 
     def load(self, name: str, /) -> LoadedProfile:
         self.init()
-        target_module = self.__init_subsets_for(mod(name))
-        self.module.use(target_module, priority=Priority.HIGH)
+
+        if not self.__is_default_module(name):
+            target_module = self.__init_subsets_for(mod(name))
+            self.module.use(target_module, priority=Priority.HIGH)
+
         return _UserLoadedProfile(self, name)
 
     def _unload(self, name: str, /) -> None:
@@ -181,6 +184,9 @@ class ProfileLoader:
             self.__mark_initialized(module)
 
         return module
+
+    def __is_default_module(self, module_name: str) -> bool:
+        return module_name == self.module.name
 
     def __is_initialized(self, module: Module) -> bool:
         return module.name in self.__initialized_modules
