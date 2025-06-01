@@ -107,3 +107,11 @@ class TestProfileLoader:
             assert type(find_instance(A)) is B
 
         assert type(find_instance(A)) is A
+
+    def test_load_with_default_profile_do_nothing(self):
+        default_profile_name = mod().name
+        global_profile_name = uuid4().hex
+        loader = ProfileLoader({default_profile_name: [global_profile_name]})
+
+        with loader.load(default_profile_name):
+            ...

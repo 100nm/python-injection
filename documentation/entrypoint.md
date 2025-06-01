@@ -20,24 +20,52 @@ or `injectables`, because everything is not yet fully configured at this stage.
 
 **Instruction order matters**: each configuration step applies a decorator and returns a new `Entrypoint` instance.
 
+Here's all you can do with an entrypoint _(take only what you need)_:
+
 ```python
 # src/entrypoint.py
 
-import uvloop
-from injection import adefine_scope
-from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypointmaker
-from injection.loaders import PythonModuleLoader
+from enum import StrEnum, auto
 
-@entrypointmaker
-def entrypoint[**P, T](self: AsyncEntrypoint[P, T]) -> Entrypoint[P, T]:
+import uvloop
+from injection import adefine_scope, mod
+from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypointmaker
+from injection.loaders import ProfileLoader, PythonModuleLoader
+from pydantic_settings import BaseSettings
+
+class Profile(StrEnum):
+    DEFAULT = mod().name
+    DEV = "dev"
+    STAGING = "staging"
+    PROD = "prod"
+    
+class SubProfile(StrEnum):
+    CONF = "conf"
+    
+class Scope(StrEnum):
+    LIFESPAN = auto()
+
+@mod(SubProfile.CONF).constant
+class Conf(BaseSettings):
+    profile: Profile = Profile.DEFAULT
+    
+@entrypointmaker(profile_loader=ProfileLoader({Profile.DEFAULT: [SubProfile.CONF]}))
+def entrypoint[**P, T](self: AsyncEntrypoint[P, T], conf: Conf) -> Entrypoint[P, T]:
     import src
 
-    loader = PythonModuleLoader.from_keywords("# Auto-import")
+    profile = conf.profile
+    keyword = "# auto-import"
+    keywords = {
+        f"{keyword}: {name}"
+        for name in self.profile_loader.required_module_names(profile)
+    }
+    module_loader = PythonModuleLoader.from_keywords(keyword, *keywords)
     return (
         self.inject()
-        .decorate(adefine_scope("lifespan", kind="shared"))
+        .decorate(adefine_scope(Scope.LIFESPAN, kind="shared"))
         .async_to_sync(uvloop.run)
-        .load_modules(loader, src)
+        .load_modules(module_loader, src)
+        .load_profile(profile)
     )
 ```
 

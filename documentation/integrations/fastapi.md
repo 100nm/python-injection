@@ -1,10 +1,6 @@
-# Integrations
+# [FastAPI](https://github.com/fastapi/fastapi)
 
-**Integrations make it easy to connect `python-injection` to other frameworks.**
-
-## [FastAPI](https://github.com/fastapi/fastapi)
-
-### Inject a dependency
+## Inject a dependency
 
 Here's how to inject an instance into a FastAPI endpoint.
 
@@ -16,13 +12,13 @@ async def my_endpoint(service: Inject[MyService]) -> None:
     ...
 ```
 
-### Useful scopes
+## Useful scopes
 
 Two fairly common scopes in FastAPI:
 * **Application lifespan scope**: associate with application lifespan.
 * **Request scope**: associate with http request lifetime.
 
-_For a better understanding of the scopes, [here's the associated documentation](scoped-dependencies.md)._
+_For a better understanding of the scopes, [here's the associated documentation](../scoped-dependencies.md)._
 
 Here's how to configure FastAPI:
 

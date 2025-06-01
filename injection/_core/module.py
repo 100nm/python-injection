@@ -503,15 +503,15 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def constant[T](
+    def constant[**P, T](
         self,
-        wrapped: type[T] | None = None,
+        wrapped: Recipe[P, T] | None = None,
         /,
         *,
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Any:
-        def decorator(wp: type[T]) -> type[T]:
+        def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
             lazy_instance = lazy(wp)
             self.injectable(
                 lambda: ~lazy_instance,
@@ -1087,7 +1087,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         return decorator(wrapped) if wrapped else decorator
 
     @singledispatchmethod
-    def on_event(self, event: Event, /) -> ContextManager[None] | None:  # type: ignore[override]
+    def on_event(self, event: Event, /) -> ContextManager[None] | None:
         return None
 
     @on_event.register

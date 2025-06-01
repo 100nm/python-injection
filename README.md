@@ -1,10 +1,9 @@
 # python-injection
 
 [![CI](https://github.com/100nm/python-injection/actions/workflows/ci.yml/badge.svg)](https://github.com/100nm/python-injection)
-[![PyPI](https://img.shields.io/pypi/v/python-injection.svg?color=blue)](https://pypi.org/project/python-injection)
+[![PyPI - Version](https://img.shields.io/pypi/v/python-injection.svg?color=blue)](https://pypi.org/project/python-injection)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/python-injection.svg?color=blue)](https://pypistats.org/packages/python-injection)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-
-Fast and easy dependency injection framework.
 
 ## Installation
 
@@ -14,12 +13,22 @@ Fast and easy dependency injection framework.
 pip install python-injection
 ```
 
+## Features
+
+* Automatic dependency resolution based on type hints.
+* Support for multiple dependency lifetimes: `transient`, `singleton`, `constant`, and `scoped`.
+* Works seamlessly in both `async` and `sync` environments.
+* Separation of dependency sets using modules.
+* Runtime switching between different sets of dependencies.
+* Centralized setup logic using entrypoints.
+* Built-in type annotation for easy integration with [`FastAPI`](https://github.com/fastapi/fastapi).
+* Lazy dependency resolution for optimized performance.
+
 ## Motivations
 
 1. Easy to use
 2. No impact on class and function definitions
-3. Easily interchangeable dependencies _(depending on the runtime environment, for example)_
-4. No prerequisites
+3. No tedious configuration
 
 ## Quick start
 
@@ -64,5 +73,6 @@ if __name__ == "__main__":
 * [**Advanced usage**](https://github.com/100nm/python-injection/tree/prod/documentation/advanced-usage.md)
 * [**Loaders**](https://github.com/100nm/python-injection/tree/prod/documentation/loaders.md)
 * [**Entrypoint**](https://github.com/100nm/python-injection/tree/prod/documentation/entrypoint.md)
-* [**Integrations**](https://github.com/100nm/python-injection/tree/prod/documentation/integrations.md)
+* [**Integrations**](https://github.com/100nm/python-injection/tree/prod/documentation/integrations)
+  * [**FastAPI**](https://github.com/100nm/python-injection/tree/prod/documentation/integrations/fastapi.md)
 * [**Concrete example**](https://github.com/100nm/python-injection-example)
