@@ -15,7 +15,8 @@ pip install python-injection
 
 ## Features
 
-* Support for multiple dependency lifetimes: `transient`, `singleton`, and `scoped`.
+* Automatic dependency resolution based on type hints.
+* Support for multiple dependency lifetimes: `transient`, `singleton`, `constant`, and `scoped`.
 * Works seamlessly in both `async` and `sync` environments.
 * Separation of dependency sets using modules.
 * Runtime switching between different sets of dependencies.

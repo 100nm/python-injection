@@ -20,9 +20,7 @@ or `injectables`, because everything is not yet fully configured at this stage.
 
 **Instruction order matters**: each configuration step applies a decorator and returns a new `Entrypoint` instance.
 
-Here's all you can do with an entrypoint:
-
-_Take only what you need._
+Here's all you can do with an entrypoint _(take only what you need)_:
 
 ```python
 # src/entrypoint.py
