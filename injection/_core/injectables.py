@@ -13,10 +13,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.asynchronous import Caller
-from injection._core.common.asynchronous import (
-    create_semaphore as _create_async_semaphore,
-)
+from injection._core.common.asynchronous import AsyncSemaphore, Caller
 from injection._core.scope import (
     Scope,
     get_scope,
@@ -64,7 +61,7 @@ class CacheLogic[T]:
     __semaphore: AsyncContextManager[Any]
 
     def __init__(self) -> None:
-        self.__semaphore = _create_async_semaphore(1)
+        self.__semaphore = AsyncSemaphore(1)
 
     async def aget_or_create[K](
         self,
