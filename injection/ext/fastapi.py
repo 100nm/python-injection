@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from types import GenericAlias
-from typing import Annotated, Any, TypeAliasType
+from typing import Annotated, Any, TypeAlias, TypeAliasType
 
 from fastapi import Depends
 
@@ -25,16 +25,16 @@ class FastAPIInject:
     ) -> Any:
         module = module or self.module
         threadsafe = self.threadsafe if threadsafe is None else threadsafe
-        ainstance = module.aget_lazy_instance(cls, default, threadsafe=threadsafe)
+        lazy_instance = module.aget_lazy_instance(cls, default, threadsafe=threadsafe)
 
         async def dependency() -> T:
-            return await ainstance
+            return await lazy_instance
 
         class_name = getattr(cls, "__name__", str(cls))
         dependency.__name__ = f"inject({class_name})"
         return Depends(dependency, use_cache=False)
 
-    def __getitem__(self, params: Any, /) -> Any:
+    def __getitem__[T, *Ts](self, params: T | tuple[T, *Ts], /) -> TypeAlias:
         iter_params = iter(params if isinstance(params, tuple) else (params,))
         cls = next(iter_params)
         return Annotated[cls, self(cls), *iter_params]

@@ -149,7 +149,7 @@ class Module:
         always be the same.
         """
 
-    def scoped[**P, T](
+    def scoped[T](
         self,
         scope_name: str,
         /,
