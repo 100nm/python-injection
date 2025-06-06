@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from types import MethodType
 from types import ModuleType as PythonModule
-from typing import Any, Self, final, overload
+from typing import Any, Concatenate, Self, final, overload
 
 from injection import Module
 from injection.loaders import ProfileLoader, PythonModuleLoader
@@ -16,9 +16,9 @@ __all__ = ("AsyncEntrypoint", "Entrypoint", "autocall", "entrypointmaker")
 
 type AsyncEntrypoint[**P, T] = Entrypoint[P, Coroutine[Any, Any, T]]
 type EntrypointDecorator[**P, T1, T2] = Callable[[Callable[P, T1]], Callable[P, T2]]
-type EntrypointSetupMethod[*Ts, **P, T1, T2] = Callable[
-    [Entrypoint[P, T1], *Ts],
-    Entrypoint[P, T2],
+type EntrypointSetupMethod[**P, **EPP, T1, T2] = Callable[
+    Concatenate[Entrypoint[EPP, T1], P],
+    Entrypoint[EPP, T2],
 ]
 
 
@@ -31,35 +31,35 @@ def autocall[**P, T](wrapped: Callable[P, T] | None = None, /) -> Any:
 
 
 @overload
-def entrypointmaker[*Ts, **P, T1, T2](
-    wrapped: EntrypointSetupMethod[*Ts, P, T1, T2],
+def entrypointmaker[**SMP, **EPP, T1, T2](
+    wrapped: EntrypointSetupMethod[SMP, EPP, T1, T2],
     /,
     *,
     profile_loader: ProfileLoader = ...,
-) -> EntrypointDecorator[P, T1, T2]: ...
+) -> EntrypointDecorator[EPP, T1, T2]: ...
 
 
 @overload
-def entrypointmaker[*Ts, **P, T1, T2](
+def entrypointmaker[**SMP, **EPP, T1, T2](
     wrapped: None = ...,
     /,
     *,
     profile_loader: ProfileLoader = ...,
 ) -> Callable[
-    [EntrypointSetupMethod[*Ts, P, T1, T2]],
-    EntrypointDecorator[P, T1, T2],
+    [EntrypointSetupMethod[SMP, EPP, T1, T2]],
+    EntrypointDecorator[EPP, T1, T2],
 ]: ...
 
 
-def entrypointmaker[*Ts, **P, T1, T2](
-    wrapped: EntrypointSetupMethod[*Ts, P, T1, T2] | None = None,
+def entrypointmaker[**SMP, **EPP, T1, T2](
+    wrapped: EntrypointSetupMethod[SMP, EPP, T1, T2] | None = None,
     /,
     *,
     profile_loader: ProfileLoader | None = None,
 ) -> Any:
     def decorator(
-        wp: EntrypointSetupMethod[*Ts, P, T1, T2],
-    ) -> EntrypointDecorator[P, T1, T2]:
+        wp: EntrypointSetupMethod[SMP, EPP, T1, T2],
+    ) -> EntrypointDecorator[EPP, T1, T2]:
         return Entrypoint._make_decorator(wp, profile_loader)
 
     return decorator(wrapped) if wrapped else decorator
@@ -143,9 +143,9 @@ class Entrypoint[**P, T]:
         return type(self)(function, self.profile_loader)
 
     @classmethod
-    def _make_decorator[*Ts, _T](
+    def _make_decorator[**_P, _T](
         cls,
-        setup_method: EntrypointSetupMethod[*Ts, P, T, _T],
+        setup_method: EntrypointSetupMethod[_P, P, T, _T],
         /,
         profile_loader: ProfileLoader | None = None,
     ) -> EntrypointDecorator[P, T, _T]:
