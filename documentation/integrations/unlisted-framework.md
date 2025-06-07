@@ -10,14 +10,13 @@ issues.
 
 ## If your framework inspects function signatures
 
-If your framework inspects function signatures, things get a bit trickier. This is because you'll need to **perform 
-dependency injection first, then call the function**, which isn't always compatible with how decorators work on regular 
-functions.
+If your framework inspects function signatures, things get a bit trickier. This is because dependencies can't be present
+in function parameters.
 
-To solve this, you can define a class with a `__call__` method (where dependencies are injected), and use the 
-`asfunction` decorator to turn it into a function.
+To solve this, you can define a class with a `call` method (where dependencies are injected when the class is 
+instantiated), and use the `asfunction` decorator to turn it into a function.
 
-The resulting function will have the same signature as the `__call__` method, but without the `self` parameter.
+The resulting function will have the same signature as the `call` method, but without the `self` parameter.
 
 Example:
 
@@ -26,10 +25,10 @@ from typing import NamedTuple
 from injection import asfunction
 
 @asfunction
-class do_something(NamedTuple):
+class DoSomething(NamedTuple):
     service: MyService
 
-    def __call__(self):
+    def call(self):
         self.service.do_work()
 ```
 
