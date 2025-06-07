@@ -5,6 +5,7 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Final, Protocol, Self, final, overload, runtime_checkable
 
+from ._core.asfunction import AsFunctionWrappedType as _AsFunctionWrappedType
 from ._core.common.invertible import Invertible as _Invertible
 from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
@@ -32,7 +33,7 @@ singleton = __MODULE.singleton
 
 @overload
 def asfunction[**P, T](
-    wrapped: type[Callable[P, T]],
+    wrapped: _AsFunctionWrappedType[P, T],
     /,
     *,
     module: Module = ...,
@@ -45,7 +46,7 @@ def asfunction[**P, T](
     *,
     module: Module = ...,
     threadsafe: bool | None = ...,
-) -> Callable[[type[Callable[P, T]]], Callable[P, T]]: ...
+) -> Callable[[_AsFunctionWrappedType[P, T]], Callable[P, T]]: ...
 @asynccontextmanager
 def adefine_scope(
     name: str,
