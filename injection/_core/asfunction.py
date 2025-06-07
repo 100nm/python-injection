@@ -1,14 +1,26 @@
+from abc import abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from injection._core.common.asynchronous import Caller
 from injection._core.module import Module, mod
 
+type AsFunctionWrappedType[**P, T] = type[_Callable[P, T]]
+
+
+@runtime_checkable
+class _Callable[**P, T](Protocol):
+    __slots__ = ()
+
+    @abstractmethod
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        raise NotImplementedError
+
 
 def asfunction[**P, T](
-    wrapped: type[Callable[P, T]] | None = None,
+    wrapped: AsFunctionWrappedType[P, T] | None = None,
     /,
     *,
     module: Module | None = None,
@@ -16,7 +28,7 @@ def asfunction[**P, T](
 ) -> Any:
     module = module or mod()
 
-    def decorator(wp: type[Callable[P, T]]) -> Callable[P, T]:
+    def decorator(wp: AsFunctionWrappedType[P, T]) -> Callable[P, T]:
         get_method = wp.__call__.__get__
         method = get_method(NotImplemented)
         factory: Caller[..., Callable[P, T]] = module.make_injected_function(
