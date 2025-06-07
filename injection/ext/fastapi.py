@@ -12,7 +12,7 @@ __all__ = ("Inject", "InjectThreadSafe")
 @dataclass(eq=False, frozen=True, slots=True)
 class FastAPIInject:
     module: Module = field(default_factory=mod)
-    threadsafe: bool = field(default=False, kw_only=True)
+    threadsafe: bool | None = field(default=None, kw_only=True)
 
     def __call__[T](
         self,

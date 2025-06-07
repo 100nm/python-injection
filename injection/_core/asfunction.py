@@ -12,7 +12,7 @@ def asfunction[**P, T](
     /,
     *,
     module: Module | None = None,
-    threadsafe: bool = False,
+    threadsafe: bool | None = None,
 ) -> Any:
     module = module or mod()
 

@@ -36,7 +36,7 @@ def asfunction[**P, T](
     /,
     *,
     module: Module = ...,
-    threadsafe: bool = ...,
+    threadsafe: bool | None = ...,
 ) -> Callable[P, T]: ...
 @overload
 def asfunction[**P, T](
@@ -44,21 +44,21 @@ def asfunction[**P, T](
     /,
     *,
     module: Module = ...,
-    threadsafe: bool = ...,
+    threadsafe: bool | None = ...,
 ) -> Callable[[type[Callable[P, T]]], Callable[P, T]]: ...
 @asynccontextmanager
 def adefine_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ...,
-    threadsafe: bool = ...,
+    threadsafe: bool | None = ...,
 ) -> AsyncIterator[Scope]: ...
 @contextmanager
 def define_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ...,
-    threadsafe: bool = ...,
+    threadsafe: bool | None = ...,
 ) -> Iterator[Scope]: ...
 def mod(name: str = ..., /) -> Module:
     """
@@ -96,7 +96,7 @@ class LazyInstance[T]:
         default: T = ...,
         *,
         module: Module = ...,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> None: ...
     @overload
     def __get__(self, instance: object, owner: type | None = ...) -> T: ...
@@ -124,7 +124,7 @@ class Module:
         wrapped: Callable[P, T] = ...,
         /,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Any:
         """
         Decorator applicable to a class or function. Inject function dependencies using
@@ -227,21 +227,26 @@ class Module:
         self,
         wrapped: Callable[P, T],
         /,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Callable[P, T]: ...
     def make_async_factory[T](
         self,
         wrapped: type[T],
         /,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Callable[..., Awaitable[T]]: ...
     async def afind_instance[T](
         self,
         cls: _InputType[T],
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T: ...
-    def find_instance[T](self, cls: _InputType[T], *, threadsafe: bool = ...) -> T:
+    def find_instance[T](
+        self,
+        cls: _InputType[T],
+        *,
+        threadsafe: bool | None = ...,
+    ) -> T:
         """
         Function used to retrieve an instance associated with the type passed in
         parameter or an exception will be raised.
@@ -253,7 +258,7 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T | Default: ...
     @overload
     async def aget_instance[T](
@@ -261,7 +266,7 @@ class Module:
         cls: _InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T: ...
     @overload
     def get_instance[T, Default](
@@ -269,7 +274,7 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T | Default:
         """
         Function used to retrieve an instance associated with the type passed in
@@ -282,7 +287,7 @@ class Module:
         cls: _InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T: ...
     @overload
     def aget_lazy_instance[T, Default](
@@ -290,7 +295,7 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Awaitable[T | Default]: ...
     @overload
     def aget_lazy_instance[T](
@@ -298,7 +303,7 @@ class Module:
         cls: _InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Awaitable[T]: ...
     @overload
     def get_lazy_instance[T, Default](
@@ -306,7 +311,7 @@ class Module:
         cls: _InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> _Invertible[T | Default]:
         """
         Function used to retrieve an instance associated with the type passed in
@@ -322,7 +327,7 @@ class Module:
         cls: _InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> _Invertible[T]: ...
     def init_modules(self, *modules: Module) -> Self:
         """

@@ -17,7 +17,7 @@ class LazyInstance[T]:
         default: T = NotImplemented,
         *,
         module: Module | None = None,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> None:
         module = module or mod()
         self.__value = module.get_lazy_instance(cls, default, threadsafe=threadsafe)
