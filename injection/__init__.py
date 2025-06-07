@@ -1,3 +1,4 @@
+from ._core.asfunction import asfunction
 from ._core.descriptors import LazyInstance
 from ._core.injectables import Injectable
 from ._core.module import Mode, Module, Priority, mod
@@ -18,6 +19,7 @@ __all__ = (
     "afind_instance",
     "aget_instance",
     "aget_lazy_instance",
+    "asfunction",
     "constant",
     "define_scope",
     "find_instance",

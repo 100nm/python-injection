@@ -30,6 +30,22 @@ set_constant = __MODULE.set_constant
 should_be_injectable = __MODULE.should_be_injectable
 singleton = __MODULE.singleton
 
+@overload
+def asfunction[**P, T](
+    wrapped: type[Callable[P, T]],
+    /,
+    *,
+    module: Module = ...,
+    threadsafe: bool = ...,
+) -> Callable[P, T]: ...
+@overload
+def asfunction[**P, T](
+    wrapped: None = ...,
+    /,
+    *,
+    module: Module = ...,
+    threadsafe: bool = ...,
+) -> Callable[[type[Callable[P, T]]], Callable[P, T]]: ...
 @asynccontextmanager
 def adefine_scope(
     name: str,
