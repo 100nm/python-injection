@@ -17,8 +17,8 @@ def asfunction[**P, T](
     module = module or mod()
 
     def decorator(wp: type[Callable[P, T]]) -> Callable[P, T]:
-        get = wp.__call__.__get__
-        method = get(NotImplemented)
+        get_method = wp.__call__.__get__
+        method = get_method(NotImplemented)
         factory: Caller[..., Callable[P, T]] = module.make_injected_function(
             wp,
             threadsafe=threadsafe,
@@ -31,14 +31,14 @@ def asfunction[**P, T](
             @wraps(method)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
                 self = await factory.acall()
-                return await get(self)(*args, **kwargs)
+                return await get_method(self)(*args, **kwargs)
 
         else:
 
             @wraps(method)
             def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
                 self = factory.call()
-                return get(self)(*args, **kwargs)
+                return get_method(self)(*args, **kwargs)
 
         wrapper.__name__ = wp.__name__
         wrapper.__qualname__ = wp.__qualname__
