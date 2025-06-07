@@ -18,8 +18,11 @@ class TestAsFunction:
         assert isinstance(SyncFunction(), Dependency)
 
     async def test_asfunction_with_async_call_method(self, module):
-        @module.injectable
         class Dependency: ...
+
+        @module.injectable
+        async def dependency_recipe() -> Dependency:
+            return Dependency()
 
         @asfunction(module=module)
         class AsyncFunction(NamedTuple):
