@@ -130,7 +130,7 @@ async def adefine_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
-    threadsafe: bool = False,
+    threadsafe: bool | None = None,
 ) -> AsyncIterator[ScopeFacade]:
     async with AsyncScope() as scope:
         with _bind_scope(name, scope, kind, threadsafe) as facade:
@@ -142,7 +142,7 @@ def define_scope(
     name: str,
     /,
     kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
-    threadsafe: bool = False,
+    threadsafe: bool | None = None,
 ) -> Iterator[ScopeFacade]:
     with SyncScope() as scope:
         with _bind_scope(name, scope, kind, threadsafe) as facade:
@@ -194,7 +194,7 @@ def _bind_scope(
     name: str,
     scope: Scope,
     kind: ScopeKind | ScopeKindStr,
-    threadsafe: bool,
+    threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
     lock = get_lock(threadsafe)
 

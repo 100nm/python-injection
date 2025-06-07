@@ -560,7 +560,7 @@ class Module(Broker, EventListener):
         wrapped: Callable[P, T] | None = None,
         /,
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> Any:
         def decorator(wp: Callable[P, T]) -> Callable[P, T]:
             if isclass(wp):
@@ -576,7 +576,7 @@ class Module(Broker, EventListener):
         self,
         wrapped: Callable[P, T],
         /,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> SyncInjectedFunction[P, T]: ...
 
     @overload
@@ -584,14 +584,14 @@ class Module(Broker, EventListener):
         self,
         wrapped: Callable[P, Awaitable[T]],
         /,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> AsyncInjectedFunction[P, T]: ...
 
     def make_injected_function[**P, T](
         self,
         wrapped: Callable[P, T],
         /,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> InjectedFunction[P, T]:
         metadata = InjectMetadata(wrapped, threadsafe)
 
@@ -609,7 +609,7 @@ class Module(Broker, EventListener):
         self,
         wrapped: type[T],
         /,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> Callable[..., Awaitable[T]]:
         factory: InjectedFunction[..., T] = self.make_injected_function(
             wrapped,
@@ -621,13 +621,18 @@ class Module(Broker, EventListener):
         self,
         cls: InputType[T],
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> T:
         with get_lock(threadsafe):
             injectable = self[cls]
             return await injectable.aget_instance()
 
-    def find_instance[T](self, cls: InputType[T], *, threadsafe: bool = False) -> T:
+    def find_instance[T](
+        self,
+        cls: InputType[T],
+        *,
+        threadsafe: bool | None = None,
+    ) -> T:
         with get_lock(threadsafe):
             injectable = self[cls]
             return injectable.get_instance()
@@ -638,7 +643,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T | Default: ...
 
     @overload
@@ -647,7 +652,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T: ...
 
     async def aget_instance[T, Default](
@@ -655,7 +660,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default = NotImplemented,
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> T | Default:
         try:
             return await self.afind_instance(cls, threadsafe=threadsafe)
@@ -668,7 +673,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T | Default: ...
 
     @overload
@@ -677,7 +682,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> T: ...
 
     def get_instance[T, Default](
@@ -685,7 +690,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default = NotImplemented,
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> T | Default:
         try:
             return self.find_instance(cls, threadsafe=threadsafe)
@@ -698,7 +703,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Awaitable[T | Default]: ...
 
     @overload
@@ -707,7 +712,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Awaitable[T]: ...
 
     def aget_lazy_instance[T, Default](
@@ -715,7 +720,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default = NotImplemented,
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> Awaitable[T | Default]:
         function = self.make_injected_function(
             lambda instance=default: instance,
@@ -730,7 +735,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Invertible[T | Default]: ...
 
     @overload
@@ -739,7 +744,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: T = ...,
         *,
-        threadsafe: bool = ...,
+        threadsafe: bool | None = ...,
     ) -> Invertible[T]: ...
 
     def get_lazy_instance[T, Default](
@@ -747,7 +752,7 @@ class Module(Broker, EventListener):
         cls: InputType[T],
         default: Default = NotImplemented,
         *,
-        threadsafe: bool = False,
+        threadsafe: bool | None = None,
     ) -> Invertible[T | Default]:
         function = self.make_injected_function(
             lambda instance=default: instance,
@@ -1013,7 +1018,12 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
     __tasks: deque[Callable[..., Any]]
     __wrapped: Callable[P, T]
 
-    def __init__(self, wrapped: Callable[P, T], /, threadsafe: bool) -> None:
+    def __init__(
+        self,
+        wrapped: Callable[P, T],
+        /,
+        threadsafe: bool | None = None,
+    ) -> None:
         self.__dependencies = Dependencies.empty()
         self.__lock = get_lock(threadsafe)
         self.__owner = None
