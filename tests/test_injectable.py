@@ -194,3 +194,24 @@ class TestInjectable:
 
         a = get_instance(A)
         assert isinstance(a, A)
+
+    def test_injectable_with_type_alias_type(self):
+        @injectable
+        class A: ...
+
+        type Alias1 = A
+        type Alias2 = Alias1
+
+        a1 = get_instance(Alias1)
+        a2 = get_instance(Alias2)
+        assert isinstance(a1, A)
+        assert isinstance(a2, A)
+
+    def test_injectable_with_generic_type_alias_type(self):
+        @injectable
+        class A[T]: ...
+
+        type Alias[T] = A[T]
+
+        a = get_instance(Alias[int])
+        assert isinstance(a, A)
