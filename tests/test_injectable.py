@@ -199,10 +199,13 @@ class TestInjectable:
         @injectable
         class A: ...
 
-        type Alias = A
+        type Alias1 = A
+        type Alias2 = Alias1
 
-        a = get_instance(Alias)
-        assert isinstance(a, A)
+        a1 = get_instance(Alias1)
+        a2 = get_instance(Alias2)
+        assert isinstance(a1, A)
+        assert isinstance(a2, A)
 
     def test_injectable_with_generic_type_alias_type(self):
         @injectable
