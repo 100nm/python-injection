@@ -347,8 +347,8 @@ class Locator(Broker):
     @staticmethod
     def __standardize_inputs[T](
         classes: Iterable[InputType[T]],
-    ) -> Iterable[InputType[T]]:
-        return tuple(standardize_types(*classes, with_origin=True))
+    ) -> Iterator[InputType[T]]:
+        return standardize_types(*classes, with_origin=True)
 
     @staticmethod
     def __update_preprocessing[T](updater: Updater[T]) -> Updater[T]:

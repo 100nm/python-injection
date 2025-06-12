@@ -89,8 +89,16 @@ def standardize_types(
         else:
             yield tp
 
-            if with_origin and origin is not None:
-                yield origin
+            if with_origin:
+                if origin is not None:
+                    yield origin
+
+                for alias in (tp, origin):
+                    if isinstance(alias, TypeAliasType):
+                        yield from standardize_types(
+                            alias.__value__,
+                            with_origin=with_origin,
+                        )
 
             continue
 
