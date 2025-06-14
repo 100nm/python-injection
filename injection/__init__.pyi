@@ -145,13 +145,13 @@ class Module:
         threadsafe: bool | None = ...,
     ) -> type[T]: ...
     @overload
-    def inject[**P, T](
+    def inject[T](
         self,
         wrapped: None = ...,
         /,
         *,
         threadsafe: bool | None = ...,
-    ) -> _Decorator[Callable[P, T]] | _Decorator[type[T]]: ...
+    ) -> _Decorator[Callable[..., T]] | _Decorator[type[T]]: ...
     @overload
     def injectable[**P, T](
         self,
@@ -192,7 +192,7 @@ class Module:
         mode: Mode | ModeStr = ...,
     ) -> type[T]: ...
     @overload
-    def injectable[**P, T](
+    def injectable[T](
         self,
         wrapped: None = ...,
         /,
@@ -202,8 +202,8 @@ class Module:
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
     ) -> (
-        _Decorator[Callable[P, T]]
-        | _Decorator[Callable[P, Awaitable[T]]]
+        _Decorator[Callable[..., T]]
+        | _Decorator[Callable[..., Awaitable[T]]]
         | _Decorator[type[T]]
     ): ...
     @overload
@@ -243,7 +243,7 @@ class Module:
         mode: Mode | ModeStr = ...,
     ) -> type[T]: ...
     @overload
-    def singleton[**P, T](
+    def singleton[T](
         self,
         wrapped: None = ...,
         /,
@@ -252,11 +252,11 @@ class Module:
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
     ) -> (
-        _Decorator[Callable[P, T]]
-        | _Decorator[Callable[P, Awaitable[T]]]
+        _Decorator[Callable[..., T]]
+        | _Decorator[Callable[..., Awaitable[T]]]
         | _Decorator[type[T]]
     ): ...
-    def scoped[**P, T](
+    def scoped[T](
         self,
         scope_name: str,
         /,
@@ -265,10 +265,10 @@ class Module:
         on: _TypeInfo[T] = (),
         mode: Mode | ModeStr = ...,
     ) -> (
-        _Decorator[Callable[P, T]]
-        | _Decorator[Callable[P, Awaitable[T]]]
-        | _Decorator[Callable[P, AsyncIterator[T]]]
-        | _Decorator[Callable[P, Iterator[T]]]
+        _Decorator[Callable[..., T]]
+        | _Decorator[Callable[..., Awaitable[T]]]
+        | _Decorator[Callable[..., AsyncIterator[T]]]
+        | _Decorator[Callable[..., Iterator[T]]]
         | _Decorator[type[T]]
     ):
         """
@@ -325,7 +325,7 @@ class Module:
         mode: Mode | ModeStr = ...,
     ) -> type[T]: ...
     @overload
-    def constant[**P, T](
+    def constant[T](
         self,
         wrapped: None = ...,
         /,
@@ -333,8 +333,8 @@ class Module:
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
     ) -> (
-        _Decorator[Callable[P, T]]
-        | _Decorator[Callable[P, Awaitable[T]]]
+        _Decorator[Callable[..., T]]
+        | _Decorator[Callable[..., Awaitable[T]]]
         | _Decorator[type[T]]
     ): ...
     def set_constant[T](
