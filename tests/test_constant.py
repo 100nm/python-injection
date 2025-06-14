@@ -1,6 +1,6 @@
 import pytest
 
-from injection import constant, get_instance
+from injection import aget_instance, constant, get_instance
 
 
 class TestConstant:
@@ -11,6 +11,33 @@ class TestConstant:
         instance_1 = get_instance(SomeInjectable)
         instance_2 = get_instance(SomeInjectable)
         assert instance_1 is instance_2 is not None
+
+    def test_constant_with_recipe(self):
+        class SomeClass: ...
+
+        @constant
+        def recipe() -> SomeClass:
+            return SomeClass()
+
+        instance_1 = get_instance(SomeClass)
+        instance_2 = get_instance(SomeClass)
+        assert instance_1 is instance_2
+        assert isinstance(instance_1, SomeClass)
+
+    async def test_constant_with_async_recipe(self):
+        class SomeClass: ...
+
+        @constant
+        async def recipe() -> SomeClass:
+            return SomeClass()
+
+        with pytest.raises(RuntimeError):
+            get_instance(SomeClass)
+
+        instance_1 = await aget_instance(SomeClass)
+        instance_2 = await aget_instance(SomeClass)
+        assert instance_1 is instance_2
+        assert isinstance(instance_1, SomeClass)
 
     def test_constant_with_on(self):
         class A: ...
