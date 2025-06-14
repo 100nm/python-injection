@@ -7,6 +7,7 @@ from collections.abc import (
     Generator,
     Iterable,
     Iterator,
+    Sequence,
 )
 from inspect import isfunction
 from types import GenericAlias, UnionType
@@ -26,7 +27,7 @@ type TypeInfo[T] = (
     InputType[T]
     | Callable[..., T]
     | Callable[..., Awaitable[T]]
-    | Iterable[TypeInfo[T]]
+    | Sequence[TypeInfo[T]]
 )
 
 

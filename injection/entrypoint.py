@@ -22,9 +22,20 @@ type EntrypointSetupMethod[**P, **EPP, T1, T2] = Callable[
 ]
 
 
-def autocall[**P, T](wrapped: Callable[P, T] | None = None, /) -> Any:
-    def decorator(wp: Callable[P, T]) -> Callable[P, T]:
-        wp()  # type: ignore[call-arg]
+@overload
+def autocall[T: Callable[..., Any]](wrapped: T, /) -> T: ...
+
+
+@overload
+def autocall[T: Callable[..., Any]](wrapped: None = ..., /) -> Callable[[T], T]: ...
+
+
+def autocall[T: Callable[..., Any]](
+    wrapped: T | None = None,
+    /,
+) -> T | Callable[[T], T]:
+    def decorator(wp: T) -> T:
+        wp()
         return wp
 
     return decorator(wrapped) if wrapped else decorator
