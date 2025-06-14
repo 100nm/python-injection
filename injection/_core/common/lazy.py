@@ -19,7 +19,7 @@ def alazy[T](factory: Callable[..., Awaitable[T]]) -> Callable[[], Awaitable[T]]
         while True:
             yield value
 
-    return partial(__anext, cache())
+    return partial(_anext, cache())
 
 
 class Lazy[T](Invertible[T]):
@@ -46,5 +46,5 @@ class Lazy[T](Invertible[T]):
         return self.__is_set
 
 
-async def __anext[T](async_iterator: AsyncIterator[T]) -> T:
+async def _anext[T](async_iterator: AsyncIterator[T]) -> T:
     return await anext(async_iterator)
