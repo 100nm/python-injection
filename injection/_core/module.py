@@ -50,7 +50,7 @@ from injection._core.common.asynchronous import (
 from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.invertible import Invertible, SimpleInvertible
 from injection._core.common.key import new_short_key
-from injection._core.common.lazy import Lazy, lazy
+from injection._core.common.lazy import Lazy, alazy, lazy
 from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
@@ -512,9 +512,9 @@ class Module(Broker, EventListener):
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> Any:
         def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
-            lazy_instance = lazy(wp)
+            recipe: Recipe[[], T] = alazy(wp) if iscoroutinefunction(wp) else lazy(wp)  # type: ignore[arg-type]
             self.injectable(
-                lambda: ~lazy_instance,
+                recipe,
                 ignore_type_hint=True,
                 inject=False,
                 on=(wp, on),
