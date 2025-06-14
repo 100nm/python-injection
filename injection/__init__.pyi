@@ -151,7 +151,7 @@ class Module:
         /,
         *,
         threadsafe: bool | None = ...,
-    ) -> _Decorator[Callable[..., T]] | _Decorator[type[T]]: ...
+    ) -> _Decorator[Callable[..., T] | type[T]]: ...
     @overload
     def injectable[**P, T](
         self,
@@ -201,11 +201,7 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> (
-        _Decorator[Callable[..., T]]
-        | _Decorator[Callable[..., Awaitable[T]]]
-        | _Decorator[type[T]]
-    ): ...
+    ) -> _Decorator[Callable[..., T] | Callable[..., Awaitable[T]] | type[T]]: ...
     @overload
     def singleton[**P, T](
         self,
@@ -251,11 +247,7 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> (
-        _Decorator[Callable[..., T]]
-        | _Decorator[Callable[..., Awaitable[T]]]
-        | _Decorator[type[T]]
-    ): ...
+    ) -> _Decorator[Callable[..., T] | Callable[..., Awaitable[T]] | type[T]]: ...
     def scoped[T](
         self,
         scope_name: str,
@@ -264,13 +256,13 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[T] = (),
         mode: Mode | ModeStr = ...,
-    ) -> (
-        _Decorator[Callable[..., T]]
-        | _Decorator[Callable[..., Awaitable[T]]]
-        | _Decorator[Callable[..., AsyncIterator[T]]]
-        | _Decorator[Callable[..., Iterator[T]]]
-        | _Decorator[type[T]]
-    ):
+    ) -> _Decorator[
+        Callable[..., T]
+        | Callable[..., Awaitable[T]]
+        | Callable[..., AsyncIterator[T]]
+        | Callable[..., Iterator[T]]
+        | type[T]
+    ]:
         """
         Decorator applicable to a class or function or generator function. It is used
         to indicate how the scoped instance will be constructed. At injection time, the
@@ -332,11 +324,7 @@ class Module:
         *,
         on: _TypeInfo[T] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> (
-        _Decorator[Callable[..., T]]
-        | _Decorator[Callable[..., Awaitable[T]]]
-        | _Decorator[type[T]]
-    ): ...
+    ) -> _Decorator[Callable[..., T] | Callable[..., Awaitable[T]] | type[T]]: ...
     def set_constant[T](
         self,
         instance: T,
