@@ -136,6 +136,7 @@ class Module:
 
         With `threadsafe=True`, the injection logic is wrapped in a `threading.RLock`.
         """
+
     @overload
     def inject[T](
         self,

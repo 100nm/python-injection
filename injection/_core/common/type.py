@@ -54,10 +54,10 @@ def get_return_hint[T](function: Callable[..., T]) -> InputType[T] | None:
 
 def get_yield_hint[T](
     function: Callable[..., Iterator[T]] | Callable[..., AsyncIterator[T]],
-) -> InputType[T] | None:
+) -> tuple[InputType[T]] | tuple[()]:
     return_type = get_return_hint(function)
 
-    if get_origin(return_type) not in {
+    if get_origin(return_type) in {
         AsyncGenerator,
         AsyncIterable,
         AsyncIterator,
@@ -65,10 +65,10 @@ def get_yield_hint[T](
         Iterable,
         Iterator,
     }:
-        return None
+        for arg in get_args(return_type):
+            return (arg,)
 
-    args = get_args(return_type)
-    return next(iter(args), None)
+    return ()
 
 
 def standardize_types(
