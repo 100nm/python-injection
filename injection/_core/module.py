@@ -337,12 +337,14 @@ class Locator(Broker):
         cls: InputType[T],
     ) -> bool:
         new_mode, existing_mode = new.mode, existing.mode
-        is_override = new_mode == Mode.OVERRIDE
 
-        if new_mode == existing_mode and not is_override:
+        if new_mode == Mode.OVERRIDE:
+            return True
+
+        elif new_mode == existing_mode:
             raise RuntimeError(f"An injectable already exists for the class `{cls}`.")
 
-        return is_override or new_mode.rank > existing_mode.rank
+        return new_mode.rank > existing_mode.rank
 
     @staticmethod
     def __standardize_inputs[T](
@@ -478,16 +480,16 @@ class Module(Broker, EventListener):
                 wrapper = contextmanager(wrapped)
 
             else:
+                hint = (wrapped,)  # type: ignore[assignment]
                 injectable_class = SimpleScopedInjectable
-                hint = wrapper = wrapped  # type: ignore[assignment]
+                wrapper = wrapped  # type: ignore[assignment]
 
-            hints = on if hint is None else (hint, on)
             self.injectable(
                 wrapper,
                 cls=partial(injectable_class, scope_name=scope_name),
                 ignore_type_hint=True,
                 inject=inject,
-                on=hints,
+                on=(*hint, on),
                 mode=mode,
             )
             return wrapped
