@@ -480,16 +480,15 @@ class Module(Broker, EventListener):
                 wrapper = contextmanager(wrapped)
 
             else:
-                hint = (wrapped,)  # type: ignore[assignment]
                 injectable_class = SimpleScopedInjectable
-                wrapper = wrapped  # type: ignore[assignment]
+                hint = wrapper = wrapped  # type: ignore[assignment]
 
             self.injectable(
                 wrapper,
                 cls=partial(injectable_class, scope_name=scope_name),
                 ignore_type_hint=True,
                 inject=inject,
-                on=(*hint, on),
+                on=(hint, on),
                 mode=mode,
             )
             return wrapped
