@@ -85,7 +85,7 @@ Developing a CLI is a good example of using multiple entrypoints:
 from injection.entrypoint import autocall
 from typer import Typer
 
-from src.entrypoint import entrypoint
+from src.entrypoint import entrypoint  # the previously defined `entrypoint` decorator
 from src.services.logger import AsyncLogger  # project service, implementation not provided
 
 app = Typer()

@@ -41,6 +41,10 @@ def autocall[T: Callable[..., Any]](
     return decorator(wrapped) if wrapped else decorator
 
 
+# SMP = Setup Method Parameters
+# EPP = EntryPoint Parameters
+
+
 @overload
 def entrypointmaker[**SMP, **EPP, T1, T2](
     wrapped: EntrypointSetupMethod[SMP, EPP, T1, T2],
