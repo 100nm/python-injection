@@ -34,8 +34,7 @@ from injection import set_constant
 class ServiceC:
     """ class implementation """
 
-service_c = ServiceC()
-set_constant(service_c)
+service_c = set_constant(ServiceC())
 ```
 
 Or here is the decorator `constant` which is equivalent:

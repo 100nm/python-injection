@@ -188,7 +188,7 @@ class TestModule:
             is module.get_instance(C)
         )
 
-    def test_set_constant_with_success_with_type_alias(self, module):
+    def test_set_constant_with_type_alias(self, module):
         type HelloWorld = str
         value = "Hello world!"
 
@@ -196,6 +196,12 @@ class TestModule:
 
         assert module.get_instance(str) is NotImplemented
         assert module.get_instance(HelloWorld) is value
+
+    def test_set_constant_with_alias_and_no_on_raise_value_error(self, module):
+        value = "Hello world!"
+
+        with pytest.raises(ValueError):
+            module.set_constant(value, alias=True)
 
     """
     reserve_scoped_slot

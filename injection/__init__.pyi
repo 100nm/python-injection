@@ -374,7 +374,7 @@ class Module:
         *,
         alias: bool = ...,
         mode: Mode | ModeStr = ...,
-    ) -> Self:
+    ) -> T:
         """
         Function for registering a specific instance to be injected. This is useful for
         registering global variables. The difference with the singleton decorator is
