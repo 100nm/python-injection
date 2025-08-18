@@ -59,7 +59,7 @@ def entrypoint[**P, T](self: AsyncEntrypoint[P, T], conf: Conf) -> Entrypoint[P,
         f"{keyword}: {name}"
         for name in self.profile_loader.required_module_names(profile)
     }
-    module_loader = PythonModuleLoader.from_keywords(keyword, *keywords)
+    module_loader = PythonModuleLoader.from_keywords(*keywords)
     return (
         self.inject()
         .decorate(adefine_scope(Scope.LIFESPAN, kind="shared"))

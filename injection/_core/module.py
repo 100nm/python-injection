@@ -532,16 +532,21 @@ class Module(Broker, EventListener):
         *,
         alias: bool = False,
         mode: Mode | ModeStr = Mode.get_default(),
-    ) -> Self:
-        hints = on if alias else (type(instance), on)
+    ) -> T:
+        if not alias:
+            on = (type(instance), on)
+
+        elif not on:
+            raise ValueError("`on` must be provided when `alias` is `True`.")
+
         self.injectable(
             lambda: instance,
             ignore_type_hint=True,
             inject=False,
-            on=hints,
+            on=on,
             mode=mode,
         )
-        return self
+        return instance
 
     def reserve_scoped_slot[T](
         self,
