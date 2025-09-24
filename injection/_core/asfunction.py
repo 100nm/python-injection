@@ -2,7 +2,6 @@ from abc import abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from inspect import iscoroutinefunction
-from types import MethodType
 from typing import Any, Protocol, runtime_checkable
 
 from injection._core.common.asynchronous import Caller
@@ -30,7 +29,7 @@ def asfunction[**P, T](
     module = module or mod()
 
     def decorator(wp: AsFunctionWrappedType[P, T]) -> Callable[P, T]:
-        fake_method = MethodType(wp.call, NotImplemented)
+        fake_method = wp.call.__get__(NotImplemented)
         factory: Caller[..., AsFunctionCallable[P, T]] = module.make_injected_function(
             wp,
             threadsafe=threadsafe,
