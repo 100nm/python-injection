@@ -64,8 +64,14 @@ if __name__ == "__main__":
 
 ## Resources
 
-> ⚠️ The package isn't threadsafe, for better performance in single-threaded applications and those using `asyncio`.
-> So remember to use `threading.Lock` if you're writing a multithreaded program.
+> ⚠️ The package isn't threadsafe by default, for better performance in single-threaded applications and those using
+> `asyncio`.
+> 
+> Non-threadsafe functions are those that resolve dependencies or define scopes. They all come with an optional 
+> parameter `threadsafe`.
+> 
+> You can set `PYTHON_INJECTION_THREADSAFE=1` in environment variables to make the package fully threadsafe. The 
+> environment variable is resolved at the **Python module level**, so be careful if the variable is defined dynamically.
 
 * [**Basic usage**](https://github.com/100nm/python-injection/tree/prod/documentation/basic-usage.md)
 * [**Scoped dependencies**](https://github.com/100nm/python-injection/tree/prod/documentation/scoped-dependencies.md)
