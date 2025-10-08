@@ -35,7 +35,7 @@ description = "Fast and easy dependency injection framework."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.12, <4"
+requires-python = ">=3.12, <3.15"
 authors = [{ name = "remimd" }]
 keywords = ["dependencies", "dependency", "inject", "injection"]
 classifiers = [

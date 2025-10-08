@@ -4,10 +4,10 @@ from collections.abc import (
     AsyncIterator,
     Awaitable,
     Callable,
+    Collection,
     Generator,
     Iterable,
     Iterator,
-    Sequence,
 )
 from inspect import isfunction
 from types import GenericAlias, UnionType
@@ -27,15 +27,13 @@ type TypeInfo[T] = (
     InputType[T]
     | Callable[..., T]
     | Callable[..., Awaitable[T]]
-    | Sequence[TypeInfo[T]]
+    | Collection[TypeInfo[T]]
 )
 
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:
     for arg in args:
-        if isinstance(arg, Iterable) and not (
-            isinstance(arg, type | str) or isinstance(get_origin(arg), type)
-        ):
+        if isinstance(arg, Collection):
             inner_args = arg
 
         elif isfunction(arg) and (return_type := get_return_hint(arg)):
