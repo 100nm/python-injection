@@ -13,10 +13,10 @@ issues.
 If your framework inspects function signatures, things get a bit trickier. This is because dependencies can't be present
 in function parameters.
 
-To solve this, you can define a class with a `call` method (where dependencies are injected when the class is 
+To solve this, you can define a class with a `__call__` method (where dependencies are injected when the class is 
 instantiated), and use the `asfunction` decorator to turn it into a function.
 
-The resulting function will have the same signature as the `call` method, but without the `self` parameter.
+The resulting function will have the same signature as the `__call__` method, but without the `self` parameter.
 
 Example:
 
@@ -28,7 +28,7 @@ from injection import asfunction
 class DoSomething(NamedTuple):
     service: MyService
 
-    def call(self):
+    def __call__(self):
         self.service.do_work()
 ```
 

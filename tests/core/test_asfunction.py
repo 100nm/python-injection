@@ -12,7 +12,7 @@ class TestAsFunction:
         class SyncFunction(NamedTuple):
             dependency: Dependency
 
-            def call(self):
+            def __call__(self):
                 return self.dependency
 
         assert isinstance(SyncFunction(), Dependency)
@@ -28,7 +28,7 @@ class TestAsFunction:
         class AsyncFunction(NamedTuple):
             dependency: Dependency
 
-            async def call(self):
+            async def __call__(self):
                 return self.dependency
 
         assert isinstance(await AsyncFunction(), Dependency)
