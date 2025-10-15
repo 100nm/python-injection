@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum, auto
 
 import pytest
 from pydantic import BaseModel
@@ -215,3 +216,16 @@ class TestInjectable:
 
         a = get_instance(Alias[int])
         assert isinstance(a, A)
+
+    def test_injectable_with_enum(self):
+        class MyEnum(StrEnum):
+            A = auto()
+            B = auto()
+            C = auto()
+
+        @injectable
+        def my_enum_recipe() -> MyEnum:
+            return MyEnum.A
+
+        value = get_instance(MyEnum)
+        assert isinstance(value, MyEnum)
