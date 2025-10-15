@@ -9,7 +9,7 @@ from collections.abc import (
     Iterable,
     Iterator,
 )
-from inspect import isfunction
+from inspect import isclass, isfunction
 from types import GenericAlias, UnionType
 from typing import (
     Annotated,
@@ -33,7 +33,7 @@ type TypeInfo[T] = (
 
 def get_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:
     for arg in args:
-        if isinstance(arg, Collection):
+        if isinstance(arg, Collection) and not isclass(arg):
             inner_args = arg
 
         elif isfunction(arg) and (return_type := get_return_hint(arg)):
