@@ -29,6 +29,7 @@ from inspect import signature as inspect_signature
 from logging import Logger, getLogger
 from types import MethodType
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncContextManager,
     ClassVar,
@@ -577,21 +578,23 @@ class Module(Broker, EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
-    @overload
-    def make_injected_function[**P, T](
-        self,
-        wrapped: Callable[P, T],
-        /,
-        threadsafe: bool | None = ...,
-    ) -> SyncInjectedFunction[P, T]: ...
+    if TYPE_CHECKING:  # pragma: no cover
 
-    @overload
-    def make_injected_function[**P, T](
-        self,
-        wrapped: Callable[P, Awaitable[T]],
-        /,
-        threadsafe: bool | None = ...,
-    ) -> AsyncInjectedFunction[P, T]: ...
+        @overload
+        def make_injected_function[**P, T](
+            self,
+            wrapped: Callable[P, T],
+            /,
+            threadsafe: bool | None = ...,
+        ) -> SyncInjectedFunction[P, T]: ...
+
+        @overload
+        def make_injected_function[**P, T](
+            self,
+            wrapped: Callable[P, Awaitable[T]],
+            /,
+            threadsafe: bool | None = ...,
+        ) -> AsyncInjectedFunction[P, T]: ...
 
     def make_injected_function[**P, T](
         self,
@@ -643,23 +646,25 @@ class Module(Broker, EventListener):
             injectable = self[cls]
             return injectable.get_instance()
 
-    @overload
-    async def aget_instance[T, Default](
-        self,
-        cls: InputType[T],
-        default: Default,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> T | Default: ...
+    if TYPE_CHECKING:  # pragma: no cover
 
-    @overload
-    async def aget_instance[T](
-        self,
-        cls: InputType[T],
-        default: T = ...,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> T: ...
+        @overload
+        async def aget_instance[T, Default](
+            self,
+            cls: InputType[T],
+            default: Default,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> T | Default: ...
+
+        @overload
+        async def aget_instance[T](
+            self,
+            cls: InputType[T],
+            default: T = ...,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> T: ...
 
     async def aget_instance[T, Default](
         self,
@@ -673,23 +678,25 @@ class Module(Broker, EventListener):
         except (KeyError, SkipInjectable):
             return default
 
-    @overload
-    def get_instance[T, Default](
-        self,
-        cls: InputType[T],
-        default: Default,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> T | Default: ...
+    if TYPE_CHECKING:  # pragma: no cover
 
-    @overload
-    def get_instance[T](
-        self,
-        cls: InputType[T],
-        default: T = ...,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> T: ...
+        @overload
+        def get_instance[T, Default](
+            self,
+            cls: InputType[T],
+            default: Default,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> T | Default: ...
+
+        @overload
+        def get_instance[T](
+            self,
+            cls: InputType[T],
+            default: T = ...,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> T: ...
 
     def get_instance[T, Default](
         self,
@@ -703,23 +710,25 @@ class Module(Broker, EventListener):
         except (KeyError, SkipInjectable):
             return default
 
-    @overload
-    def aget_lazy_instance[T, Default](
-        self,
-        cls: InputType[T],
-        default: Default,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> Awaitable[T | Default]: ...
+    if TYPE_CHECKING:  # pragma: no cover
 
-    @overload
-    def aget_lazy_instance[T](
-        self,
-        cls: InputType[T],
-        default: T = ...,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> Awaitable[T]: ...
+        @overload
+        def aget_lazy_instance[T, Default](
+            self,
+            cls: InputType[T],
+            default: Default,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> Awaitable[T | Default]: ...
+
+        @overload
+        def aget_lazy_instance[T](
+            self,
+            cls: InputType[T],
+            default: T = ...,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> Awaitable[T]: ...
 
     def aget_lazy_instance[T, Default](
         self,
@@ -735,23 +744,25 @@ class Module(Broker, EventListener):
         metadata = function.__inject_metadata__.set_owner(cls)
         return SimpleAwaitable(metadata.acall)
 
-    @overload
-    def get_lazy_instance[T, Default](
-        self,
-        cls: InputType[T],
-        default: Default,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> Invertible[T | Default]: ...
+    if TYPE_CHECKING:  # pragma: no cover
 
-    @overload
-    def get_lazy_instance[T](
-        self,
-        cls: InputType[T],
-        default: T = ...,
-        *,
-        threadsafe: bool | None = ...,
-    ) -> Invertible[T]: ...
+        @overload
+        def get_lazy_instance[T, Default](
+            self,
+            cls: InputType[T],
+            default: Default,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> Invertible[T | Default]: ...
+
+        @overload
+        def get_lazy_instance[T](
+            self,
+            cls: InputType[T],
+            default: T = ...,
+            *,
+            threadsafe: bool | None = ...,
+        ) -> Invertible[T]: ...
 
     def get_lazy_instance[T, Default](
         self,

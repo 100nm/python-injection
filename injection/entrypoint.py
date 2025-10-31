@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from types import MethodType
 from types import ModuleType as PythonModule
-from typing import Any, Concatenate, Self, final, overload
+from typing import TYPE_CHECKING, Any, Concatenate, Self, final, overload
 
 from injection import Module
 from injection.loaders import ProfileLoader, PythonModuleLoader
@@ -21,13 +21,13 @@ type EntrypointSetupMethod[**P, **EPP, T1, T2] = Callable[
     Entrypoint[EPP, T2],
 ]
 
+if TYPE_CHECKING:  # pragma: no cover
 
-@overload
-def autocall[T: Callable[..., Any]](wrapped: T, /) -> T: ...
+    @overload
+    def autocall[T: Callable[..., Any]](wrapped: T, /) -> T: ...
 
-
-@overload
-def autocall[T: Callable[..., Any]](wrapped: None = ..., /) -> Callable[[T], T]: ...
+    @overload
+    def autocall[T: Callable[..., Any]](wrapped: None = ..., /) -> Callable[[T], T]: ...
 
 
 def autocall[T: Callable[..., Any]](
@@ -44,26 +44,26 @@ def autocall[T: Callable[..., Any]](
 # SMP = Setup Method Parameters
 # EPP = EntryPoint Parameters
 
+if TYPE_CHECKING:  # pragma: no cover
 
-@overload
-def entrypointmaker[**SMP, **EPP, T1, T2](
-    wrapped: EntrypointSetupMethod[SMP, EPP, T1, T2],
-    /,
-    *,
-    profile_loader: ProfileLoader = ...,
-) -> EntrypointDecorator[EPP, T1, T2]: ...
+    @overload
+    def entrypointmaker[**SMP, **EPP, T1, T2](
+        wrapped: EntrypointSetupMethod[SMP, EPP, T1, T2],
+        /,
+        *,
+        profile_loader: ProfileLoader = ...,
+    ) -> EntrypointDecorator[EPP, T1, T2]: ...
 
-
-@overload
-def entrypointmaker[**SMP, **EPP, T1, T2](
-    wrapped: None = ...,
-    /,
-    *,
-    profile_loader: ProfileLoader = ...,
-) -> Callable[
-    [EntrypointSetupMethod[SMP, EPP, T1, T2]],
-    EntrypointDecorator[EPP, T1, T2],
-]: ...
+    @overload
+    def entrypointmaker[**SMP, **EPP, T1, T2](
+        wrapped: None = ...,
+        /,
+        *,
+        profile_loader: ProfileLoader = ...,
+    ) -> Callable[
+        [EntrypointSetupMethod[SMP, EPP, T1, T2]],
+        EntrypointDecorator[EPP, T1, T2],
+    ]: ...
 
 
 def entrypointmaker[**SMP, **EPP, T1, T2](
