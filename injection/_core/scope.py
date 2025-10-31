@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from types import EllipsisType, TracebackType
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncContextManager,
     ContextManager,
@@ -158,12 +159,13 @@ def get_active_scopes(name: str) -> tuple[Scope, ...]:
     return tuple(itertools.chain.from_iterable(active_scopes))
 
 
-@overload
-def get_scope(name: str, default: EllipsisType = ...) -> Scope: ...
+if TYPE_CHECKING:  # pragma: no cover
 
+    @overload
+    def get_scope(name: str, default: EllipsisType = ...) -> Scope: ...
 
-@overload
-def get_scope[T](name: str, default: T) -> Scope | T: ...
+    @overload
+    def get_scope[T](name: str, default: T) -> Scope | T: ...
 
 
 def get_scope[T](name: str, default: T | EllipsisType = ...) -> Scope | T:
