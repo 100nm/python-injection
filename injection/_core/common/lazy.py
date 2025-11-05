@@ -6,7 +6,10 @@ from injection._core.common.invertible import Invertible
 
 def lazy[T](factory: Callable[..., T]) -> Callable[[], T]:
     def cache() -> Iterator[T]:
+        nonlocal factory
         value = factory()
+        del factory
+
         while True:
             yield value
 
@@ -15,7 +18,10 @@ def lazy[T](factory: Callable[..., T]) -> Callable[[], T]:
 
 def alazy[T](factory: Callable[..., Awaitable[T]]) -> Callable[[], Awaitable[T]]:
     async def cache() -> AsyncIterator[T]:
+        nonlocal factory
         value = await factory()
+        del factory
+
         while True:
             yield value
 
