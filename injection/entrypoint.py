@@ -7,39 +7,49 @@ from dataclasses import dataclass, field
 from functools import wraps
 from types import MethodType
 from types import ModuleType as PythonModule
-from typing import TYPE_CHECKING, Any, Concatenate, Self, final, overload
+from typing import TYPE_CHECKING, Any, Concatenate, Protocol, Self, final, overload
 
 from injection import Module
 from injection.loaders import ProfileLoader, PythonModuleLoader
 
-__all__ = ("AsyncEntrypoint", "Entrypoint", "autocall", "entrypointmaker")
+__all__ = ("AsyncEntrypoint", "Entrypoint", "entrypointmaker")
+
+
+class _EntrypointDecorator[**P, T1, T2](Protocol):
+    if TYPE_CHECKING:  # pragma: no cover
+
+        @overload
+        def __call__(
+            self,
+            wrapped: Callable[P, T1],
+            /,
+            *,
+            autocall: bool = ...,
+        ) -> Callable[P, T2]: ...
+
+        @overload
+        def __call__(
+            self,
+            wrapped: None = ...,
+            /,
+            *,
+            autocall: bool = ...,
+        ) -> Callable[[Callable[P, T1]], Callable[P, T2]]: ...
+
+    def __call__(
+        self,
+        wrapped: Callable[P, T1] | None = ...,
+        /,
+        *,
+        autocall: bool = ...,
+    ) -> Any: ...
+
 
 type AsyncEntrypoint[**P, T] = Entrypoint[P, Coroutine[Any, Any, T]]
-type EntrypointDecorator[**P, T1, T2] = Callable[[Callable[P, T1]], Callable[P, T2]]
 type EntrypointSetupMethod[**P, **EPP, T1, T2] = Callable[
     Concatenate[Entrypoint[EPP, T1], P],
     Entrypoint[EPP, T2],
 ]
-
-if TYPE_CHECKING:  # pragma: no cover
-
-    @overload
-    def autocall[T: Callable[..., Any]](wrapped: T, /) -> T: ...
-
-    @overload
-    def autocall[T: Callable[..., Any]](wrapped: None = ..., /) -> Callable[[T], T]: ...
-
-
-def autocall[T: Callable[..., Any]](
-    wrapped: T | None = None,
-    /,
-) -> T | Callable[[T], T]:
-    def decorator(wp: T) -> T:
-        wp()
-        return wp
-
-    return decorator(wrapped) if wrapped else decorator
-
 
 # SMP = Setup Method Parameters
 # EPP = EntryPoint Parameters
@@ -52,7 +62,7 @@ if TYPE_CHECKING:  # pragma: no cover
         /,
         *,
         profile_loader: ProfileLoader = ...,
-    ) -> EntrypointDecorator[EPP, T1, T2]: ...
+    ) -> _EntrypointDecorator[EPP, T1, T2]: ...
 
     @overload
     def entrypointmaker[**SMP, **EPP, T1, T2](
@@ -62,7 +72,7 @@ if TYPE_CHECKING:  # pragma: no cover
         profile_loader: ProfileLoader = ...,
     ) -> Callable[
         [EntrypointSetupMethod[SMP, EPP, T1, T2]],
-        EntrypointDecorator[EPP, T1, T2],
+        _EntrypointDecorator[EPP, T1, T2],
     ]: ...
 
 
@@ -74,7 +84,7 @@ def entrypointmaker[**SMP, **EPP, T1, T2](
 ) -> Any:
     def decorator(
         wp: EntrypointSetupMethod[SMP, EPP, T1, T2],
-    ) -> EntrypointDecorator[EPP, T1, T2]:
+    ) -> _EntrypointDecorator[EPP, T1, T2]:
         return Entrypoint._make_decorator(wp, profile_loader)
 
     return decorator(wrapped) if wrapped else decorator
@@ -163,13 +173,26 @@ class Entrypoint[**P, T]:
         setup_method: EntrypointSetupMethod[_P, P, T, _T],
         /,
         profile_loader: ProfileLoader | None = None,
-    ) -> EntrypointDecorator[P, T, _T]:
+    ) -> _EntrypointDecorator[P, T, _T]:
         profile_loader = profile_loader or ProfileLoader()
         setup_method = profile_loader.module.make_injected_function(setup_method)
 
-        def decorator(function: Callable[P, T]) -> Callable[P, _T]:
-            profile_loader.init()
-            self = cls(function, profile_loader)
-            return MethodType(setup_method, self)().function
+        def entrypoint_decorator(
+            function: Callable[P, T] | None = None,
+            /,
+            *,
+            autocall: bool = False,
+        ) -> Any:
+            def decorator(fn: Callable[P, T]) -> Callable[P, _T]:
+                profile_loader.init()
+                self = cls(fn, profile_loader)
+                wrapper = MethodType(setup_method, self)().function
 
-        return decorator
+                if autocall:
+                    wrapper()
+
+                return wrapper
+
+            return decorator(function) if function else decorator
+
+        return entrypoint_decorator

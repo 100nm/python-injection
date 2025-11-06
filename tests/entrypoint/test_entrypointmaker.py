@@ -17,3 +17,20 @@ def test_entrypointmaker_with_success_return_entrypoint_decorator():
 
     function()
     assert count == 1
+
+
+def test_entrypointmaker_with_autocall_return_entrypoint_decorator():
+    count = 0
+
+    def increment() -> None:
+        nonlocal count
+        count += 1
+
+    @entrypointmaker
+    def entrypoint[**P, T](self: Entrypoint[P, T]) -> Entrypoint[P, T]:
+        return self.setup(increment)
+
+    @entrypoint(autocall=True)
+    def _(): ...
+
+    assert count == 1

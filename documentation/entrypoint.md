@@ -82,7 +82,6 @@ Developing a CLI is a good example of using multiple entrypoints:
 ```python
 # src/cli.py
 
-from injection.entrypoint import autocall
 from typer import Typer
 
 from src.entrypoint import entrypoint  # the previously defined `entrypoint` decorator
@@ -92,15 +91,13 @@ app = Typer()
 
 @app.command()
 def hello(name: str) -> None:
-    @autocall   # allows automatically calling the function
-    @entrypoint
+    @entrypoint(autocall=True)
     async def _(logger: AsyncLogger) -> None:
         await logger.info(f"Hello {name}!")
     
 @app.command()
 def goodbye(name: str) -> None:
-    @autocall
-    @entrypoint
+    @entrypoint(autocall=True)
     async def _(logger: AsyncLogger) -> None:
         await logger.info(f"Goodbye {name}!")
 
