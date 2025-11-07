@@ -56,7 +56,7 @@ can be retrieved by other dependencies within that scope.
 This is particularly useful for request-scoped dependencies in web applications, where you need to make request-specific
 data available throughout the request lifecycle.
 
-### Usage
+Example:
 
 ```python
 from dataclasses import dataclass
@@ -75,8 +75,6 @@ def process_request(request: Request) -> None:
         # Dependencies can now access the scoped Request instance
         ...
 ```
-
-### Async version
 
 For asynchronous contexts, use `adefine`:
 
