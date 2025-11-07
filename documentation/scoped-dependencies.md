@@ -50,7 +50,7 @@ can be retrieved by other dependencies within that scope.
 
 1. **Define bindings**: Create a class with fields annotated with `Scoped`.
 2. **Create scope**: Instantiate `MappedScope` with a scope name.
-3. **Open scope**: Use `define()` or `adefine()` context manager to register the scoped values.
+3. **Open scope**: Use `define` or `adefine` context manager to register the scoped values.
 4. **Access dependencies**: Other dependencies can now inject these scoped values within the context.
 
 This is particularly useful for request-scoped dependencies in web applications, where you need to make request-specific
