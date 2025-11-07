@@ -41,6 +41,50 @@ def main() -> None:
         ...
 ```
 
+## MappedScope
+
+`MappedScope` allows you to open a dependency injection scope and register values annotated with `Scoped[...]` so they 
+can be retrieved by other dependencies within that scope.
+
+### How it works
+
+1. **Define bindings**: Create a class with fields annotated with `Scoped`.
+2. **Create scope**: Instantiate `MappedScope` with a scope name.
+3. **Open scope**: Use `define` or `adefine` context manager to register the scoped values.
+4. **Access dependencies**: Other dependencies can now inject these scoped values within the context.
+
+This is particularly useful for request-scoped dependencies in web applications, where you need to make request-specific
+data available throughout the request lifecycle.
+
+Example:
+
+```python
+from dataclasses import dataclass
+from injection import MappedScope, Scoped
+
+class Request: ...
+
+@dataclass
+class RequestBindings:
+    request: Scoped[Request]
+
+    scope = MappedScope("request")
+
+def process_request(request: Request) -> None:
+    with RequestBindings(request).scope.define():
+        # Dependencies can now access the scoped Request instance
+        ...
+```
+
+For asynchronous contexts, use `adefine`:
+
+```python
+async def process_request_async(request: Request) -> None:
+    async with RequestBindings(request).scope.adefine():
+        # Dependencies can now access the scoped Request instance
+        ...
+```
+
 ## Register a scoped dependencies
 
 `@scoped` works exactly like `@injectable`, it just has extra features.
@@ -98,6 +142,9 @@ def client_recipe() -> Iterator[Client]:
 ```
 
 ### Scoped slots
+
+> [!IMPORTANT]
+> It's preferable to use `MappedScope` instead.
 
 Scoped slots allow you to reserve a place for an instance within a predefined scope. This ensures that injected 
 functions can resolve dependencies efficiently without unnecessary recomputation. This is why the syntax can seem a 

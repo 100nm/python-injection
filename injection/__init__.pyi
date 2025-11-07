@@ -13,6 +13,7 @@ from ._core.module import InjectableFactory as _InjectableFactory
 from ._core.module import ModeStr, PriorityStr
 from ._core.scope import ScopeKindStr
 
+type Scoped[T] = T
 type _Decorator[T] = Callable[[T], T]
 
 __MODULE: Final[Module] = ...
@@ -89,6 +90,34 @@ class Scope(Protocol):
     def slot_map(self, mapping: Mapping[SlotKey[Any], Any], /) -> Self: ...
 
 class SlotKey[T]: ...
+
+class MappedScope:
+    def __init__(self, name: str, /, module: Module = ...) -> None: ...
+    @overload
+    def __get__(
+        self,
+        instance: object,
+        owner: type | None = ...,
+    ) -> _BoundMappedScope: ...
+    @overload
+    def __get__(self, instance: None = ..., owner: type | None = ...) -> Self: ...
+    def __set_name__(self, owner: type, name: str) -> None: ...
+
+class _BoundMappedScope:
+    @asynccontextmanager
+    def adefine(
+        self,
+        /,
+        kind: ScopeKind | ScopeKindStr = ...,
+        threadsafe: bool | None = ...,
+    ) -> AsyncIterator[None]: ...
+    @contextmanager
+    def define(
+        self,
+        /,
+        kind: ScopeKind | ScopeKindStr = ...,
+        threadsafe: bool | None = ...,
+    ) -> Iterator[None]: ...
 
 class LazyInstance[T]:
     def __init__(
