@@ -10,23 +10,23 @@ class _RawData: ...
 
 class TestMappedScope:
     def test_set_name_with_multiple_owner_raise_type_error(self):
-        class ContextA:
+        class BindingsA:
             scope = MappedScope("some_scope")
 
         with pytest.raises(TypeError):
 
-            class ContextB:
-                scope = ContextA.scope
+            class BindingsB:
+                scope = BindingsA.scope
 
     async def test_aopen_with_success(self, module):
         @dataclass
-        class ScopeContext:
+        class Bindings:
             data: Scoped[_RawData]
 
             scope = MappedScope("some_scope", module=module)
 
         data = _RawData()
-        context = ScopeContext(data)
+        context = Bindings(data)
 
         assert module.get_instance(_RawData) is NotImplemented
 
@@ -37,14 +37,14 @@ class TestMappedScope:
 
     def test_open_with_success(self, module):
         @dataclass
-        class ScopeContext:
+        class Bindings:
             data: Scoped[_RawData]
             unscoped_data: int
 
             scope = MappedScope("some_scope", module=module)
 
         data = _RawData()
-        context = ScopeContext(data, 2)
+        context = Bindings(data, 2)
 
         assert module.get_instance(_RawData) is NotImplemented
 
@@ -53,6 +53,21 @@ class TestMappedScope:
             assert module.get_instance(int) is NotImplemented
 
         assert module.get_instance(_RawData) is NotImplemented
+
+    def test_open_with_optional_types(self, module):
+        @dataclass
+        class Bindings:
+            data: Scoped[_RawData | None] = None
+            name: Scoped[str | None] = None
+
+            scope = MappedScope("some_scope", module=module)
+
+        data = _RawData()
+        context = Bindings(data)
+
+        with context.scope.define():
+            assert module.get_instance(_RawData) is data
+            assert module.get_instance(str) is NotImplemented
 
 
 class TestLazyInstance:
