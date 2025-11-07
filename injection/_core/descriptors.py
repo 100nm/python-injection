@@ -4,13 +4,7 @@ from collections.abc import AsyncIterator, Iterator, Mapping
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import (
-    Any,
-    Self,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from typing import Any, Self, get_args, get_origin, get_type_hints
 
 from injection._core.common.invertible import Invertible
 from injection._core.common.type import InputType
