@@ -1,4 +1,58 @@
-from injection import LazyInstance, injectable
+from dataclasses import dataclass
+
+import pytest
+
+from injection import LazyInstance, MappedScope, Scoped, injectable
+
+
+class _RawData: ...
+
+
+class TestMappedScope:
+    def test_set_name_with_multiple_owner_raise_type_error(self):
+        class ContextA:
+            scope = MappedScope("some_scope")
+
+        with pytest.raises(TypeError):
+
+            class ContextB:
+                scope = ContextA.scope
+
+    async def test_aopen_with_success(self, module):
+        @dataclass
+        class ScopeContext:
+            data: Scoped[_RawData]
+
+            scope = MappedScope("some_scope", module=module)
+
+        data = _RawData()
+        context = ScopeContext(data)
+
+        assert module.get_instance(_RawData) is NotImplemented
+
+        async with context.scope.adefine():
+            assert module.get_instance(_RawData) is data
+
+        assert module.get_instance(_RawData) is NotImplemented
+
+    def test_open_with_success(self, module):
+        @dataclass
+        class ScopeContext:
+            data: Scoped[_RawData]
+            unscoped_data: int
+
+            scope = MappedScope("some_scope", module=module)
+
+        data = _RawData()
+        context = ScopeContext(data, 2)
+
+        assert module.get_instance(_RawData) is NotImplemented
+
+        with context.scope.define():
+            assert module.get_instance(_RawData) is data
+            assert module.get_instance(int) is NotImplemented
+
+        assert module.get_instance(_RawData) is NotImplemented
 
 
 class TestLazyInstance:

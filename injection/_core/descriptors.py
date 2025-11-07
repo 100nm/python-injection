@@ -1,8 +1,104 @@
-from typing import Self
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Iterator, Mapping
+from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass
+from types import MappingProxyType
+from typing import (
+    Any,
+    Self,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from injection._core.common.invertible import Invertible
 from injection._core.common.type import InputType
 from injection._core.module import Module, mod
+from injection._core.scope import ScopeKind, ScopeKindStr, adefine_scope, define_scope
+from injection._core.slots import SlotKey
+
+type Scoped[T] = T
+
+
+class MappedScope:
+    __slots__ = ("__keys", "__module", "__name", "__owner")
+
+    __keys: Mapping[str, SlotKey[Any]]
+    __module: Module
+    __name: str
+    __owner: type | None
+
+    def __init__(self, name: str, /, module: Module | None = None) -> None:
+        self.__module = module or mod()
+        self.__name = name
+        self.__owner = None
+
+    def __get__(
+        self,
+        instance: object | None = None,
+        owner: type | None = None,
+    ) -> Self | BoundMappedScope:
+        if instance is None:
+            return self
+
+        mapping = self.__mapping_from(instance)
+        return BoundMappedScope(self.__name, mapping)
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        if self.__owner:
+            raise TypeError(f"`{self}` owner is already defined.")
+
+        self.__keys = MappingProxyType(dict(self.__generate_keys(owner)))
+        self.__owner = owner
+
+    def __generate_keys(self, cls: type) -> Iterator[tuple[str, SlotKey[Any]]]:
+        for name, hint in get_type_hints(cls).items():
+            if get_origin(hint) is not Scoped:
+                continue
+
+            annotation = get_args(hint)[0]
+            key = self.__module.reserve_scoped_slot(annotation, scope_name=self.__name)
+            yield name, key
+
+    def __mapping_from(self, instance: object) -> dict[SlotKey[Any], Any]:
+        return {
+            key: value
+            for name, key in self.__keys.items()
+            if (value := getattr(instance, name, None)) is not None
+        }
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class BoundMappedScope:
+    name: str
+    mapping: Mapping[SlotKey[Any], Any]
+
+    @asynccontextmanager
+    async def adefine(
+        self,
+        /,
+        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+        threadsafe: bool | None = None,
+    ) -> AsyncIterator[None]:
+        async with adefine_scope(self.name, kind, threadsafe) as scope:
+            if mapping := self.mapping:
+                scope.slot_map(mapping)
+
+            yield
+
+    @contextmanager
+    def define(
+        self,
+        /,
+        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+        threadsafe: bool | None = None,
+    ) -> Iterator[None]:
+        with define_scope(self.name, kind, threadsafe) as scope:
+            if mapping := self.mapping:
+                scope.slot_map(mapping)
+
+            yield
 
 
 class LazyInstance[T]:
