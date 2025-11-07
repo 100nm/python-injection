@@ -10,7 +10,7 @@ from collections.abc import (
     Iterator,
 )
 from inspect import isclass, isfunction
-from types import GenericAlias, UnionType
+from types import GenericAlias, NoneType, UnionType
 from typing import (
     Annotated,
     Any,
@@ -74,7 +74,7 @@ def standardize_types(
     with_origin: bool = False,
 ) -> Iterator[TypeDef[Any]]:
     for tp in types:
-        if tp is None:
+        if tp in (None, NoneType):
             continue
 
         origin = get_origin(tp)
