@@ -25,10 +25,11 @@ Here's how to configure FastAPI:
 ```python
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from enum import StrEnum, auto
 
 from fastapi import Depends, FastAPI, Request
-from injection import adefine_scope, reserve_scoped_slot
+from injection import MappedScope, Scoped, adefine_scope
 
 class InjectionScope(StrEnum):
     LIFESPAN = auto()
@@ -39,11 +40,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     async with adefine_scope(InjectionScope.LIFESPAN, kind="shared"):
         yield
 
-request_slot_key = reserve_scoped_slot(Request, InjectionScope.REQUEST)
+@dataclass
+class FastAPIRequestBindings:
+    request: Scoped[Request]
+    
+    scope = MappedScope(InjectionScope.REQUEST)
 
 async def request_scope(request: Request) -> AsyncIterator[None]:
-    async with adefine_scope(InjectionScope.REQUEST) as scope:
-        scope.set_slot(request_slot_key, request)
+    async with FastAPIRequestBindings(request).scope.adefine():
         yield
 
 app = FastAPI(
