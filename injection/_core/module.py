@@ -224,7 +224,7 @@ class Record[T](NamedTuple):
     mode: Mode
 
 
-@dataclass(repr=False, eq=False, kw_only=True, slots=True)
+@dataclass(repr=False, eq=False, frozen=True, kw_only=True, slots=True)
 class Updater[T]:
     classes: Iterable[InputType[T]]
     injectable: Injectable[T]
