@@ -72,9 +72,10 @@ def get_yield_hint[T](
 def standardize_types(
     *types: InputType[Any],
     with_origin: bool = False,
+    ignore_none_type: bool = False,
 ) -> Iterator[TypeDef[Any]]:
     for tp in types:
-        if tp in (None, NoneType):
+        if tp is None or (ignore_none_type and tp is NoneType):
             continue
 
         origin = get_origin(tp)
@@ -101,4 +102,8 @@ def standardize_types(
 
             continue
 
-        yield from standardize_types(*inner_types, with_origin=with_origin)
+        yield from standardize_types(
+            *inner_types,
+            with_origin=with_origin,
+            ignore_none_type=ignore_none_type,
+        )
