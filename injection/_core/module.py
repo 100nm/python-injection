@@ -55,6 +55,7 @@ from injection._core.common.lazy import Lazy, alazy, lazy
 from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
+    TypeDef,
     TypeInfo,
     get_return_types,
     get_yield_hint,
@@ -228,6 +229,7 @@ class Updater[T]:
     classes: Iterable[InputType[T]]
     injectable: Injectable[T]
     mode: Mode
+    ignore_none_type: bool
 
     def make_record(self) -> Record[T]:
         return Record(self.injectable, self.mode)
@@ -239,11 +241,13 @@ class Updater[T]:
         /,
         injectable: Injectable[T],
         mode: Mode | ModeStr,
+        ignore_none_type: bool = False,
     ) -> Self:
         return cls(
             classes=get_return_types(on),
             injectable=injectable,
             mode=Mode(mode),
+            ignore_none_type=ignore_none_type,
         )
 
 
@@ -284,9 +288,9 @@ class Locator(Broker):
         return frozenset(record.injectable for record in self.__records.values())
 
     def update[T](self, updater: Updater[T]) -> Self:
-        updater = self.__update_preprocessing(updater)
         record = updater.make_record()
-        records = dict(self.__prepare_for_updating(updater.classes, record))
+        classes = self.__reduce_classes(updater)
+        records = dict(self.__prepare_for_updating(classes, record))
 
         if records:
             event = LocatorDependenciesUpdated(self, records.keys(), record.mode)
@@ -348,15 +352,19 @@ class Locator(Broker):
         return new_mode.rank > existing_mode.rank
 
     @staticmethod
+    def __reduce_classes[T](updater: Updater[T]) -> frozenset[TypeDef[T]]:
+        return frozenset(
+            standardize_types(
+                *updater.classes,
+                ignore_none_type=updater.ignore_none_type,
+            )
+        )
+
+    @staticmethod
     def __standardize_inputs[T](
         classes: Iterable[InputType[T]],
     ) -> Iterator[InputType[T]]:
         return standardize_types(*classes, with_origin=True)
-
-    @staticmethod
-    def __update_preprocessing[T](updater: Updater[T]) -> Updater[T]:
-        updater.classes = frozenset(standardize_types(*updater.classes))
-        return updater
 
 
 """
@@ -556,9 +564,10 @@ class Module(Broker, EventListener):
         scope_name: str,
         *,
         mode: Mode | ModeStr = Mode.get_default(),
+        ignore_none_type: bool = False,
     ) -> SlotKey[T]:
         injectable = ScopedSlotInjectable(cls, scope_name)
-        updater = Updater.with_basics(cls, injectable, mode)
+        updater = Updater.with_basics(cls, injectable, mode, ignore_none_type)
         self.update(updater)
         return injectable.key
 
