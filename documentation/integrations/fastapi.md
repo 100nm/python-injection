@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from enum import StrEnum, auto
 
 from fastapi import Depends, FastAPI, Request
-from injection import MappedScope, Scoped, adefine_scope
+from injection import MappedScope, adefine_scope
 
 class InjectionScope(StrEnum):
     LIFESPAN = auto()
@@ -42,7 +42,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 @dataclass
 class FastAPIRequestBindings:
-    request: Scoped[Request]
+    request: Request
     
     scope = MappedScope(InjectionScope.REQUEST)
 

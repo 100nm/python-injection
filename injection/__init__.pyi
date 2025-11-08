@@ -13,7 +13,6 @@ from ._core.module import InjectableFactory as _InjectableFactory
 from ._core.module import ModeStr, PriorityStr
 from ._core.scope import ScopeKindStr
 
-type Scoped[T] = T
 type _Decorator[T] = Callable[[T], T]
 
 __MODULE: Final[Module] = ...
