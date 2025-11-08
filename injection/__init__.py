@@ -1,5 +1,5 @@
 from ._core.asfunction import asfunction
-from ._core.descriptors import LazyInstance, MappedScope, Scoped
+from ._core.descriptors import LazyInstance, MappedScope
 from ._core.injectables import Injectable
 from ._core.module import Mode, Module, Priority, mod
 from ._core.scope import ScopeFacade as Scope
@@ -14,7 +14,6 @@ __all__ = (
     "Module",
     "Priority",
     "Scope",
-    "Scoped",
     "ScopeKind",
     "SlotKey",
     "adefine_scope",

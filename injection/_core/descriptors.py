@@ -4,15 +4,13 @@ from collections.abc import AsyncIterator, Iterator, Mapping
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Self, get_args, get_origin, get_type_hints
+from typing import Any, Self, get_type_hints
 
 from injection._core.common.invertible import Invertible
 from injection._core.common.type import InputType
 from injection._core.module import Module, mod
 from injection._core.scope import ScopeKind, ScopeKindStr, adefine_scope, define_scope
 from injection._core.slots import SlotKey
-
-type Scoped[T] = T
 
 
 class MappedScope:
@@ -43,16 +41,19 @@ class MappedScope:
         if self.__owner:
             raise TypeError(f"`{self}` owner is already defined.")
 
-        self.__keys = MappingProxyType(dict(self.__generate_keys(owner)))
+        self.__keys = MappingProxyType(dict(self.__generate_keys(owner, name)))
         self.__owner = owner
 
-    def __generate_keys(self, cls: type) -> Iterator[tuple[str, SlotKey[Any]]]:
+    def __generate_keys(
+        self,
+        cls: type,
+        descriptor_name: str,
+    ) -> Iterator[tuple[str, SlotKey[Any]]]:
         for name, hint in get_type_hints(cls).items():
-            if get_origin(hint) is not Scoped:
+            if name == descriptor_name:
                 continue
 
-            annotation = get_args(hint)[0]
-            key = self.__module.reserve_scoped_slot(annotation, scope_name=self.__name)
+            key = self.__module.reserve_scoped_slot(hint, scope_name=self.__name)
             yield name, key
 
     def __mapping_from(self, instance: object) -> dict[SlotKey[Any], Any]:

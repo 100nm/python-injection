@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import pytest
 
-from injection import LazyInstance, MappedScope, Scoped, injectable
+from injection import LazyInstance, MappedScope, injectable
 
 
 class _RawData: ...
@@ -18,12 +19,12 @@ class TestMappedScope:
             class BindingsB:
                 scope = BindingsA.scope
 
-    async def test_aopen_with_success(self, module):
+    async def test_adefine_with_success(self, module):
         @dataclass
         class Bindings:
-            data: Scoped[_RawData]
+            data: _RawData
 
-            scope = MappedScope("some_scope", module=module)
+            scope: ClassVar[MappedScope] = MappedScope("some_scope", module)
 
         data = _RawData()
         context = Bindings(data)
@@ -35,16 +36,15 @@ class TestMappedScope:
 
         assert module.get_instance(_RawData) is NotImplemented
 
-    def test_open_with_success(self, module):
+    def test_define_with_success(self, module):
         @dataclass
         class Bindings:
-            data: Scoped[_RawData]
-            unscoped_data: int
+            data: _RawData
 
-            scope = MappedScope("some_scope", module=module)
+            scope: ClassVar[MappedScope] = MappedScope("some_scope", module)
 
         data = _RawData()
-        context = Bindings(data, 2)
+        context = Bindings(data)
 
         assert module.get_instance(_RawData) is NotImplemented
 
@@ -54,13 +54,13 @@ class TestMappedScope:
 
         assert module.get_instance(_RawData) is NotImplemented
 
-    def test_open_with_optional_types(self, module):
+    def test_define_with_optional_types(self, module):
         @dataclass
         class Bindings:
-            data: Scoped[_RawData | None] = None
-            name: Scoped[str | None] = None
+            data: _RawData | None = None
+            name: str | None = None
 
-            scope = MappedScope("some_scope", module=module)
+            scope: ClassVar[MappedScope] = MappedScope("some_scope", module)
 
         data = _RawData()
         context = Bindings(data)

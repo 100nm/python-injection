@@ -43,12 +43,12 @@ def main() -> None:
 
 ## MappedScope
 
-`MappedScope` allows you to open a dependency injection scope and register values annotated with `Scoped[...]` so they 
-can be retrieved by other dependencies within that scope.
+`MappedScope` allows you to open a dependency injection scope and register values with type annotation so they can be 
+retrieved by other dependencies within that scope.
 
 ### How it works
 
-1. **Define bindings**: Create a class with fields annotated with `Scoped`.
+1. **Define bindings**: Create a class with type annotated fields.
 2. **Create scope**: Instantiate `MappedScope` with a scope name.
 3. **Open scope**: Use `define` or `adefine` context manager to register the scoped values.
 4. **Access dependencies**: Other dependencies can now inject these scoped values within the context.
@@ -60,13 +60,13 @@ Example:
 
 ```python
 from dataclasses import dataclass
-from injection import MappedScope, Scoped
+from injection import MappedScope
 
 class Request: ...
 
 @dataclass
 class RequestBindings:
-    request: Scoped[Request]
+    request: Request
 
     scope = MappedScope("request")
 
