@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
 from collections.abc import (
@@ -42,6 +43,8 @@ from typing import (
     runtime_checkable,
 )
 
+from type_analyzer import MatchingTypesConfig, matching_types
+
 from injection._core.common.asynchronous import (
     AsyncCaller,
     Caller,
@@ -59,7 +62,6 @@ from injection._core.common.type import (
     TypeInfo,
     get_return_types,
     get_yield_hint,
-    standardize_types,
 )
 from injection._core.injectables import (
     AsyncCMScopedInjectable,
@@ -229,7 +231,6 @@ class Updater[T]:
     classes: Iterable[InputType[T]]
     injectable: Injectable[T]
     mode: Mode
-    ignore_none_type: bool
 
     def make_record(self) -> Record[T]:
         return Record(self.injectable, self.mode)
@@ -241,13 +242,11 @@ class Updater[T]:
         /,
         injectable: Injectable[T],
         mode: Mode | ModeStr,
-        ignore_none_type: bool = False,
     ) -> Self:
         return cls(
             classes=get_return_types(on),
             injectable=injectable,
             mode=Mode(mode),
-            ignore_none_type=ignore_none_type,
         )
 
 
@@ -353,10 +352,10 @@ class Locator(Broker):
 
     @staticmethod
     def __reduce_classes[T](updater: Updater[T]) -> frozenset[TypeDef[T]]:
+        config = MatchingTypesConfig(ignore_none=True)
         return frozenset(
-            standardize_types(
-                *updater.classes,
-                ignore_none_type=updater.ignore_none_type,
+            itertools.chain.from_iterable(
+                matching_types(cls, config) for cls in updater.classes
             )
         )
 
@@ -364,7 +363,14 @@ class Locator(Broker):
     def __standardize_inputs[T](
         classes: Iterable[InputType[T]],
     ) -> Iterator[InputType[T]]:
-        return standardize_types(*classes, with_origin=True)
+        config = MatchingTypesConfig(
+            with_bases=True,
+            with_origin=True,
+            with_type_alias_value=True,
+        )
+
+        for cls in classes:
+            yield from matching_types(cls, config)
 
 
 """
@@ -564,10 +570,9 @@ class Module(Broker, EventListener):
         scope_name: str,
         *,
         mode: Mode | ModeStr = Mode.get_default(),
-        ignore_none_type: bool = False,
     ) -> SlotKey[T]:
         injectable = ScopedSlotInjectable(cls, scope_name)
-        updater = Updater.with_basics(cls, injectable, mode, ignore_none_type)
+        updater = Updater.with_basics(cls, injectable, mode)
         self.update(updater)
         return injectable.key
 

@@ -53,11 +53,7 @@ class MappedScope:
             if name == descriptor_name:
                 continue
 
-            key = self.__module.reserve_scoped_slot(
-                hint,
-                scope_name=self.__name,
-                ignore_none_type=True,
-            )
+            key = self.__module.reserve_scoped_slot(hint, scope_name=self.__name)
             yield name, key
 
     def __mapping_from(self, instance: object) -> dict[SlotKey[Any], Any]:

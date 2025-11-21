@@ -55,7 +55,9 @@ classifiers = [
     "Natural Language :: English",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "type-analyzer",
+]
 
 [project.optional-dependencies]
 async = [

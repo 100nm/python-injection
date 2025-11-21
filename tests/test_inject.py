@@ -36,16 +36,16 @@ class TestInject:
         self.assert_inject(Annotated[SomeInjectable, "metadata"])
 
     def test_inject_with_union(self):
-        self.assert_inject(Union[T, SomeInjectable])
+        self.assert_inject(Union[str, SomeInjectable])
 
     def test_inject_with_new_union(self):
-        self.assert_inject(T | SomeInjectable)
+        self.assert_inject(str | SomeInjectable)
 
     def test_inject_with_union_and_none(self):
         self.assert_inject(None | SomeInjectable)
 
     def test_inject_with_annotated_and_union(self):
-        self.assert_inject(Annotated[T | SomeInjectable, "metadata"])
+        self.assert_inject(Annotated[str | SomeInjectable, "metadata"])
 
     def test_inject_with_optional(self):
         self.assert_inject(Optional[SomeInjectable])
