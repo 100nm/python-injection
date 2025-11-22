@@ -43,7 +43,7 @@ from typing import (
     runtime_checkable,
 )
 
-from type_analyzer import MatchingTypesConfig, matching_types
+from type_analyzer import MatchingTypesConfig, iter_matching_types
 
 from injection._core.common.asynchronous import (
     AsyncCaller,
@@ -262,9 +262,9 @@ class Locator(Broker):
     )
 
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
-        for input_class in self.__standardize_inputs((cls,)):
+        for key_type in self.__iter_key_types((cls,)):
             try:
-                record = self.__records[input_class]
+                record = self.__records[key_type]
             except KeyError:
                 continue
 
@@ -274,8 +274,7 @@ class Locator(Broker):
 
     def __contains__(self, cls: InputType[Any], /) -> bool:
         return any(
-            input_class in self.__records
-            for input_class in self.__standardize_inputs((cls,))
+            key_type in self.__records for key_type in self.__iter_key_types((cls,))
         )
 
     @property
@@ -288,8 +287,8 @@ class Locator(Broker):
 
     def update[T](self, updater: Updater[T]) -> Self:
         record = updater.make_record()
-        classes = self.__reduce_classes(updater)
-        records = dict(self.__prepare_for_updating(classes, record))
+        key_types = self.__build_key_types(updater.classes)
+        records = dict(self.__prepare_for_updating(key_types, record))
 
         if records:
             event = LocatorDependenciesUpdated(self, records.keys(), record.mode)
@@ -335,6 +334,21 @@ class Locator(Broker):
             yield cls, record
 
     @staticmethod
+    def __build_key_types[T](classes: Iterable[InputType[T]]) -> frozenset[TypeDef[T]]:
+        config = MatchingTypesConfig(ignore_none=True)
+        return frozenset(
+            itertools.chain.from_iterable(
+                iter_matching_types(cls, config) for cls in classes
+            )
+        )
+
+    @staticmethod
+    def __iter_key_types[T](classes: Iterable[InputType[T]]) -> Iterator[InputType[T]]:
+        config = MatchingTypesConfig(with_origin=True, with_type_alias_value=True)
+        for cls in classes:
+            yield from iter_matching_types(cls, config)
+
+    @staticmethod
     def __keep_new_record[T](
         new: Record[T],
         existing: Record[T],
@@ -349,28 +363,6 @@ class Locator(Broker):
             raise RuntimeError(f"An injectable already exists for the class `{cls}`.")
 
         return new_mode.rank > existing_mode.rank
-
-    @staticmethod
-    def __reduce_classes[T](updater: Updater[T]) -> frozenset[TypeDef[T]]:
-        config = MatchingTypesConfig(ignore_none=True)
-        return frozenset(
-            itertools.chain.from_iterable(
-                matching_types(cls, config) for cls in updater.classes
-            )
-        )
-
-    @staticmethod
-    def __standardize_inputs[T](
-        classes: Iterable[InputType[T]],
-    ) -> Iterator[InputType[T]]:
-        config = MatchingTypesConfig(
-            with_bases=True,
-            with_origin=True,
-            with_type_alias_value=True,
-        )
-
-        for cls in classes:
-            yield from matching_types(cls, config)
 
 
 """
