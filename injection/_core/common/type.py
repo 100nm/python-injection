@@ -10,12 +10,10 @@ from collections.abc import (
     Iterator,
 )
 from inspect import isclass, isfunction
-from types import GenericAlias, NoneType, UnionType
+from types import GenericAlias, UnionType
 from typing import (
-    Annotated,
     Any,
     TypeAliasType,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -67,43 +65,3 @@ def get_yield_hint[T](
             return (arg,)
 
     return ()
-
-
-def standardize_types(
-    *types: InputType[Any],
-    with_origin: bool = False,
-    ignore_none_type: bool = False,
-) -> Iterator[TypeDef[Any]]:
-    for tp in types:
-        if tp is None or (ignore_none_type and tp is NoneType):
-            continue
-
-        origin = get_origin(tp)
-
-        if origin is Union or isinstance(tp, UnionType):
-            inner_types = get_args(tp)
-
-        elif origin is Annotated:
-            inner_types = get_args(tp)[:1]
-
-        else:
-            yield tp
-
-            if with_origin:
-                if origin is not None:
-                    yield origin
-
-                for alias in (tp, origin):
-                    if isinstance(alias, TypeAliasType):
-                        yield from standardize_types(
-                            alias.__value__,
-                            with_origin=with_origin,
-                        )
-
-            continue
-
-        yield from standardize_types(
-            *inner_types,
-            with_origin=with_origin,
-            ignore_none_type=ignore_none_type,
-        )
