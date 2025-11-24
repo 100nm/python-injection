@@ -122,11 +122,12 @@ class SingletonInjectable[T](Injectable[T]):
 class ScopedInjectable[R, T](Injectable[T], ABC):
     factory: Caller[..., R]
     scope_name: str
+    key: SlotKey[T] = field(default_factory=SlotKey)
     logic: CacheLogic[T] = field(default_factory=CacheLogic)
 
     @property
     def is_locked(self) -> bool:
-        return in_scope_cache(self, self.scope_name)
+        return in_scope_cache(self.key, self.scope_name)
 
     @abstractmethod
     async def abuild(self, scope: Scope) -> T:
@@ -139,12 +140,12 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
     async def aget_instance(self) -> T:
         scope = self.__get_scope()
         factory = partial(self.abuild, scope)
-        return await self.logic.aget_or_create(scope.cache, self, factory)
+        return await self.logic.aget_or_create(scope.cache, self.key, factory)
 
     def get_instance(self) -> T:
         scope = self.__get_scope()
         factory = partial(self.build, scope)
-        return self.logic.get_or_create(scope.cache, self, factory)
+        return self.logic.get_or_create(scope.cache, self.key, factory)
 
     def unlock(self) -> None:
         if self.is_locked:
@@ -187,7 +188,7 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
         return self.factory.call()
 
     def unlock(self) -> None:
-        remove_scoped_values(self, self.scope_name)
+        remove_scoped_values(self.key, self.scope_name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
