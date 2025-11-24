@@ -121,8 +121,9 @@ class ModuleEventProxy(ModuleEvent):
 
     @property
     def is_duplicate(self) -> bool:
+        module, origin = self.module, self.origin
         return any(
-            self.module is event.module and self.origin is event.origin
+            module is event.module and origin is event.origin
             for event in self.proxy_history
         )
 
