@@ -3,6 +3,8 @@ from typing import Final
 from injection import Module
 from injection.loaders import LoadedProfile, ProfileLoader
 
+TEST_PROFILE_NAME: Final[str] = ...
+
 __MODULE: Final[Module] = ...
 
 reserve_scoped_test_slot = __MODULE.reserve_scoped_slot
