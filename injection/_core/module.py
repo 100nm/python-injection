@@ -119,14 +119,6 @@ class ModuleEventProxy(ModuleEvent):
         return f"`{self.module}` has propagated an event: {self.origin}"
 
     @property
-    def is_duplicate(self) -> bool:
-        module, origin = self.module, self.origin
-        return any(
-            module is event.module and origin is event.origin
-            for event in self.proxy_history
-        )
-
-    @property
     def origin(self) -> Event:
         reversed_proxy_history = reversed(tuple(self.proxy_history))
         return next(reversed_proxy_history, self).event
@@ -170,9 +162,7 @@ class ModulePriorityUpdated(ModuleEvent):
 
 
 @dataclass(frozen=True, slots=True)
-class UnlockCalled(Event):
-    module: Module
-
+class UnlockCalled(ModuleEvent):
     def __str__(self) -> str:
         return f"`{self.module}.unlock` has been called."
 
@@ -875,12 +865,8 @@ class Module(Broker, EventListener):
         self.__channel.remove_listener(listener)
         return self
 
-    def on_event(self, event: Event, /) -> ContextManager[None] | None:
+    def on_event(self, event: Event, /) -> ContextManager[None]:
         self_event = ModuleEventProxy(self, event)
-
-        if self_event.is_duplicate:
-            return None
-
         return self.dispatch(self_event)
 
     @contextmanager
@@ -894,17 +880,9 @@ class Module(Broker, EventListener):
             finally:
                 self.__debug(event)
 
-    def _iter_brokers(self, visited: set[Module] | None = None, /) -> Iterator[Broker]:
-        if visited is None:
-            visited = set()
-
-        if self in visited:
-            return
-
-        visited.add(self)
-
+    def _iter_brokers(self) -> Iterator[Broker]:
         for module in self.__modules:
-            yield from module._iter_brokers(visited)
+            yield from module._iter_brokers()
 
         yield self.__locator
 

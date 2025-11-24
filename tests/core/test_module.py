@@ -292,16 +292,6 @@ class TestModule:
 
         event_history.assert_length(1)
 
-    def test_use_with_bidirectional_use(self, module, event_history):
-        second_module = Module()
-        third_module = Module()
-
-        module.use(second_module)
-        second_module.use(module)
-        module.use(third_module)
-
-        event_history.assert_length(4)
-
     """
     stop_using
     """

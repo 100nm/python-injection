@@ -176,12 +176,12 @@ class ProfileLoader:
 
     def __init_subsets_for(self, module: Module) -> Module:
         if not self.__is_empty and not self.__is_initialized(module):
-            self.__mark_initialized(module)
             target_modules = tuple(
                 self.__init_subsets_for(mod(name))
                 for name in self.module_subsets.get(module.name, ())
             )
             module.init_modules(*target_modules)
+            self.__mark_initialized(module)
 
         return module
 
