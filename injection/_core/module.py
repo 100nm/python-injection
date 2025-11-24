@@ -120,15 +120,25 @@ class ModuleEventProxy(ModuleEvent):
         return f"`{self.module}` has propagated an event: {self.origin}"
 
     @property
-    def history(self) -> Iterator[Event]:
-        if isinstance(self.event, ModuleEventProxy):
-            yield from self.event.history
-
-        yield self.event
+    def is_duplicate(self) -> bool:
+        module, origin = self.module, self.origin
+        return any(
+            module is event.module and origin is event.origin
+            for event in self.proxy_history
+        )
 
     @property
     def origin(self) -> Event:
-        return next(self.history)
+        reversed_proxy_history = reversed(tuple(self.proxy_history))
+        return next(reversed_proxy_history, self).event
+
+    @property
+    def proxy_history(self) -> Iterator[ModuleEventProxy]:
+        event = self.event
+
+        if isinstance(event, ModuleEventProxy):
+            yield event
+            yield from event.proxy_history
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,8 +172,10 @@ class ModulePriorityUpdated(ModuleEvent):
 
 @dataclass(frozen=True, slots=True)
 class UnlockCalled(Event):
+    module: Module
+
     def __str__(self) -> str:
-        return "An `unlock` method has been called."
+        return f"`{self.module}.unlock` has been called."
 
 
 """
@@ -420,23 +432,18 @@ class Module(Broker, EventListener):
         self.__locator.add_listener(self)
 
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
-        for broker in self.__brokers:
+        for broker in self._iter_brokers():
             with suppress(KeyError):
                 return broker[cls]
 
         raise NoInjectable(cls)
 
     def __contains__(self, cls: InputType[Any], /) -> bool:
-        return any(cls in broker for broker in self.__brokers)
+        return any(cls in broker for broker in self._iter_brokers())
 
     @property
     def is_locked(self) -> bool:
-        return any(broker.is_locked for broker in self.__brokers)
-
-    @property
-    def __brokers(self) -> Iterator[Broker]:
-        yield from self.__modules
-        yield self.__locator
+        return any(broker.is_locked for broker in self._iter_brokers())
 
     def injectable[**P, T](
         self,
@@ -857,7 +864,7 @@ class Module(Broker, EventListener):
         return self
 
     def unlock(self) -> Self:
-        event = UnlockCalled()
+        event = UnlockCalled(self)
 
         with self.dispatch(event, lock_bypass=True):
             self.unsafe_unlocking()
@@ -865,11 +872,11 @@ class Module(Broker, EventListener):
         return self
 
     def unsafe_unlocking(self) -> None:
-        for broker in self.__brokers:
+        for broker in self._iter_brokers():
             broker.unsafe_unlocking()
 
     async def all_ready(self) -> None:
-        for broker in self.__brokers:
+        for broker in self._iter_brokers():
             await broker.all_ready()
 
     def add_logger(self, logger: Logger) -> Self:
@@ -884,8 +891,12 @@ class Module(Broker, EventListener):
         self.__channel.remove_listener(listener)
         return self
 
-    def on_event(self, event: Event, /) -> ContextManager[None]:
+    def on_event(self, event: Event, /) -> ContextManager[None] | None:
         self_event = ModuleEventProxy(self, event)
+
+        if self_event.is_duplicate:
+            return None
+
         return self.dispatch(self_event)
 
     @contextmanager
@@ -898,6 +909,20 @@ class Module(Broker, EventListener):
                 yield
             finally:
                 self.__debug(event)
+
+    def _iter_brokers(self, visited: set[Module] | None = None, /) -> Iterator[Broker]:
+        if visited is None:
+            visited = set()
+
+        if self in visited:
+            return
+
+        visited.add(self)
+
+        for module in self.__modules:
+            yield from module._iter_brokers(visited)
+
+        yield self.__locator
 
     def __debug(self, message: object) -> None:
         for logger in self.__loggers:
