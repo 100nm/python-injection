@@ -108,6 +108,28 @@ class TestProfileLoader:
 
         assert type(find_instance(A)) is A
 
+    def test_load_with_bidirectional_link(self):
+        profile_name_1 = uuid4().hex
+        profile_name_2 = uuid4().hex
+
+        @mod(profile_name_1).injectable
+        class BaseConfig: ...
+
+        @mod(profile_name_2).injectable
+        @dataclass
+        class Dependency:
+            config: BaseConfig
+
+        loader = ProfileLoader(
+            {
+                profile_name_1: [profile_name_2],
+                profile_name_2: [profile_name_1],
+            }
+        )
+
+        with loader.load(profile_name_1):
+            assert find_instance(Dependency)
+
     def test_load_with_default_profile_do_nothing(self):
         default_profile_name = mod().name
         global_profile_name = uuid4().hex
