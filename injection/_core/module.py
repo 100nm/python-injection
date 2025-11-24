@@ -940,18 +940,18 @@ class Module(Broker, EventListener):
         return cls.from_name("__default__")
 
     @staticmethod
-    def __build_key_types(on: Any) -> frozenset[Any]:
+    def __build_key_types(input_cls: Any) -> frozenset[Any]:
         config = MatchingTypesConfig(ignore_none=True)
         return frozenset(
             itertools.chain.from_iterable(
-                iter_matching_types(cls, config) for cls in get_return_types(on)
+                iter_matching_types(cls, config) for cls in get_return_types(input_cls)
             )
         )
 
     @staticmethod
-    def __matching_key_types(cls: Any) -> tuple[Any, ...]:
+    def __matching_key_types(input_cls: Any) -> tuple[Any, ...]:
         config = MatchingTypesConfig(with_origin=True, with_type_alias_value=True)
-        return matching_types(cls, config)
+        return matching_types(input_cls, config)
 
 
 def mod(name: str | None = None, /) -> Module:

@@ -19,8 +19,7 @@ from typing import (
     get_type_hints,
 )
 
-type TypeDef[T] = type[T] | TypeAliasType | GenericAlias
-type InputType[T] = TypeDef[T] | UnionType
+type InputType[T] = type[T] | TypeAliasType | GenericAlias | UnionType
 type TypeInfo[T] = (
     InputType[T]
     | Callable[..., T]
