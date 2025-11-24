@@ -182,11 +182,11 @@ def get_scope[T](name: str, default: T | EllipsisType = ...) -> Scope | T:
     return default
 
 
-def in_scope_cache(key: Any, scope_name: str) -> bool:
+def in_scope_cache(key: SlotKey[Any], scope_name: str) -> bool:
     return any(key in scope.cache for scope in get_active_scopes(scope_name))
 
 
-def remove_scoped_values(key: Any, scope_name: str) -> None:
+def remove_scoped_values(key: SlotKey[Any], scope_name: str) -> None:
     for scope in get_active_scopes(scope_name):
         scope.cache.pop(key, None)
 
@@ -233,7 +233,7 @@ def _bind_scope(
 class Scope(Protocol):
     __slots__ = ()
 
-    cache: MutableMapping[Any, Any]
+    cache: MutableMapping[SlotKey[Any], Any]
 
     @abstractmethod
     async def aenter[T](self, context_manager: AsyncContextManager[T]) -> T:
@@ -247,7 +247,7 @@ class Scope(Protocol):
 @dataclass(repr=False, frozen=True, slots=True)
 class BaseScope[T](Scope, ABC):
     delegate: T
-    cache: MutableMapping[Any, Any] = field(
+    cache: MutableMapping[SlotKey[Any], Any] = field(
         default_factory=dict,
         init=False,
         hash=False,
