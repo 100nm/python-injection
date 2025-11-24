@@ -43,7 +43,7 @@ from typing import (
     runtime_checkable,
 )
 
-from type_analyzer import MatchingTypesConfig, iter_matching_types
+from type_analyzer import MatchingTypesConfig, iter_matching_types, matching_types
 
 from injection._core.common.asynchronous import (
     AsyncCaller,
@@ -58,7 +58,6 @@ from injection._core.common.lazy import Lazy, alazy, lazy
 from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
-    TypeDef,
     TypeInfo,
     get_return_types,
     get_yield_hint,
@@ -247,20 +246,6 @@ class Updater[T]:
     def make_record(self) -> Record[T]:
         return Record(self.injectable, self.mode)
 
-    @classmethod
-    def with_basics(
-        cls,
-        on: TypeInfo[T],
-        /,
-        injectable: Injectable[T],
-        mode: Mode | ModeStr,
-    ) -> Self:
-        return cls(
-            classes=get_return_types(on),
-            injectable=injectable,
-            mode=Mode(mode),
-        )
-
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator(Broker):
@@ -274,20 +259,15 @@ class Locator(Broker):
     )
 
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
-        for key_type in self.__iter_key_types((cls,)):
-            try:
-                record = self.__records[key_type]
-            except KeyError:
-                continue
-
+        try:
+            record = self.__records[cls]
+        except KeyError as exc:
+            raise NoInjectable(cls) from exc
+        else:
             return record.injectable
 
-        raise NoInjectable(cls)
-
     def __contains__(self, cls: InputType[Any], /) -> bool:
-        return any(
-            key_type in self.__records for key_type in self.__iter_key_types((cls,))
-        )
+        return cls in self.__records
 
     @property
     def is_locked(self) -> bool:
@@ -299,8 +279,7 @@ class Locator(Broker):
 
     def update[T](self, updater: Updater[T]) -> Self:
         record = updater.make_record()
-        key_types = self.__build_key_types(updater.classes)
-        records = dict(self.__prepare_for_updating(key_types, record))
+        records = dict(self.__prepare_for_updating(updater.classes, record))
 
         if records:
             event = LocatorDependenciesUpdated(self, records.keys(), record.mode)
@@ -344,21 +323,6 @@ class Locator(Broker):
                     continue
 
             yield cls, record
-
-    @staticmethod
-    def __build_key_types[T](classes: Iterable[InputType[T]]) -> frozenset[TypeDef[T]]:
-        config = MatchingTypesConfig(ignore_none=True)
-        return frozenset(
-            itertools.chain.from_iterable(
-                iter_matching_types(cls, config) for cls in classes
-            )
-        )
-
-    @staticmethod
-    def __iter_key_types[T](classes: Iterable[InputType[T]]) -> Iterator[InputType[T]]:
-        config = MatchingTypesConfig(with_origin=True, with_type_alias_value=True)
-        for cls in classes:
-            yield from iter_matching_types(cls, config)
 
     @staticmethod
     def __keep_new_record[T](
@@ -432,14 +396,22 @@ class Module(Broker, EventListener):
         self.__locator.add_listener(self)
 
     def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
+        key_types = self.__matching_key_types(cls)
+
         for broker in self._iter_brokers():
-            with suppress(KeyError):
-                return broker[cls]
+            for key_type in key_types:
+                with suppress(KeyError):
+                    return broker[key_type]
 
         raise NoInjectable(cls)
 
     def __contains__(self, cls: InputType[Any], /) -> bool:
-        return any(cls in broker for broker in self._iter_brokers())
+        key_types = self.__matching_key_types(cls)
+        return any(
+            key_type in broker
+            for broker in self._iter_brokers()
+            for key_type in key_types
+        )
 
     @property
     def is_locked(self) -> bool:
@@ -460,8 +432,7 @@ class Module(Broker, EventListener):
             factory = extract_caller(self.make_injected_function(wp) if inject else wp)
             injectable = cls(factory)  # type: ignore[arg-type]
             hints = on if ignore_type_hint else (wp, on)
-            updater = Updater.with_basics(hints, injectable, mode)
-            self.update(updater)
+            self.update_from(hints, injectable, mode)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -512,8 +483,7 @@ class Module(Broker, EventListener):
     def should_be_injectable[T](self, wrapped: type[T] | None = None, /) -> Any:
         def decorator(wp: type[T]) -> type[T]:
             injectable = ShouldBeInjectable(wp)
-            updater = Updater.with_basics(wp, injectable, Mode.FALLBACK)
-            self.update(updater)
+            self.update_from(wp, injectable, Mode.FALLBACK)
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -571,8 +541,7 @@ class Module(Broker, EventListener):
         mode: Mode | ModeStr = Mode.get_default(),
     ) -> SlotKey[T]:
         injectable = ScopedSlotInjectable(cls, scope_name)
-        updater = Updater.with_basics(cls, injectable, mode)
-        self.update(updater)
+        self.update_from(cls, injectable, mode)
         return injectable.key
 
     def inject[**P, T](
@@ -795,6 +764,21 @@ class Module(Broker, EventListener):
         self.__locator.update(updater)
         return self
 
+    def update_from[T](
+        self,
+        on: TypeInfo[T],
+        /,
+        injectable: Injectable[T],
+        mode: Mode | ModeStr,
+    ) -> Self:
+        updater = Updater(
+            classes=self.__build_key_types(on),
+            injectable=injectable,
+            mode=Mode(mode),
+        )
+        self.update(updater)
+        return self
+
     def init_modules(self, *modules: Module) -> Self:
         for module in tuple(self.__modules):
             self.stop_using(module)
@@ -954,6 +938,20 @@ class Module(Broker, EventListener):
     @classmethod
     def default(cls) -> Module:
         return cls.from_name("__default__")
+
+    @staticmethod
+    def __build_key_types(on: Any) -> frozenset[Any]:
+        config = MatchingTypesConfig(ignore_none=True)
+        return frozenset(
+            itertools.chain.from_iterable(
+                iter_matching_types(cls, config) for cls in get_return_types(on)
+            )
+        )
+
+    @staticmethod
+    def __matching_key_types(cls: Any) -> tuple[Any, ...]:
+        config = MatchingTypesConfig(with_origin=True, with_type_alias_value=True)
+        return matching_types(cls, config)
 
 
 def mod(name: str | None = None, /) -> Module:
