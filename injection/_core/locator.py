@@ -201,7 +201,7 @@ class Locator:
 
         return self
 
-    def unsafe_unlocking(self, provider: InjectionProvider) -> None:
+    def unlock(self, provider: InjectionProvider) -> None:
         for injectable in self.__iter_injectables(provider):
             injectable.unlock()
 

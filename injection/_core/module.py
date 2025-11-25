@@ -150,12 +150,6 @@ class ModulePriorityUpdated(ModuleEvent):
         )
 
 
-@dataclass(frozen=True, slots=True)
-class UnlockCalled(ModuleEvent):
-    def __str__(self) -> str:
-        return f"`{self.module}.unlock` has been called."
-
-
 """
 Module
 """
@@ -667,16 +661,10 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         return self
 
     def unlock(self) -> Self:
-        event = UnlockCalled(self)
-
-        with self.dispatch(event, lock_bypass=True):
-            self.unsafe_unlocking()
+        for locator in self._iter_locators():
+            locator.unlock(self)
 
         return self
-
-    def unsafe_unlocking(self) -> None:
-        for locator in self._iter_locators():
-            locator.unsafe_unlocking(self)
 
     async def all_ready(self) -> None:
         for locator in self._iter_locators():
@@ -699,9 +687,8 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         return self.dispatch(self_event)
 
     @contextmanager
-    def dispatch(self, event: Event, *, lock_bypass: bool = False) -> Iterator[None]:
-        if not lock_bypass:
-            self.__check_locking()
+    def dispatch(self, event: Event) -> Iterator[None]:
+        self.__check_locking()
 
         with self.__channel.dispatch(event):
             try:
