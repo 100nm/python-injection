@@ -969,7 +969,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
 
 
 class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
-    __slots__ = ("__dict__", "__injection_inject_metadata__")
+    __slots__ = ("__dict__", "__injection_metadata__")
 
     __injection_metadata__: InjectMetadata[P, T]
 
