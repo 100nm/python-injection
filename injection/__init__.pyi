@@ -9,8 +9,9 @@ from ._core.asfunction import AsFunctionWrappedType as _AsFunctionWrappedType
 from ._core.common.invertible import Invertible as _Invertible
 from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
-from ._core.module import InjectableFactory as _InjectableFactory
-from ._core.module import ModeStr, PriorityStr
+from ._core.locator import InjectableFactory as _InjectableFactory
+from ._core.locator import ModeStr
+from ._core.module import PriorityStr
 from ._core.scope import ScopeKindStr
 
 type _Decorator[T] = Callable[[T], T]

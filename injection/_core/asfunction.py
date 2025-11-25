@@ -23,7 +23,7 @@ def asfunction[**P, T](
         factory: Caller[..., Callable[P, T]] = module.make_injected_function(
             wp,
             threadsafe=threadsafe,
-        ).__inject_metadata__
+        ).__injection_metadata__
 
         wrapper: Callable[P, T]
 
