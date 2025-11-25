@@ -64,3 +64,17 @@ class SyncCaller[**P, T](Caller[P, T]):
 
     def call(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         return self.callable(*args, **kwargs)
+
+
+@runtime_checkable
+class HiddenCaller[**P, T](Protocol):
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def __injection_hidden_caller__(self) -> Caller[P, T]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        raise NotImplementedError
