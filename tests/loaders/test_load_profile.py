@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from injection import find_instance, injectable, mod
 from injection.loaders import load_profile
 
@@ -6,15 +8,16 @@ class TestLoadProfile:
     def test_load_profile_with_success(self):
         profile_name = "test"
 
-        @injectable
+        @mod(profile_name).injectable
         class A: ...
 
-        @mod(profile_name).injectable(on=A)
-        class B(A): ...
+        @injectable
+        @dataclass
+        class B:
+            a: A
 
-        assert type(find_instance(A)) is A
         load_profile(profile_name)
-        assert type(find_instance(A)) is B
+        assert isinstance(find_instance(B), B)
 
         # Cleaning
         mod().init_modules()
