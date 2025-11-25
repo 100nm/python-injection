@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import OrderedDict, deque
 from collections.abc import (
     AsyncGenerator,

@@ -82,24 +82,24 @@ class InjectableBroker[T](Protocol):
 class DynamicInjectableBroker[T](InjectableBroker[T]):
     injectable_factory: InjectableFactory[T]
     recipe: Recipe[..., T]
-    entries: WeakKeyDictionary[InjectionProvider, Injectable[T]] = field(
+    cache: WeakKeyDictionary[InjectionProvider, Injectable[T]] = field(
         default_factory=WeakKeyDictionary,
         init=False,
     )
 
+    def get(self, provider: InjectionProvider) -> Injectable[T] | None:
+        return self.cache.get(provider)
+
     def request(self, provider: InjectionProvider) -> Injectable[T]:
         with suppress(KeyError):
-            return self.entries[provider]
+            return self.cache[provider]
 
         injectable = _make_injectable(
             self.injectable_factory,
             provider.make_injected_function(self.recipe),  # type: ignore[misc]
         )
-        self.entries[provider] = injectable
+        self.cache[provider] = injectable
         return injectable
-
-    def get(self, provider: InjectionProvider) -> Injectable[T] | None:
-        return self.entries.get(provider)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
