@@ -243,6 +243,18 @@ class TestModule:
             with pytest.raises(InjectionError):
                 scope.set_slot(slot_key, instance2)
 
+    def test_reserve_scoped_slot_with_unlock(self, module):
+        scope_name = "test"
+        slot_key = module.reserve_scoped_slot(SomeClass, scope_name)
+
+        with define_scope(scope_name) as scope:
+            instance = SomeClass()
+            scope.set_slot(slot_key, instance)
+
+            assert module.get_instance(SomeClass) is instance
+            module.unlock()
+            assert module.get_instance(SomeClass) is instance
+
     """
     init_modules
     """
