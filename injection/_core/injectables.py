@@ -121,13 +121,13 @@ class SingletonInjectable[T](Injectable[T]):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ConstantInjectable[T](Injectable[T]):
-    value: T
+    instance: T
 
     async def aget_instance(self) -> T:
-        return self.get_instance()
+        return self.instance
 
     def get_instance(self) -> T:
-        return self.value
+        return self.instance
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
