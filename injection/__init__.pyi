@@ -412,7 +412,7 @@ class Module:
 
     def reserve_scoped_slot[T](
         self,
-        cls: type[T],
+        cls: _InputType[T],
         /,
         scope_name: str,
         *,

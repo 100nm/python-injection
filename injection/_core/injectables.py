@@ -14,6 +14,7 @@ from typing import (
 )
 
 from injection._core.common.asynchronous import AsyncSemaphore, Caller
+from injection._core.common.type import InputType
 from injection._core.scope import (
     Scope,
     get_scope,
@@ -193,7 +194,7 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ScopedSlotInjectable[T](Injectable[T]):
-    cls: type[T]
+    cls: InputType[T]
     scope_name: str
     key: SlotKey[T] = field(default_factory=SlotKey)
 
