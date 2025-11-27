@@ -50,7 +50,7 @@ from injection._core.common.asynchronous import (
 from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.invertible import Invertible, SimpleInvertible
 from injection._core.common.key import new_short_key
-from injection._core.common.lazy import Lazy, alazy, lazy
+from injection._core.common.lazy import Lazy
 from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
@@ -61,6 +61,7 @@ from injection._core.common.type import (
 from injection._core.injectables import (
     AsyncCMScopedInjectable,
     CMScopedInjectable,
+    ConstantInjectable,
     Injectable,
     ScopedInjectable,
     ScopedSlotInjectable,
@@ -249,6 +250,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         return decorator(wrapped) if wrapped else decorator
 
     singleton = partialmethod(injectable, cls=SingletonInjectable)
+    constant = partialmethod(injectable, cls=SingletonInjectable, inject=False)
 
     def scoped[**P, T](
         self,
@@ -293,30 +295,8 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def should_be_injectable[T](self, wrapped: type[T] | None = None, /) -> Any:
         def decorator(wp: type[T]) -> type[T]:
-            injectable = ShouldBeInjectable(wp)
-            broker = StaticInjectableBroker(injectable)
+            broker = StaticInjectableBroker(ShouldBeInjectable(wp))
             self.update_from(wp, broker, Mode.FALLBACK)
-            return wp
-
-        return decorator(wrapped) if wrapped else decorator
-
-    def constant[**P, T](
-        self,
-        wrapped: Recipe[P, T] | None = None,
-        /,
-        *,
-        on: TypeInfo[T] = (),
-        mode: Mode | ModeStr = Mode.get_default(),
-    ) -> Any:
-        def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
-            recipe: Recipe[[], T] = alazy(wp) if iscoroutinefunction(wp) else lazy(wp)  # type: ignore[arg-type]
-            self.injectable(
-                recipe,
-                ignore_type_hint=True,
-                inject=False,
-                on=(wp, on),
-                mode=mode,
-            )
             return wp
 
         return decorator(wrapped) if wrapped else decorator
@@ -335,13 +315,8 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         elif not on:
             raise ValueError("`on` must be provided when `alias` is `True`.")
 
-        self.injectable(
-            lambda: instance,
-            ignore_type_hint=True,
-            inject=False,
-            on=on,
-            mode=mode,
-        )
+        broker = StaticInjectableBroker(ConstantInjectable(instance))
+        self.update_from(on, broker, mode)
         return instance
 
     def reserve_scoped_slot[T](

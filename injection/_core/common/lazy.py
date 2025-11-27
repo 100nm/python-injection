@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import Callable, Iterator
 from functools import partial
 
 from injection._core.common.invertible import Invertible
@@ -11,15 +11,6 @@ def lazy[T](factory: Callable[..., T]) -> Callable[[], T]:
             yield value
 
     return partial(next, cache())
-
-
-def alazy[T](factory: Callable[..., Awaitable[T]]) -> Callable[[], Awaitable[T]]:
-    async def cache() -> AsyncIterator[T]:
-        value = await factory()
-        while True:
-            yield value
-
-    return partial(_anext, cache())
 
 
 class Lazy[T](Invertible[T]):
@@ -44,7 +35,3 @@ class Lazy[T](Invertible[T]):
     @property
     def is_set(self) -> bool:
         return self.__is_set
-
-
-async def _anext[T](async_iterator: AsyncIterator[T]) -> T:
-    return await anext(async_iterator)
