@@ -74,31 +74,43 @@ class InjectableBroker[T](Protocol):
         raise NotImplementedError
 
     @abstractmethod
+    def is_locked(self, provider: InjectionProvider) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def request(self, provider: InjectionProvider) -> Injectable[T]:
         raise NotImplementedError
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class DynamicInjectableBroker[T](InjectableBroker[T]):
-    injectable_factory: InjectableFactory[T]
+    factory: InjectableFactory[T]
     recipe: Recipe[..., T]
-    cache: WeakKeyDictionary[InjectionProvider, Injectable[T]] = field(
+    injectables: WeakKeyDictionary[InjectionProvider, Injectable[T]] = field(
         default_factory=WeakKeyDictionary,
         init=False,
     )
 
     def get(self, provider: InjectionProvider) -> Injectable[T] | None:
-        return self.cache.get(provider)
+        return self.injectables.get(provider)
+
+    def is_locked(self, provider: InjectionProvider) -> bool:
+        injectable = self.get(provider)
+
+        if injectable is None:
+            return False
+
+        return injectable.is_locked
 
     def request(self, provider: InjectionProvider) -> Injectable[T]:
         with suppress(KeyError):
-            return self.cache[provider]
+            return self.injectables[provider]
 
         injectable = _make_injectable(
-            self.injectable_factory,
+            self.factory,
             provider.make_injected_function(self.recipe),  # type: ignore[misc]
         )
-        self.cache[provider] = injectable
+        self.injectables[provider] = injectable
         return injectable
 
 
@@ -109,16 +121,19 @@ class StaticInjectableBroker[T](InjectableBroker[T]):
     def get(self, provider: InjectionProvider) -> Injectable[T] | None:
         return self.value
 
+    def is_locked(self, provider: InjectionProvider) -> bool:
+        return False
+
     def request(self, provider: InjectionProvider) -> Injectable[T]:
         return self.value
 
     @classmethod
     def from_factory(
         cls,
-        injectable_factory: InjectableFactory[T],
+        factory: InjectableFactory[T],
         recipe: Recipe[..., T],
     ) -> Self:
-        return cls(_make_injectable(injectable_factory, recipe))
+        return cls(_make_injectable(factory, recipe))
 
 
 class Mode(StrEnum):
@@ -172,9 +187,7 @@ class Locator:
         return frozenset(record.broker for record in self.__records.values())
 
     def is_locked(self, provider: InjectionProvider) -> bool:
-        return any(
-            injectable.is_locked for injectable in self.__iter_injectables(provider)
-        )
+        return any(broker.is_locked(provider) for broker in self.__brokers)
 
     def request[T](
         self,

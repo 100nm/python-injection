@@ -120,6 +120,17 @@ class SingletonInjectable[T](Injectable[T]):
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
+class ConstantInjectable[T](Injectable[T]):
+    value: T
+
+    async def aget_instance(self) -> T:
+        return self.get_instance()
+
+    def get_instance(self) -> T:
+        return self.value
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ScopedInjectable[R, T](Injectable[T], ABC):
     factory: Caller[..., R]
     scope_name: str
