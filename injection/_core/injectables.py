@@ -209,10 +209,6 @@ class ScopedSlotInjectable[T](Injectable[T]):
     scope_name: str
     key: SlotKey[T] = field(default_factory=SlotKey)
 
-    @property
-    def is_locked(self) -> bool:
-        return in_scope_cache(self.key, self.scope_name)
-
     async def aget_instance(self) -> T:
         return self.get_instance()
 
@@ -226,9 +222,6 @@ class ScopedSlotInjectable[T](Injectable[T]):
             raise EmptySlotError(
                 f"The slot for `{self.cls}` isn't set in the current `{scope_name}` scope."
             ) from exc
-
-    def unlock(self) -> None:
-        remove_scoped_values(self.key, self.scope_name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
