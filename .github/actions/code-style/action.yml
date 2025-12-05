@@ -13,3 +13,7 @@ runs:
     - name: MyPy
       shell: bash
       run: uv run mypy ./
+
+    - name: Pyright
+      shell: bash
+      run: uv run pyright
