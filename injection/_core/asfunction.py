@@ -1,12 +1,17 @@
 from collections.abc import Callable
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import Any
+from typing import Any, Protocol
 
 from injection._core.common.asynchronous import Caller
 from injection._core.module import Module, mod
 
-type AsFunctionWrappedType[**P, T] = type[Callable[P, T]]
+
+class _AsFunctionCallable[**P, T](Protocol):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T: ...
+
+
+type AsFunctionWrappedType[**P, T] = type[_AsFunctionCallable[P, T]]
 
 
 def asfunction[**P, T](

@@ -1,4 +1,4 @@
-before_commit: lint mypy pytest
+before_commit: lint mypy pyright pytest
 
 install:
 	uv sync
@@ -13,6 +13,9 @@ lint:
 
 mypy:
 	uv run mypy ./
+
+pyright:
+	uv run pyright
 
 pytest:
 	uv run pytest

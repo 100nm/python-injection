@@ -11,6 +11,7 @@ bench = [
 dev = [
     "hatch",
     "mypy",
+    "pyright",
     "ruff",
 ]
 doc = [
@@ -76,7 +77,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
-omit = ["bench.py"]
+omit = ["bench.py", "typing_checks/*"]
 
 [tool.hatch.build]
 skip-excluded-dirs = true
@@ -107,6 +108,9 @@ warn_unused_ignores = true
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
+
+[tool.pyright]
+include = ["typing_checks/"]
 
 [tool.pytest]
 python_files = ["test_*.py"]
