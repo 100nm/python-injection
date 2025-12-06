@@ -21,7 +21,7 @@ type EntrypointSetupMethod[**P, **EPP, T1, T2] = Callable[
 ]
 
 
-class EntrypointDecorator[**P, T1, T2](Protocol):
+class _EntrypointDecorator[**P, T1, T2](Protocol):
     if TYPE_CHECKING:  # pragma: no cover
 
         @overload
@@ -62,7 +62,7 @@ if TYPE_CHECKING:  # pragma: no cover
         /,
         *,
         profile_loader: ProfileLoader = ...,
-    ) -> EntrypointDecorator[EPP, T1, T2]: ...
+    ) -> _EntrypointDecorator[EPP, T1, T2]: ...
 
     @overload
     def entrypointmaker[**SMP, **EPP, T1, T2](
@@ -72,7 +72,7 @@ if TYPE_CHECKING:  # pragma: no cover
         profile_loader: ProfileLoader = ...,
     ) -> Callable[
         [EntrypointSetupMethod[SMP, EPP, T1, T2]],
-        EntrypointDecorator[EPP, T1, T2],
+        _EntrypointDecorator[EPP, T1, T2],
     ]: ...
 
 
@@ -84,7 +84,7 @@ def entrypointmaker[**SMP, **EPP, T1, T2](
 ) -> Any:
     def decorator(
         wp: EntrypointSetupMethod[SMP, EPP, T1, T2],
-    ) -> EntrypointDecorator[EPP, T1, T2]:
+    ) -> _EntrypointDecorator[EPP, T1, T2]:
         return Entrypoint._make_decorator(wp, profile_loader)
 
     return decorator(wrapped) if wrapped else decorator
@@ -173,7 +173,7 @@ class Entrypoint[**P, T]:
         setup_method: EntrypointSetupMethod[_P, P, T, _T],
         /,
         profile_loader: ProfileLoader | None = None,
-    ) -> EntrypointDecorator[P, T, _T]:
+    ) -> _EntrypointDecorator[P, T, _T]:
         profile_loader = profile_loader or ProfileLoader()
         setup_method = profile_loader.module.make_injected_function(setup_method)
 

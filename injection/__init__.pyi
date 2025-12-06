@@ -14,24 +14,25 @@ from ._core.locator import ModeStr
 from ._core.module import PriorityStr
 from ._core.scope import ScopeKindStr
 
-type _Decorator[T] = Callable[[T], T]
+class _Decorator(Protocol):
+    def __call__[T](self, wrapped: T, /) -> T: ...
 
-__MODULE: Final[Module] = ...
+_default_module: Final[Module] = ...
 
-afind_instance = __MODULE.afind_instance
-aget_instance = __MODULE.aget_instance
-aget_lazy_instance = __MODULE.aget_lazy_instance
-constant = __MODULE.constant
-find_instance = __MODULE.find_instance
-get_instance = __MODULE.get_instance
-get_lazy_instance = __MODULE.get_lazy_instance
-inject = __MODULE.inject
-injectable = __MODULE.injectable
-reserve_scoped_slot = __MODULE.reserve_scoped_slot
-scoped = __MODULE.scoped
-set_constant = __MODULE.set_constant
-should_be_injectable = __MODULE.should_be_injectable
-singleton = __MODULE.singleton
+afind_instance = _default_module.afind_instance
+aget_instance = _default_module.aget_instance
+aget_lazy_instance = _default_module.aget_lazy_instance
+constant = _default_module.constant
+find_instance = _default_module.find_instance
+get_instance = _default_module.get_instance
+get_lazy_instance = _default_module.get_lazy_instance
+inject = _default_module.inject
+injectable = _default_module.injectable
+reserve_scoped_slot = _default_module.reserve_scoped_slot
+scoped = _default_module.scoped
+set_constant = _default_module.set_constant
+should_be_injectable = _default_module.should_be_injectable
+singleton = _default_module.singleton
 
 @overload
 def asfunction[**P, T](
@@ -173,7 +174,7 @@ class Module:
         /,
         *,
         threadsafe: bool | None = ...,
-    ) -> _Decorator: ...  # type: ignore[type-arg]
+    ) -> _Decorator: ...
     @overload
     def injectable[T](
         self,
@@ -201,7 +202,7 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[Any] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> _Decorator: ...  # type: ignore[type-arg]
+    ) -> _Decorator: ...
     @overload
     def singleton[T](
         self,
@@ -227,7 +228,7 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[Any] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> _Decorator: ...  # type: ignore[type-arg]
+    ) -> _Decorator: ...
     def scoped(
         self,
         scope_name: str,
@@ -236,7 +237,7 @@ class Module:
         inject: bool = ...,
         on: _TypeInfo[Any] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> _Decorator:  # type: ignore[type-arg]
+    ) -> _Decorator:
         """
         Decorator applicable to a class or function or generator function. It is used
         to indicate how the scoped instance will be constructed. At injection time, the
@@ -256,7 +257,7 @@ class Module:
         self,
         wrapped: None = ...,
         /,
-    ) -> _Decorator: ...  # type: ignore[type-arg]
+    ) -> _Decorator: ...
     @overload
     def constant[T](
         self,
@@ -280,7 +281,7 @@ class Module:
         *,
         on: _TypeInfo[Any] = ...,
         mode: Mode | ModeStr = ...,
-    ) -> _Decorator: ...  # type: ignore[type-arg]
+    ) -> _Decorator: ...
     def set_constant[T](
         self,
         instance: T,
