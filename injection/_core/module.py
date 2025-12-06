@@ -8,6 +8,7 @@ from collections.abc import (
     AsyncIterator,
     Awaitable,
     Callable,
+    Container,
     Generator,
     Iterable,
     Iterator,
@@ -18,6 +19,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial, partialmethod, singledispatchmethod, update_wrapper
 from inspect import (
+    BoundArguments,
     Signature,
     isasyncgenfunction,
     isclass,
@@ -739,13 +741,13 @@ InjectedFunction
 class Dependencies:
     lazy_mapping: Lazy[Mapping[str, Injectable[Any]]]
 
-    def __iter__(self) -> Iterator[tuple[str, Any]]:
-        for name, injectable in self.items():
+    def iter(self, exclude: Container[str]) -> Iterator[tuple[str, Any]]:
+        for name, injectable in self.items(exclude):
             with suppress(SkipInjectable):
                 yield name, injectable.get_instance()
 
-    async def __aiter__(self) -> AsyncIterator[tuple[str, Any]]:
-        for name, injectable in self.items():
+    async def aiter(self, exclude: Container[str]) -> AsyncIterator[tuple[str, Any]]:
+        for name, injectable in self.items(exclude):
             with suppress(SkipInjectable):
                 yield name, await injectable.aget_instance()
 
@@ -753,14 +755,18 @@ class Dependencies:
     def are_resolved(self) -> bool:
         return self.lazy_mapping.is_set
 
-    async def aget_arguments(self) -> dict[str, Any]:
-        return {key: value async for key, value in self}
+    async def aget_arguments(self, *, exclude: Container[str]) -> dict[str, Any]:
+        return {key: value async for key, value in self.aiter(exclude)}
 
-    def get_arguments(self) -> dict[str, Any]:
-        return dict(self)
+    def get_arguments(self, *, exclude: Container[str]) -> dict[str, Any]:
+        return dict(self.iter(exclude))
 
-    def items(self) -> Iterator[tuple[str, Injectable[Any]]]:
-        return iter((~self.lazy_mapping).items())
+    def items(self, exclude: Container[str]) -> Iterator[tuple[str, Injectable[Any]]]:
+        return (
+            (name, injectable)
+            for name, injectable in (~self.lazy_mapping).items()
+            if name not in exclude
+        )
 
     @classmethod
     def from_iterable(cls, iterable: Iterable[tuple[str, Injectable[Any]]]) -> Self:
@@ -863,16 +869,18 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         args: Iterable[Any] = (),
         kwargs: Mapping[str, Any] | None = None,
     ) -> Arguments:
-        additional_arguments = await self.__dependencies.aget_arguments()
-        return self.__bind(args, kwargs, additional_arguments)
+        bound = self.__bind(args, kwargs)
+        dependencies = await self.__dependencies.aget_arguments(exclude=bound.arguments)
+        return self.__build_arguments(bound, dependencies)
 
     def bind(
         self,
         args: Iterable[Any] = (),
         kwargs: Mapping[str, Any] | None = None,
     ) -> Arguments:
-        additional_arguments = self.__dependencies.get_arguments()
-        return self.__bind(args, kwargs, additional_arguments)
+        bound = self.__bind(args, kwargs)
+        dependencies = self.__dependencies.get_arguments(exclude=bound.arguments)
+        return self.__build_arguments(bound, dependencies)
 
     async def acall(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         with self.__lock:
@@ -925,22 +933,24 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         self,
         args: Iterable[Any],
         kwargs: Mapping[str, Any] | None,
-        additional_arguments: dict[str, Any] | None,
-    ) -> Arguments:
+    ) -> BoundArguments:
         if kwargs is None:
             kwargs = {}
 
-        if not additional_arguments:
-            return Arguments(args, kwargs)
-
-        bound = self.signature.bind_partial(*args, **kwargs)
-        bound.arguments = bound.arguments | additional_arguments | bound.arguments
-        return Arguments(bound.args, bound.kwargs)
+        return self.signature.bind_partial(*args, **kwargs)
 
     def __run_tasks(self) -> None:
         while tasks := self.__tasks:
             task = tasks.popleft()
             task()
+
+    @staticmethod
+    def __build_arguments(
+        bound: BoundArguments,
+        additional_arguments: dict[str, Any],
+    ) -> Arguments:
+        bound.arguments = bound.arguments | additional_arguments
+        return Arguments(bound.args, bound.kwargs)
 
 
 class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
