@@ -864,23 +864,21 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
     def wrapped(self) -> Callable[P, T]:
         return self.__wrapped
 
-    async def abind(
-        self,
-        args: Iterable[Any] = (),
-        kwargs: Mapping[str, Any] | None = None,
-    ) -> Arguments:
-        bound = self.__bind(args, kwargs)
-        dependencies = await self.__dependencies.aget_arguments(exclude=bound.arguments)
-        return self.__build_arguments(bound, dependencies)
+    async def abind(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> Arguments:
+        arguments = self.__get_arguments(args, kwargs)
+        dependencies = await self.__dependencies.aget_arguments(exclude=arguments)
+        if dependencies:
+            return self.__merge_arguments(arguments, dependencies)
 
-    def bind(
-        self,
-        args: Iterable[Any] = (),
-        kwargs: Mapping[str, Any] | None = None,
-    ) -> Arguments:
-        bound = self.__bind(args, kwargs)
-        dependencies = self.__dependencies.get_arguments(exclude=bound.arguments)
-        return self.__build_arguments(bound, dependencies)
+        return Arguments(args, kwargs)
+
+    def bind(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> Arguments:
+        arguments = self.__get_arguments(args, kwargs)
+        dependencies = self.__dependencies.get_arguments(exclude=arguments)
+        if dependencies:
+            return self.__merge_arguments(arguments, dependencies)
+
+        return Arguments(args, kwargs)
 
     async def acall(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
         with self.__lock:
@@ -929,28 +927,26 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         yield
         self.update(event.module)
 
-    def __bind(
+    def __get_arguments(
         self,
         args: Iterable[Any],
-        kwargs: Mapping[str, Any] | None,
-    ) -> BoundArguments:
-        if kwargs is None:
-            kwargs = {}
+        kwargs: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        bound = self.signature.bind_partial(*args, **kwargs)
+        return bound.arguments
 
-        return self.signature.bind_partial(*args, **kwargs)
+    def __merge_arguments(
+        self,
+        arguments: dict[str, Any],
+        additional_arguments: dict[str, Any],
+    ) -> Arguments:
+        bound = BoundArguments(self.signature, additional_arguments | arguments)  # type: ignore[arg-type]
+        return Arguments(bound.args, bound.kwargs)
 
     def __run_tasks(self) -> None:
         while tasks := self.__tasks:
             task = tasks.popleft()
             task()
-
-    @staticmethod
-    def __build_arguments(
-        bound: BoundArguments,
-        additional_arguments: dict[str, Any],
-    ) -> Arguments:
-        bound.arguments = bound.arguments | additional_arguments
-        return Arguments(bound.args, bound.kwargs)
 
 
 class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
