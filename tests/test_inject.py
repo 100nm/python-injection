@@ -279,3 +279,18 @@ class TestInject:
             @injectable
             class A:
                 method = _method
+
+    def test_inject_with_passing_argument_do_not_lock_module(self, module):
+        assert not module.is_locked
+
+        @module.singleton
+        class A: ...
+
+        @module.inject
+        def function(a: A): ...
+
+        function(A())
+        assert not module.is_locked
+
+        function()
+        assert module.is_locked
