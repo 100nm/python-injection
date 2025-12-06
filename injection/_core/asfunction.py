@@ -8,7 +8,7 @@ from injection._core.module import Module, mod
 
 
 class _AsFunctionCallable[**P, T](Protocol):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T: ...
+    def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T: ...
 
 
 type AsFunctionWrappedType[**P, T] = type[_AsFunctionCallable[P, T]]
