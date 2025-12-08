@@ -10,6 +10,7 @@ from typing import (
     ContextManager,
     NoReturn,
     Protocol,
+    Self,
     runtime_checkable,
 )
 
@@ -165,6 +166,10 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
 
     def __get_scope(self) -> Scope:
         return get_scope(self.scope_name)
+
+    @classmethod
+    def bind_scope_name(cls, name: str) -> Callable[[Caller[..., R]], Self]:
+        return partial(cls, scope_name=name)
 
 
 class AsyncCMScopedInjectable[T](ScopedInjectable[AsyncContextManager[T], T]):

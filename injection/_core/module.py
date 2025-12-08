@@ -17,7 +17,7 @@ from collections.abc import (
 from contextlib import asynccontextmanager, contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import StrEnum
-from functools import partial, partialmethod, singledispatchmethod, update_wrapper
+from functools import partialmethod, singledispatchmethod, update_wrapper
 from inspect import (
     BoundArguments,
     Signature,
@@ -57,8 +57,8 @@ from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
     TypeInfo,
-    get_return_types,
-    get_yield_hint,
+    get_yield_hints,
+    iter_return_types,
 )
 from injection._core.injectables import (
     AsyncCMScopedInjectable,
@@ -169,12 +169,19 @@ class Priority(StrEnum):
 
 type PriorityStr = Literal["low", "high"]
 
-type ContextManagerLikeRecipe[**P, T] = (
+type ContextManagerRecipe[**P, T] = (
     Callable[P, ContextManager[T]] | Callable[P, AsyncContextManager[T]]
 )
 type GeneratorRecipe[**P, T] = (
     Callable[P, Generator[T, Any, Any]] | Callable[P, AsyncGenerator[T, Any]]
 )
+
+
+@dataclass(repr=False, eq=False, frozen=True, slots=True)
+class _ScopedContext[**P, T]:
+    cls: type[ScopedInjectable[Any, T]]
+    hints: TypeInfo[T]
+    wrapper: Recipe[P, T] | ContextManagerRecipe[P, T]
 
 
 @dataclass(eq=False, frozen=True, slots=True)
@@ -266,29 +273,33 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         def decorator(
             wrapped: Recipe[P, T] | GeneratorRecipe[P, T],
         ) -> Recipe[P, T] | GeneratorRecipe[P, T]:
-            injectable_class: type[ScopedInjectable[Any, T]]
-            wrapper: Recipe[P, T] | ContextManagerLikeRecipe[P, T]
-
             if isasyncgenfunction(wrapped):
-                hint = get_yield_hint(wrapped)
-                injectable_class = AsyncCMScopedInjectable
-                wrapper = asynccontextmanager(wrapped)
+                ctx = _ScopedContext(
+                    cls=AsyncCMScopedInjectable,
+                    hints=get_yield_hints(wrapped),
+                    wrapper=asynccontextmanager(wrapped),
+                )
 
             elif isgeneratorfunction(wrapped):
-                hint = get_yield_hint(wrapped)
-                injectable_class = CMScopedInjectable
-                wrapper = contextmanager(wrapped)
+                ctx = _ScopedContext(
+                    cls=CMScopedInjectable,
+                    hints=get_yield_hints(wrapped),
+                    wrapper=contextmanager(wrapped),
+                )
 
             else:
-                injectable_class = SimpleScopedInjectable
-                hint = wrapper = wrapped  # type: ignore[assignment]
+                ctx = _ScopedContext(
+                    cls=SimpleScopedInjectable,
+                    hints=(wrapped,),
+                    wrapper=wrapped,
+                )
 
             self.injectable(
-                wrapper,
-                cls=partial(injectable_class, scope_name=scope_name),
+                ctx.wrapper,
+                cls=ctx.cls.bind_scope_name(scope_name),
                 ignore_type_hint=True,
                 inject=inject,
-                on=(hint, on),
+                on=(ctx.hints, on),
                 mode=mode,
             )
             return wrapped
@@ -715,7 +726,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         config = MatchingTypesConfig(ignore_none=True)
         return frozenset(
             itertools.chain.from_iterable(
-                iter_matching_types(cls, config) for cls in get_return_types(input_cls)
+                iter_matching_types(cls, config) for cls in iter_return_types(input_cls)
             )
         )
 
