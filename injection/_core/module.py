@@ -169,7 +169,7 @@ class Priority(StrEnum):
 
 type PriorityStr = Literal["low", "high"]
 
-type ContextManagerLikeRecipe[**P, T] = (
+type ContextManagerRecipe[**P, T] = (
     Callable[P, ContextManager[T]] | Callable[P, AsyncContextManager[T]]
 )
 type GeneratorRecipe[**P, T] = (
@@ -181,7 +181,7 @@ type GeneratorRecipe[**P, T] = (
 class _ScopedContext[**P, T]:
     cls: type[ScopedInjectable[Any, T]]
     hints: TypeInfo[T]
-    wrapper: Recipe[P, T] | ContextManagerLikeRecipe[P, T]
+    wrapper: Recipe[P, T] | ContextManagerRecipe[P, T]
 
 
 @dataclass(eq=False, frozen=True, slots=True)
