@@ -1,37 +1,37 @@
-from collections.abc import Callable, Iterator
-from functools import partial
+from collections.abc import Callable
+from contextlib import suppress
 
 from injection._core.common.invertible import Invertible
 
 
-def lazy[T](factory: Callable[..., T]) -> Callable[[], T]:
-    def cache() -> Iterator[T]:
-        value = factory()
-        while True:
-            yield value
-
-    return partial(next, cache())
-
-
 class Lazy[T](Invertible[T]):
-    __slots__ = ("__get", "__is_set")
+    __slots__ = ("__factory", "__value")
 
-    __get: Callable[[], T]
-    __is_set: bool
+    __factory: Callable[[], T]
+    __value: T
 
     def __init__(self, factory: Callable[..., T]) -> None:
-        @lazy
-        def get() -> T:
-            value = factory()
-            self.__is_set = True
-            return value
-
-        self.__get = get
-        self.__is_set = False
+        self.__factory = factory
 
     def __invert__(self) -> T:
-        return self.__get()
+        return self.value
 
     @property
     def is_set(self) -> bool:
-        return self.__is_set
+        try:
+            self.__value
+        except AttributeError:
+            return False
+
+        return True
+
+    @property
+    def value(self) -> T:
+        with suppress(AttributeError):
+            return self.__value
+
+        value = self.__factory()
+        del self.__factory
+
+        self.__value = value
+        return value
