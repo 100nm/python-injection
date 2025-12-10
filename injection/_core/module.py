@@ -8,6 +8,7 @@ from collections.abc import (
     AsyncIterator,
     Awaitable,
     Callable,
+    Collection,
     Container,
     Generator,
     Iterable,
@@ -180,7 +181,7 @@ type GeneratorRecipe[**P, T] = (
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class _ScopedContext[**P, T]:
     cls: type[ScopedInjectable[Any, T]]
-    hints: TypeInfo[T]
+    hints: Collection[TypeInfo[T]]
     wrapper: Recipe[P, T] | ContextManagerRecipe[P, T]
 
 
@@ -266,6 +267,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         scope_name: str,
         /,
         *,
+        ignore_type_hint: bool = False,
         inject: bool = True,
         on: TypeInfo[T] = (),
         mode: Mode | ModeStr = Mode.get_default(),
@@ -276,21 +278,21 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
             if isasyncgenfunction(wrapped):
                 ctx = _ScopedContext(
                     cls=AsyncCMScopedInjectable,
-                    hints=get_yield_hints(wrapped),
+                    hints=() if ignore_type_hint else get_yield_hints(wrapped),
                     wrapper=asynccontextmanager(wrapped),
                 )
 
             elif isgeneratorfunction(wrapped):
                 ctx = _ScopedContext(
                     cls=CMScopedInjectable,
-                    hints=get_yield_hints(wrapped),
+                    hints=() if ignore_type_hint else get_yield_hints(wrapped),
                     wrapper=contextmanager(wrapped),
                 )
 
             else:
                 ctx = _ScopedContext(
                     cls=SimpleScopedInjectable,
-                    hints=(wrapped,),
+                    hints=() if ignore_type_hint else (wrapped,),
                     wrapper=wrapped,
                 )
 
@@ -299,7 +301,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
                 cls=ctx.cls.bind_scope_name(scope_name),
                 ignore_type_hint=True,
                 inject=inject,
-                on=(ctx.hints, on),
+                on=(*ctx.hints, on),
                 mode=mode,
             )
             return wrapped
