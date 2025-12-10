@@ -1,0 +1,29 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  delivery:
+    name: Delivery
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v6
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-pages[bot]"
+          git config --global user.email "github-pages[bot]@users.noreply.github.com"
+
+      - name: Set up environment
+        uses: ./.github/actions/environment
+
+      - name: Deploy MkDocs
+        shell: bash
+        run: uv run mkdocs gh-deploy --force

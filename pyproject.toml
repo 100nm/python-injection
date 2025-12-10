@@ -4,6 +4,9 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 bench = [
+    "dependency-injector",
+    "injector",
+    "pytest-benchmark",
     "tabulate",
     "typer",
     "types-tabulate",
@@ -14,10 +17,10 @@ dev = [
     "pyright",
     "ruff",
 ]
-doc = [
-    "fastapi",
+docs = [
+    "mkdocs",
+    "mkdocs-material",
     "pydantic-settings",
-    "typer",
     "uvloop",
 ]
 test = [
@@ -35,7 +38,7 @@ version = "0.0.0"
 description = "Fast and easy dependency injection framework."
 license = "MIT"
 license-files = ["LICENSE"]
-readme = "README.md"
+readme = "docs/index.md"
 requires-python = ">=3.12, <3.15"
 authors = [{ name = "remimd" }]
 keywords = ["dependencies", "dependency", "inject", "injection"]
@@ -66,6 +69,7 @@ async = [
 ]
 
 [project.urls]
+Documentation = "https://python-injection.remimd.dev"
 Repository = "https://github.com/100nm/python-injection"
 
 [tool.coverage.report]
@@ -135,5 +139,5 @@ ignore = ["N818"]
 fixable = ["ALL"]
 
 [tool.uv]
-default-groups = ["bench", "dev", "doc", "test"]
+default-groups = ["bench", "dev", "docs", "test"]
 package = true

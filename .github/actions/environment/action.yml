@@ -16,4 +16,4 @@ runs:
 
     - name: Install Dependencies
       shell: bash
-      run: uv sync
+      run: uv sync --no-group bench
