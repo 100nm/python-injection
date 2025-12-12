@@ -13,3 +13,34 @@ Documentation: https://python-injection.remimd.dev
 ```bash
 pip install python-injection
 ```
+
+## Quick start
+
+Simply apply the decorators and the package takes care of the rest.
+```python
+from injection import injectable, inject, singleton
+
+@singleton
+class Printer:
+    def __init__(self):
+        self.history = []
+
+    def print(self, message: str):
+        self.history.append(message)
+        print(message)
+
+@injectable
+class Service:
+    def __init__(self, printer: Printer):
+        self.printer = printer
+
+    def hello(self):
+        self.printer.print("Hello world!")
+
+@inject
+def main(service: Service):
+    service.hello()
+
+if __name__ == "__main__":
+    main()
+```

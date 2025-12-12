@@ -106,6 +106,8 @@ class Dependency:
 ## Scoped with context manager
 
 Scoped dependencies can be registered using generator functions (sync or async) to handle setup and teardown logic.
+
+_If you're unfamiliar with context managers, [see Python's context manager documentation](https://docs.python.org/3/library/contextlib.html#contextlib.contextmanager)._
 ```python
 from collections.abc import Iterator
 from injection import scoped
