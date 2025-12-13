@@ -115,8 +115,11 @@ from collections.abc import Iterator
 from injection import scoped
 
 class Dependency:
-    def open(self): ...
-    def close(self): ...
+    def open(self):
+        ...
+
+    def close(self):
+        ...
 
 @scoped("<scope_name>")
 def dependency_factory() -> Iterator[Dependency]:

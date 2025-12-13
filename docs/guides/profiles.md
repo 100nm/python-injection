@@ -27,7 +27,7 @@ Once you have a module, you can use it to register dependencies that should only
 !!! warning "Caution"
     Always load your profile as early as possible in your program's execution, ideally at startup before any dependency resolution occurs.
 
-### Simple loading with load_profile
+### load_profile
 
 For straightforward use cases, use the `load_profile` function:
 ```python
@@ -38,7 +38,7 @@ load_profile(Profile.DEV)
 
 This is the simplest approach when each profile is independent and doesn't share dependencies with other profiles.
 
-### Advanced loading with ProfileLoader
+### ProfileLoader
 
 For more complex scenarios where profiles share common subsets of dependencies, use `ProfileLoader`:
 ```python
@@ -56,6 +56,15 @@ In this example, both "dev" and "test" profiles load the "stub" module, allowing
 
 !!! danger
     Only create a single `ProfileLoader` instance for your entire application to avoid conflicts. It's recommended to instantiate it at the Python module level (as a global variable) to ensure uniqueness.
+
+#### Inspecting required modules
+
+`ProfileLoader` provides a `required_module_names` method that returns the set of module names required by a profile. This is useful for debugging or validating your profile configuration.
+```python
+# Get module names for a specific profile
+dev_modules = profile_loader.required_module_names(Profile.DEV)
+# Returns: frozenset({<Profile.DEV: 'development'>, <SubProfile.STUB: 'stub'>, '__default__'})
+```
 
 ### Using loaders as context managers
 
