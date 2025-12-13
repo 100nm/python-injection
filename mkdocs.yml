@@ -4,6 +4,7 @@ repo_name: 100nm/python-injection
 repo_url: https://github.com/100nm/python-injection
 
 markdown_extensions:
+  - admonition
   - def_list
   - pymdownx.highlight:
       anchor_linenums: true

@@ -79,7 +79,8 @@ def dependency_factory() -> Dependency:
 
 Register an implementation for an abstract class or protocol.
 
-_Make sure the implementation is properly imported in your project for it to be registered (see [auto-imports](imports.md) section)._
+!!! warning
+    Make sure the implementation is properly imported in your project for it to be registered (see [auto-imports](imports.md) section).
 ```python
 from injection import injectable
 from abc import ABC
@@ -107,7 +108,8 @@ class Dependency:
 
 Scoped dependencies can be registered using generator functions (sync or async) to handle setup and teardown logic.
 
-_If you're unfamiliar with context managers, [see Python's context manager documentation](https://docs.python.org/3/library/contextlib.html#contextlib.contextmanager)._
+!!! note
+    If you're unfamiliar with context managers, [see Python's context manager documentation](https://docs.python.org/3/library/contextlib.html#contextlib.contextmanager).
 ```python
 from collections.abc import Iterator
 from injection import scoped

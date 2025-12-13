@@ -15,7 +15,8 @@ function()  # You can now call `function` without arguments
 
 When `@inject` is applied to an async function, it can resolve dependencies that require an async context. If an async dependency is required by a sync function decorated with `@inject`, a `RuntimeError` will be raised.
 
-**Performance note:** The first call to an injected function is slower because it performs dependency resolution. Subsequent calls are faster as the resolution is cached.
+!!! note "Performance note"
+    The first call to an injected function is slower because it performs dependency resolution. Subsequent calls are faster as the resolution is cached.
 
 ### Static type checkers
 
@@ -132,4 +133,5 @@ class Class:
         self.dependency.some_method()  # Resolved on every access
 ```
 
-**Important:** Dependencies requiring an async context are not compatible with `LazyInstance` since descriptors cannot be awaited.
+!!! warning
+    Dependencies requiring an async context are not compatible with `LazyInstance` since descriptors cannot be awaited.
