@@ -24,15 +24,12 @@ nav:
       - Auto-imports: guides/imports.md
       - Set up main functions: guides/main-functions.md
   - Testing:
-      - Register test dependencies: testing/register-dependencies.md
+      - Test dependencies: testing/test-dependencies.md
       - Writing test classes: testing/classes.md
       - Pytest: testing/pytest.md
   - Thread safety: threadsafety.md
   - Integrations:
       - FastAPI: integrations/fastapi.md
-  - Comparison:
-      - Benchmarks: comparison/benchmarks.md
-  - Next steps: next-steps.md
 
 plugins:
   - search

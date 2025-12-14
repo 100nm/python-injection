@@ -53,7 +53,7 @@ This is particularly convenient for scripts and CLI commands where you want the 
 
 ## Integrating with ProfileLoader
 
-If you're using a `ProfileLoader` in your project, pass it to `@entrypointmaker` using the `profile_loader` parameter:
+If you're using a [`ProfileLoader`](profiles.md#profileloader) in your project, pass it to `@entrypointmaker` using the `profile_loader` parameter:
 ```python
 from injection.entrypoint import Entrypoint, entrypointmaker
 from injection.loaders import ProfileLoader, PythonModuleLoader

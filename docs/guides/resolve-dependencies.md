@@ -26,7 +26,7 @@ Static type checkers like mypy will complain about missing arguments when callin
 def function(dependency: Dependency):
     ...
 
-function()  # <- mypy error: Missing positional argument "dependency" in call to "function"  [call-arg]
+function()  # ❌ mypy error: Missing positional argument "dependency" in call to "function"  [call-arg]
 ```
 
 To fix this, provide a default value for injected parameters:
@@ -35,7 +35,7 @@ To fix this, provide a default value for injected parameters:
 def function(dependency: Dependency = NotImplemented):
     ...
 
-function()  # <- OK
+function()  # ✅ OK
 ```
 
 Using `NotImplemented` as the default value is recommended because it acts as a sentinel value: if the function is called without injection, any attempt to use the dependency will produce a clear and understandable error.

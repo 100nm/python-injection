@@ -61,7 +61,6 @@ In this example, both "dev" and "test" profiles load the "stub" module, allowing
 
 `ProfileLoader` provides a `required_module_names` method that returns the set of module names required by a profile. This is useful for debugging or validating your profile configuration.
 ```python
-# Get module names for a specific profile
 dev_modules = profile_loader.required_module_names(Profile.DEV)
 # Returns: frozenset({<Profile.DEV: 'development'>, <SubProfile.STUB: 'stub'>, '__default__'})
 ```
@@ -73,6 +72,7 @@ Both `load_profile` and `ProfileLoader` can be used as context managers. When th
 with load_profile(Profile.DEV):
     # Dev profile is active
     run_app()
+
 # Profile is unloaded, cache is cleared
 ```
 
@@ -81,6 +81,7 @@ With `ProfileLoader`:
 with profile_loader.load(Profile.DEV):
     # Dev profile is active
     run_app()
+
 # Profile is unloaded, cache is cleared
 ```
 

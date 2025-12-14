@@ -70,7 +70,7 @@ class Dependency:
     ...
 
 @injectable
-def dependency_factory() -> Dependency:
+def _dependency_factory() -> Dependency:
     # ...
     return Dependency()
 ```
