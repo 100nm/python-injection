@@ -3,25 +3,24 @@
 ## Inject a dependency
 
 Here's how to inject an instance into a FastAPI endpoint.
-
 ```python
 from injection.ext.fastapi import Inject
 
 @app.get("/")
-async def my_endpoint(service: Inject[MyService]) -> None:
+async def endpoint(dependency: Inject[Dependency]):
     ...
 ```
 
 ## Useful scopes
 
 Two fairly common scopes in FastAPI:
-* **Application lifespan scope**: associate with application lifespan.
-* **Request scope**: associate with http request lifetime.
 
-_For a better understanding of the scopes, [here's the associated documentation](../scoped-dependencies.md)._
+- **Application lifespan scope**: associate with application lifespan.
+- **Request scope**: associate with http request lifetime.
+
+_For a better understanding of the scopes, [here's the associated documentation](../guides/scopes.md)._
 
 Here's how to configure FastAPI:
-
 ```python
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -36,12 +35,13 @@ class InjectionScope(StrEnum):
     REQUEST = auto()
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with adefine_scope(InjectionScope.LIFESPAN, kind="shared"):
         yield
 
 @dataclass
 class FastAPIRequestBindings:
+    # You can use any bindings; Request is just an example.
     request: Request
     
     scope = MappedScope(InjectionScope.REQUEST)
