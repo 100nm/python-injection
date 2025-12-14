@@ -4,9 +4,6 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 bench = [
-    "dependency-injector",
-    "injector",
-    "pytest-benchmark",
     "tabulate",
     "typer",
     "types-tabulate",
