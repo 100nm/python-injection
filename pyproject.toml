@@ -3,11 +3,6 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-bench = [
-    "tabulate",
-    "typer",
-    "types-tabulate",
-]
 dev = [
     "hatch",
     "mypy",
@@ -17,8 +12,6 @@ dev = [
 docs = [
     "mkdocs",
     "mkdocs-material",
-    "pydantic-settings",
-    "uvloop",
 ]
 test = [
     "fastapi",
@@ -32,7 +25,7 @@ test = [
 [project]
 name = "python-injection"
 version = "0.0.0"
-description = "Fast and easy dependency injection framework."
+description = "Dead-simple dependency injection framework for Python."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "docs/index.md"
@@ -78,7 +71,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
-omit = ["bench.py", "typing_checks/*"]
+omit = ["typing_checks/*"]
 
 [tool.hatch.build]
 skip-excluded-dirs = true
@@ -96,7 +89,6 @@ disallow_subclassing_any = true
 disallow_untyped_defs = true
 exclude = [
     "tests/",
-    "bench.py",
     "conftest.py",
 ]
 follow_imports = "silent"
@@ -136,5 +128,5 @@ ignore = ["N818"]
 fixable = ["ALL"]
 
 [tool.uv]
-default-groups = ["bench", "dev", "docs", "test"]
+default-groups = ["dev", "docs", "test"]
 package = true
