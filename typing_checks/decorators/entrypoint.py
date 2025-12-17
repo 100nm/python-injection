@@ -1,23 +1,26 @@
-from injection.entrypoint import Entrypoint, entrypointmaker
+from injection import adefine_scope
+from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypointmaker
 
 
 class A: ...
 
 
 @entrypointmaker
-def entrypoint[**P, T](ep: Entrypoint[P, T], a: A) -> Entrypoint[P, T]:
-    return ep.inject()
+def entrypoint[**P, T](ep: AsyncEntrypoint[P, T], a: A) -> Entrypoint[P, T]:
+    return (
+        ep.inject().decorate(adefine_scope("lifespan", kind="shared")).async_to_sync()
+    )
 
 
 @entrypoint
-def function_a() -> None: ...
+async def function_a() -> None: ...
 
 
 function_a()
 
 
 @entrypoint()
-def function_b() -> None: ...
+async def function_b() -> None: ...
 
 
 function_b()

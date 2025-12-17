@@ -2,16 +2,16 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from injection import injectable, mod
-from injection.entrypoint import Entrypoint
+from injection.entrypoint import EntrypointBuilder
 
 
 class TestEntrypoint:
     def test_async_to_sync_with_success_return_entrypoint(self):
+        @EntrypointBuilder().async_to_sync()
         async def async_function() -> int:
             return 42
 
-        entrypoint = Entrypoint(async_function).async_to_sync()
-        assert entrypoint() == 42
+        assert async_function() == 42
 
     def test_decorate_with_success_return_entrypoint(self):
         enter_count = 0
@@ -24,22 +24,22 @@ class TestEntrypoint:
             yield
             exit_count += 1
 
+        @EntrypointBuilder().decorate(decorator())
         def function():
             assert enter_count == exit_count + 1
 
-        entrypoint = Entrypoint(function).decorate(decorator())
-        entrypoint()
+        function()
         assert enter_count == exit_count == 1
 
     def test_inject_with_success_return_entrypoint(self):
         @injectable
         class Service: ...
 
+        @EntrypointBuilder().inject()
         def function(service: Service) -> bool:
             return isinstance(service, Service)
 
-        entrypoint = Entrypoint(function).inject()
-        assert entrypoint()
+        assert function()
 
     def test_load_profile_with_success_return_entrypoint(self):
         profile_name = "test"
@@ -47,34 +47,8 @@ class TestEntrypoint:
         @mod(profile_name).injectable
         class Service: ...
 
+        @EntrypointBuilder().inject().load_profile(profile_name)
         def function(service: Service) -> bool:
             return isinstance(service, Service)
 
-        entrypoint = Entrypoint(function).inject().load_profile(profile_name)
-        assert entrypoint()
-
-    def test_setup_with_success_return_entrypoint(self):
-        count = 0
-
-        def increment() -> None:
-            nonlocal count
-            count += 1
-
-        def function(): ...
-
-        entrypoint = Entrypoint(function).setup(increment)
-        entrypoint()
-        assert count == 1
-
-    def test_async_setup_with_success_return_entrypoint(self):
-        count = 0
-
-        async def increment() -> None:
-            nonlocal count
-            count += 1
-
-        async def function(): ...
-
-        entrypoint = Entrypoint(function).async_setup(increment).async_to_sync()
-        entrypoint()
-        assert count == 1
+        assert function()

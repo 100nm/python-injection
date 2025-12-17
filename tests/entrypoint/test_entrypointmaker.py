@@ -1,16 +1,20 @@
+from contextlib import contextmanager
+
 from injection.entrypoint import Entrypoint, entrypointmaker
 
 
 def test_entrypointmaker_with_success_return_entrypoint_decorator():
     count = 0
 
-    def increment() -> None:
+    @contextmanager
+    def increment():
         nonlocal count
         count += 1
+        yield
 
     @entrypointmaker
     def entrypoint[**P, T](self: Entrypoint[P, T]) -> Entrypoint[P, T]:
-        return self.setup(increment)
+        return self.decorate(increment())
 
     @entrypoint
     def function(): ...
@@ -22,13 +26,15 @@ def test_entrypointmaker_with_success_return_entrypoint_decorator():
 def test_entrypointmaker_with_autocall_return_entrypoint_decorator():
     count = 0
 
-    def increment() -> None:
+    @contextmanager
+    def increment():
         nonlocal count
         count += 1
+        yield
 
     @entrypointmaker
     def entrypoint[**P, T](self: Entrypoint[P, T]) -> Entrypoint[P, T]:
-        return self.setup(increment)
+        return self.decorate(increment())
 
     @entrypoint(autocall=True)
     def _(): ...

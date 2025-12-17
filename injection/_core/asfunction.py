@@ -1,5 +1,5 @@
-from collections.abc import Callable
-from functools import wraps
+from collections.abc import Awaitable, Callable
+from functools import update_wrapper
 from inspect import iscoroutinefunction
 from typing import Any, Protocol
 
@@ -21,33 +21,45 @@ def asfunction[**P, T](
     module: Module | None = None,
     threadsafe: bool | None = None,
 ) -> Any:
-    module = module or mod()
-
     def decorator(wp: AsFunctionWrappedType[P, T]) -> Callable[P, T]:
         fake_method = wp.__call__.__get__(NotImplemented, wp)
-        factory: Caller[..., Callable[P, T]] = module.make_injected_function(
-            wp,
-            threadsafe=threadsafe,
-        ).__injection_metadata__
+        factory: Caller[..., Callable[P, T]] = (
+            (module or mod())
+            .make_injected_function(
+                wp,
+                threadsafe=threadsafe,
+            )
+            .__injection_metadata__
+        )
 
-        wrapper: Callable[P, T]
+        wrapper: Callable[P, T] = (
+            _wrap_async(factory)  # type: ignore[arg-type, assignment]
+            if iscoroutinefunction(fake_method)
+            else _wrap_sync(factory)
+        )
+        wrapper = update_wrapper(wrapper, fake_method)
 
-        if iscoroutinefunction(fake_method):
+        for attribute in ("__name__", "__qualname__"):
+            setattr(wrapper, attribute, getattr(wp, attribute))
 
-            @wraps(fake_method)
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
-                self = await factory.acall()
-                return await self(*args, **kwargs)  # type: ignore[misc]
-
-        else:
-
-            @wraps(fake_method)
-            def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-                self = factory.call()
-                return self(*args, **kwargs)
-
-        wrapper.__name__ = wp.__name__
-        wrapper.__qualname__ = wp.__qualname__
         return wrapper
 
     return decorator(wrapped) if wrapped else decorator
+
+
+def _wrap_async[**P, T](
+    factory: Caller[..., Callable[P, Awaitable[T]]],
+) -> Callable[P, Awaitable[T]]:
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        self = await factory.acall()
+        return await self(*args, **kwargs)
+
+    return wrapper
+
+
+def _wrap_sync[**P, T](factory: Caller[..., Callable[P, T]]) -> Callable[P, T]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        self = factory.call()
+        return self(*args, **kwargs)
+
+    return wrapper
