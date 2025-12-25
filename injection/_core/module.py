@@ -387,12 +387,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> InjectedFunction[P, T]:
-        metadata = InjectMetadata(wrapped, threadsafe)
-
-        @metadata.task
-        def listen() -> None:
-            metadata.update(self)
-            self.add_listener(metadata)
+        metadata = self._metadata(wrapped, threadsafe)
 
         if iscoroutinefunction(wrapped):
             return AsyncInjectedFunction(metadata)  # type: ignore[arg-type, return-value]
@@ -405,11 +400,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> Callable[..., Awaitable[T]]:
-        factory: InjectedFunction[..., T] = self.make_injected_function(
-            wrapped,
-            threadsafe,
-        )
-        return factory.__injection_metadata__.acall
+        return self._metadata(wrapped, threadsafe).acall
 
     async def afind_instance[T](
         self,
@@ -522,12 +513,14 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> Awaitable[T | Default]:
-        function = self.make_injected_function(
-            lambda instance=default: instance,
-            threadsafe=threadsafe,
+        return SimpleAwaitable(
+            self._metadata(
+                lambda instance=default: instance,
+                threadsafe=threadsafe,
+            )
+            .set_owner(cls)  # type: ignore[arg-type]
+            .acall
         )
-        metadata = function.__injection_metadata__.set_owner(cls)
-        return SimpleAwaitable(metadata.acall)
 
     if TYPE_CHECKING:  # pragma: no cover
 
@@ -556,12 +549,14 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> Invertible[T | Default]:
-        function = self.make_injected_function(
-            lambda instance=default: instance,
-            threadsafe=threadsafe,
+        return SimpleInvertible(
+            self._metadata(
+                lambda instance=default: instance,
+                threadsafe=threadsafe,
+            )
+            .set_owner(cls)  # type: ignore[arg-type]
+            .call
         )
-        metadata = function.__injection_metadata__.set_owner(cls)
-        return SimpleInvertible(metadata.call)
 
     def update[T](self, updater: Updater[T]) -> Self:
         self.__locator.update(updater)
@@ -685,6 +680,13 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
                 yield
             finally:
                 self.__debug(event)
+
+    def _metadata[**P, T](
+        self,
+        wrapped: Callable[P, T],
+        threadsafe: bool | None = None,
+    ) -> InjectMetadata[P, T]:
+        return InjectMetadata(wrapped, threadsafe).listen(self)
 
     def _iter_locators(self) -> Iterator[Locator]:
         for module in self.__modules:
@@ -879,16 +881,14 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
 
     async def abind(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> Arguments:
         arguments = self.__get_arguments(args, kwargs)
-        dependencies = await self.__dependencies.aget_arguments(exclude=arguments)
-        if dependencies:
+        if dependencies := await self.__dependencies.aget_arguments(exclude=arguments):
             return self.__merge_arguments(arguments, dependencies)
 
         return Arguments(args, kwargs)
 
     def bind(self, args: Iterable[Any], kwargs: Mapping[str, Any]) -> Arguments:
         arguments = self.__get_arguments(args, kwargs)
-        dependencies = self.__dependencies.get_arguments(exclude=arguments)
-        if dependencies:
+        if dependencies := self.__dependencies.get_arguments(exclude=arguments):
             return self.__merge_arguments(arguments, dependencies)
 
         return Arguments(args, kwargs)
@@ -930,6 +930,14 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
 
         return decorator(wrapped) if wrapped else decorator
 
+    def listen(self, module: Module) -> Self:
+        @self.task
+        def start_listening() -> None:
+            self.update(module)
+            module.add_listener(self)
+
+        return self
+
     @singledispatchmethod
     def on_event(self, event: Event, /) -> ContextManager[None] | None:
         return None
@@ -945,8 +953,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         args: Iterable[Any],
         kwargs: Mapping[str, Any],
     ) -> dict[str, Any]:
-        bound = self.signature.bind_partial(*args, **kwargs)
-        return bound.arguments
+        return self.signature.bind_partial(*args, **kwargs).arguments
 
     def __merge_arguments(
         self,
