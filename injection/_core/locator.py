@@ -291,7 +291,7 @@ def _extract_caller[**P, T](
 
 
 def _make_injectable[T](
-    injectable_factory: InjectableFactory[T],
+    factory: InjectableFactory[T],
     recipe: Recipe[..., T],
 ) -> Injectable[T]:
-    return injectable_factory(_extract_caller(recipe))
+    return factory(_extract_caller(recipe))

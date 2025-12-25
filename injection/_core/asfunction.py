@@ -23,13 +23,9 @@ def asfunction[**P, T](
 ) -> Any:
     def decorator(wp: AsFunctionWrappedType[P, T]) -> Callable[P, T]:
         fake_method = wp.__call__.__get__(NotImplemented, wp)
-        factory: Caller[..., Callable[P, T]] = (
-            (module or mod())
-            .make_injected_function(
-                wp,
-                threadsafe=threadsafe,
-            )
-            .__injection_metadata__
+        factory: Caller[..., Callable[P, T]] = (module or mod())._metadata(
+            wp,
+            threadsafe,
         )
 
         wrapper: Callable[P, T] = (
