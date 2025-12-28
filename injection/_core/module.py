@@ -363,6 +363,14 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
         return decorator(wrapped) if wrapped else decorator
 
+    def create_metadata[**P, T](
+        self,
+        wrapped: Callable[P, T],
+        /,
+        threadsafe: bool | None = None,
+    ) -> InjectMetadata[P, T]:
+        return InjectMetadata(wrapped, threadsafe).listen(self)
+
     if TYPE_CHECKING:  # pragma: no cover
 
         @overload
@@ -387,7 +395,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> InjectedFunction[P, T]:
-        metadata = self._metadata(wrapped, threadsafe)
+        metadata = self.create_metadata(wrapped, threadsafe)
 
         if iscoroutinefunction(wrapped):
             return AsyncInjectedFunction(metadata)  # type: ignore[arg-type, return-value]
@@ -400,7 +408,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> Callable[..., Awaitable[T]]:
-        return self._metadata(wrapped, threadsafe).acall
+        return self.create_metadata(wrapped, threadsafe).acall
 
     async def afind_instance[T](
         self,
@@ -514,7 +522,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         threadsafe: bool | None = None,
     ) -> Awaitable[T | Default]:
         return SimpleAwaitable(
-            self._metadata(
+            self.create_metadata(
                 lambda instance=default: instance,
                 threadsafe=threadsafe,
             )
@@ -550,7 +558,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         threadsafe: bool | None = None,
     ) -> Invertible[T | Default]:
         return SimpleInvertible(
-            self._metadata(
+            self.create_metadata(
                 lambda instance=default: instance,
                 threadsafe=threadsafe,
             )
@@ -680,13 +688,6 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
                 yield
             finally:
                 self.__debug(event)
-
-    def _metadata[**P, T](
-        self,
-        wrapped: Callable[P, T],
-        threadsafe: bool | None = None,
-    ) -> InjectMetadata[P, T]:
-        return InjectMetadata(wrapped, threadsafe).listen(self)
 
     def _iter_locators(self) -> Iterator[Locator]:
         for module in self.__modules:

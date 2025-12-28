@@ -4,7 +4,7 @@ from inspect import iscoroutinefunction
 from typing import Any, Protocol
 
 from injection._core.common.asynchronous import Caller
-from injection._core.module import Module, mod
+from injection._core.module import InjectMetadata, Module, mod
 
 
 class _AsFunctionCallable[**P, T](Protocol):
@@ -23,15 +23,14 @@ def asfunction[**P, T](
 ) -> Any:
     def decorator(wp: AsFunctionWrappedType[P, T]) -> Callable[P, T]:
         fake_method = wp.__call__.__get__(NotImplemented, wp)
-        factory: Caller[..., Callable[P, T]] = (module or mod())._metadata(
-            wp,
-            threadsafe,
-        )
+        metadata: InjectMetadata[..., Callable[P, T]] = (
+            module or mod()
+        ).create_metadata(wp, threadsafe)
 
         wrapper: Callable[P, T] = (
-            _wrap_async(factory)  # type: ignore[arg-type, assignment]
+            _wrap_async(metadata)  # type: ignore[arg-type, assignment]
             if iscoroutinefunction(fake_method)
-            else _wrap_sync(factory)
+            else _wrap_sync(metadata)
         )
         wrapper = update_wrapper(wrapper, fake_method)
 
