@@ -30,6 +30,7 @@ nav:
   - Thread safety: threadsafety.md
   - Integrations:
       - FastAPI: integrations/fastapi.md
+  - Next steps: next-steps.md
 
 plugins:
   - search
