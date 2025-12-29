@@ -16,12 +16,7 @@ from typing import (
 
 from injection._core.common.asynchronous import AsyncSemaphore, Caller
 from injection._core.common.type import InputType
-from injection._core.scope import (
-    Scope,
-    get_scope,
-    in_scope_cache,
-    remove_scoped_values,
-)
+from injection._core.scope import Scope, get_scope, in_scope_cache
 from injection._core.slots import SlotKey
 from injection.exceptions import EmptySlotError, InjectionError
 
@@ -203,9 +198,6 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
 
     def build(self, scope: Scope) -> T:
         return self.factory.call()
-
-    def unlock(self) -> None:
-        remove_scoped_values(self.key, self.scope_name)
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)

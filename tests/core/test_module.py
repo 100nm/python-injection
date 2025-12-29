@@ -452,17 +452,10 @@ class TestModule:
         assert module.is_locked is False
 
         with define_scope("test"):
-            instance_1 = module.get_instance(Dependency)
-            assert module.is_locked is True
+            module.get_instance(Dependency)
 
-            module.unlock()
-            assert module.is_locked is False
-
-            instance_2 = module.get_instance(Dependency)
-            assert module.is_locked is True
-
-        assert instance_1 is not instance_2
-        assert module.is_locked is False
+            with pytest.raises(RuntimeError):
+                module.unlock()
 
     def test_unlock_with_scoped_cm_recipe(self, module):
         class Dependency: ...
@@ -470,6 +463,8 @@ class TestModule:
         @module.scoped("test")
         def dependency_recipe() -> Iterator[Dependency]:
             yield Dependency()
+
+        assert module.is_locked is False
 
         with define_scope("test"):
             module.get_instance(Dependency)
