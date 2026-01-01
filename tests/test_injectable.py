@@ -229,3 +229,18 @@ class TestInjectable:
 
         value = get_instance(MyEnum)
         assert isinstance(value, MyEnum)
+
+    async def test_injectable_with_circular_dependency_raise_recursion_error(self):
+        class A: ...
+
+        @injectable
+        @dataclass
+        class B:
+            a: A
+
+        @injectable
+        async def a_factory(_b: B) -> A:
+            return A()
+
+        with pytest.raises(RecursionError):
+            await aget_instance(A)
