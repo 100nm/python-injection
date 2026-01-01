@@ -191,7 +191,6 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
-    kind = ScopeKind(kind)
     lock = get_lock(threadsafe)
 
     with lock:

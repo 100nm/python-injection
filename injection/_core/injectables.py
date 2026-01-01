@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, MutableMapping
-from contextlib import suppress
+from collections.abc import Awaitable, Callable, Iterator, MutableMapping
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from functools import partial
 from typing import (
@@ -53,11 +53,13 @@ class TransientInjectable[T](Injectable[T]):
 
 
 class CacheLogic[T]:
-    __slots__ = ("__semaphore",)
+    __slots__ = ("__is_instantiating", "__semaphore")
 
+    __is_instantiating: bool
     __semaphore: AsyncContextManager[Any]
 
     def __init__(self) -> None:
+        self.__is_instantiating = False
         self.__semaphore = AsyncSemaphore(1)
 
     async def aget_or_create[K](
@@ -66,11 +68,14 @@ class CacheLogic[T]:
         key: K,
         factory: Callable[..., Awaitable[T]],
     ) -> T:
+        self.__fail_if_instantiating()
         async with self.__semaphore:
             with suppress(KeyError):
                 return cache[key]
 
-            instance = await factory()
+            with self.__instantiating():
+                instance = await factory()
+
             cache[key] = instance
 
         return instance
@@ -81,12 +86,28 @@ class CacheLogic[T]:
         key: K,
         factory: Callable[..., T],
     ) -> T:
+        self.__fail_if_instantiating()
         with suppress(KeyError):
             return cache[key]
 
-        instance = factory()
+        with self.__instantiating():
+            instance = factory()
+
         cache[key] = instance
         return instance
+
+    def __fail_if_instantiating(self) -> None:
+        if self.__is_instantiating:
+            raise RecursionError("Recursive call detected during instantiation.")
+
+    @contextmanager
+    def __instantiating(self) -> Iterator[None]:
+        self.__is_instantiating = True
+
+        try:
+            yield
+        finally:
+            self.__is_instantiating = False
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
