@@ -61,6 +61,7 @@ class InjectionProvider(ABC):
         self,
         wrapped: Callable[P, T],
         /,
+        threadsafe: bool | None = ...,
     ) -> Callable[P, T]:
         raise NotImplementedError
 
@@ -108,7 +109,7 @@ class DynamicInjectableBroker[T](InjectableBroker[T]):
 
         injectable = _make_injectable(
             self.factory,
-            provider.make_injected_function(self.recipe),  # type: ignore[misc]
+            provider.make_injected_function(self.recipe, threadsafe=False),  # type: ignore[misc]
         )
         self.injectables[provider] = injectable
         return injectable
@@ -116,16 +117,16 @@ class DynamicInjectableBroker[T](InjectableBroker[T]):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class StaticInjectableBroker[T](InjectableBroker[T]):
-    value: Injectable[T]
+    injectable: Injectable[T]
 
     def get(self, provider: InjectionProvider) -> Injectable[T] | None:
-        return self.value
+        return self.injectable
 
     def is_locked(self, provider: InjectionProvider) -> bool:
         return False
 
     def request(self, provider: InjectionProvider) -> Injectable[T]:
-        return self.value
+        return self.injectable
 
     @classmethod
     def from_factory(

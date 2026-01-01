@@ -183,3 +183,18 @@ class TestSingleton:
 
         a = get_instance(A)
         assert isinstance(a, C)
+
+    async def test_singleton_with_circular_dependency_raise_recursion_error(self):
+        class A: ...
+
+        @singleton
+        @dataclass
+        class B:
+            a: A
+
+        @singleton
+        async def a_factory(_b: B) -> A:
+            return A()
+
+        with pytest.raises(RecursionError):
+            await aget_instance(A)
