@@ -11,7 +11,7 @@ jobs:
   ci:
     strategy:
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.14t"]
 
     name: Continuous Integration ・ Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
