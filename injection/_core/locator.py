@@ -17,12 +17,7 @@ from typing import (
 )
 from weakref import WeakKeyDictionary
 
-from injection._core.common.asynchronous import (
-    AsyncCaller,
-    Caller,
-    HiddenCaller,
-    SyncCaller,
-)
+from injection._core.common.asynchronous import AsyncCaller, Caller, SyncCaller
 from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.type import InputType
 from injection._core.injectables import Injectable
@@ -285,8 +280,8 @@ def _extract_caller[**P, T](
     if iscoroutinefunction(function):
         return AsyncCaller(function)
 
-    elif isinstance(function, HiddenCaller):
-        return function.__injection_hidden_caller__
+    elif metadata := getattr(function, "__injection_metadata__", None):
+        return metadata
 
     return SyncCaller(function)  # type: ignore[arg-type]
 

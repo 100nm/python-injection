@@ -240,7 +240,7 @@ class TestInjectable:
 
         @injectable
         async def a_factory(_b: B) -> A:
-            return A()
+            return A()  # pragma: no cover
 
         with pytest.raises(RecursionError):
             await aget_instance(A)

@@ -8,6 +8,7 @@ from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextma
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import partial
 from types import EllipsisType, TracebackType
 from typing import (
     TYPE_CHECKING,
@@ -23,7 +24,6 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.key import new_short_key
 from injection._core.common.threading import get_lock
 from injection._core.slots import SlotKey
 from injection.exceptions import (
@@ -69,7 +69,7 @@ class _ContextualScopeResolver(ScopeResolver):
     # Shouldn't be instantiated outside `__scope_resolvers`.
 
     __context_var: ContextVar[Scope] = field(
-        default_factory=lambda: ContextVar(f"scope@{new_short_key()}"),
+        default_factory=partial(ContextVar, "__injection_scope__"),
         init=False,
     )
     __references: set[Scope] = field(
@@ -163,7 +163,7 @@ def get_scope[T](name: str, default: T | EllipsisType = ...) -> Scope | T:
         if resolver and (scope := resolver.get_scope()):
             return scope
 
-    if default is Ellipsis:
+    if default is ...:
         raise ScopeUndefinedError(
             f"Scope `{name}` isn't defined in the current context."
         )
@@ -194,7 +194,7 @@ def _bind_scope(
     lock = get_lock(threadsafe)
 
     with lock:
-        if get_scope(name, default=None):
+        if get_scope(name, None):
             raise ScopeAlreadyDefinedError(
                 f"Scope `{name}` is already defined in the current context."
             )

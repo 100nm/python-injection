@@ -145,9 +145,8 @@ class Module:
     extensively.
     """
 
-    name: str
+    name: str | None
 
-    def __init__(self, name: str = ...) -> None: ...
     def __contains__(self, cls: _InputType[Any], /) -> bool: ...
     @property
     def is_locked(self) -> bool: ...

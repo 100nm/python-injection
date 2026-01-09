@@ -150,11 +150,7 @@ class ProfileLoader:
         return not self.module_subsets
 
     def required_module_names(self, name: str | None = None, /) -> frozenset[str]:
-        names = {self.module.name}
-
-        if name is not None:
-            names.add(name)
-
+        names = {n for n in (self.module.name, name) if n is not None}
         subsets = (self.__walk_subsets_for(name) for name in names)
         return frozenset(itertools.chain.from_iterable(subsets))
 
@@ -175,24 +171,30 @@ class ProfileLoader:
         self.module.unlock().stop_using(mod(name))
 
     def __init_subsets_for(self, module: Module) -> Module:
-        if not self.__is_empty and not self.__is_initialized(module):
+        module_name = module.name
+
+        if (
+            not self.__is_empty
+            and module_name is not None
+            and not self.__is_initialized(module_name)
+        ):
             target_modules = tuple(
                 self.__init_subsets_for(mod(name))
-                for name in self.module_subsets.get(module.name, ())
+                for name in self.module_subsets.get(module_name, ())
             )
             module.init_modules(*target_modules)
-            self.__mark_initialized(module)
+            self.__mark_initialized(module_name)
 
         return module
 
     def __is_default_module(self, module_name: str) -> bool:
         return module_name == self.module.name
 
-    def __is_initialized(self, module: Module) -> bool:
-        return module.name in self.__initialized_modules
+    def __is_initialized(self, module_name: str) -> bool:
+        return module_name in self.__initialized_modules
 
-    def __mark_initialized(self, module: Module) -> None:
-        self.__initialized_modules.add(module.name)
+    def __mark_initialized(self, module_name: str) -> None:
+        self.__initialized_modules.add(module_name)
 
     def __walk_subsets_for(self, module_name: str) -> Iterator[str]:
         yield module_name

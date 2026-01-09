@@ -51,16 +51,19 @@ def get_yield_hints[T](
     return ()
 
 
-def iter_return_types(*args: TypeInfo[Any]) -> Iterator[InputType[Any]]:
+def iter_flat_types(*args: Any) -> Iterator[Any]:
     for arg in args:
         if isinstance(arg, Collection) and not isclass(arg):
-            inner_args = arg
-
-        elif isfunction(arg) and (return_type := get_return_hint(arg)):
-            inner_args = (return_type,)
+            yield from iter_flat_types(*arg)
 
         else:
-            yield arg  # type: ignore[misc]
-            continue
+            yield arg
 
-        yield from iter_return_types(*inner_args)
+
+def iter_return_types(*args: Any) -> Iterator[Any]:
+    for arg in args:
+        if isfunction(arg) and (return_type := get_return_hint(arg)):
+            yield from iter_return_types(return_type)
+
+        else:
+            yield arg

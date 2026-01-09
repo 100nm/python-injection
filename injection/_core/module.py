@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import itertools
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
 from collections.abc import (
     AsyncGenerator,
@@ -45,20 +44,16 @@ from typing import (
 
 from type_analyzer import MatchingTypesConfig, iter_matching_types, matching_types
 
-from injection._core.common.asynchronous import (
-    Caller,
-    HiddenCaller,
-    SimpleAwaitable,
-)
+from injection._core.common.asynchronous import Caller, SimpleAwaitable
 from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.invertible import Invertible, SimpleInvertible
-from injection._core.common.key import new_short_key
 from injection._core.common.lazy import Lazy
 from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
     TypeInfo,
     get_yield_hints,
+    iter_flat_types,
     iter_return_types,
 )
 from injection._core.injectables import (
@@ -93,10 +88,6 @@ from injection.exceptions import (
     NoInjectable,
     SkipInjectable,
 )
-
-"""
-Events
-"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,11 +145,6 @@ class ModulePriorityUpdated(ModuleEvent):
         )
 
 
-"""
-Module
-"""
-
-
 class Priority(StrEnum):
     LOW = "low"
     HIGH = "high"
@@ -187,7 +173,7 @@ class _ScopedContext[**P, T]:
 
 @dataclass(eq=False, frozen=True, slots=True)
 class Module(EventListener, InjectionProvider):  # type: ignore[misc]
-    name: str = field(default_factory=lambda: f"anonymous@{new_short_key()}")
+    name: str | None = field(default=None)
     __channel: EventChannel = field(
         default_factory=EventChannel,
         init=False,
@@ -730,9 +716,10 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
     def __build_key_types(input_cls: Any) -> frozenset[Any]:
         config = MatchingTypesConfig(ignore_none=True)
         return frozenset(
-            itertools.chain.from_iterable(
-                iter_matching_types(cls, config) for cls in iter_return_types(input_cls)
-            )
+            matching_type
+            for cls in iter_flat_types(input_cls)
+            for return_type in iter_return_types(cls)
+            for matching_type in iter_matching_types(return_type, config)
         )
 
     @staticmethod
@@ -746,11 +733,6 @@ def mod(name: str | None = None, /) -> Module:
         return Module.default()
 
     return Module.from_name(name)
-
-
-"""
-InjectedFunction
-"""
 
 
 @dataclass(repr=False, frozen=True, slots=True)
@@ -786,8 +768,7 @@ class Dependencies:
 
     @classmethod
     def from_iterable(cls, iterable: Iterable[tuple[str, Injectable[Any]]]) -> Self:
-        lazy_mapping = Lazy(lambda: dict(iterable))
-        return cls(lazy_mapping)
+        return cls(Lazy(lambda: dict(iterable)))
 
     @classmethod
     def empty(cls) -> Self:
@@ -970,7 +951,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
             task()
 
 
-class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
+class InjectedFunction[**P, T](ABC):
     __slots__ = ("__dict__", "__injection_metadata__")
 
     __injection_metadata__: InjectMetadata[P, T]
@@ -985,10 +966,6 @@ class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
     def __str__(self) -> str:  # pragma: no cover
         return str(self.__injection_metadata__.wrapped)
 
-    @property
-    def __injection_hidden_caller__(self) -> Caller[P, T]:
-        return self.__injection_metadata__
-
     def __get__(
         self,
         instance: object | None = None,
@@ -1001,6 +978,10 @@ class InjectedFunction[**P, T](HiddenCaller[P, T], ABC):
 
     def __set_name__(self, owner: type, name: str) -> None:
         self.__injection_metadata__.set_owner(owner)
+
+    @abstractmethod
+    def __call__(self, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        raise NotImplementedError
 
 
 class AsyncInjectedFunction[**P, T](InjectedFunction[P, Awaitable[T]]):
