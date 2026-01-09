@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Annotated, Any, Optional, TypeVar, Union
 
+import anyio
 import pytest
 
 from injection import inject, injectable
@@ -294,3 +296,43 @@ class TestInject:
 
         function()
         assert module.is_locked
+
+    async def test_inject_with_async_singleton(self, module):
+        class Dependency: ...
+
+        @module.singleton
+        async def dependency_factory() -> Dependency:
+            await anyio.sleep(0)
+            return Dependency()
+
+        instances = []
+
+        @module.inject
+        async def append_dependency(dependency: Dependency):
+            instances.append(dependency)
+
+        async with anyio.create_task_group() as task_group:
+            for _ in range(100):
+                task_group.start_soon(append_dependency)
+
+        reference = instances[0]
+        for instance in instances:
+            assert instance is reference
+
+    def test_inject_with_threadsafe(self, module):
+        @module.singleton
+        class Dependency: ...
+
+        @module.inject(threadsafe=True)
+        def get_dependency(dependency: Dependency) -> Dependency:
+            return dependency
+
+        futures: list[Future[Dependency]] = []
+
+        with ThreadPoolExecutor() as executor:
+            for _ in range(100):
+                futures.append(executor.submit(get_dependency))
+
+        reference = futures[0].result()
+        for future in futures:
+            assert future.result() is reference
