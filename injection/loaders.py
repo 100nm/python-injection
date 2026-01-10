@@ -150,8 +150,11 @@ class ProfileLoader:
         return not self.module_subsets
 
     def required_module_names(self, name: str | None = None, /) -> frozenset[str]:
-        names = {n for n in (self.module.name, name) if n is not None}
-        subsets = (self.__walk_subsets_for(name) for name in names)
+        subsets = (
+            self.__walk_subsets_for(module_name)
+            for module_name in (self.module.name, name)
+            if module_name is not None
+        )
         return frozenset(itertools.chain.from_iterable(subsets))
 
     def init(self) -> Self:
