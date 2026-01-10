@@ -52,7 +52,7 @@ from injection._core.common.threading import get_lock
 from injection._core.common.type import (
     InputType,
     TypeInfo,
-    get_yield_hints,
+    get_yield_types,
     iter_flat_types,
     iter_return_types,
 )
@@ -264,14 +264,14 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
             if isasyncgenfunction(wrapped):
                 ctx = _ScopedContext(
                     cls=AsyncCMScopedInjectable,
-                    hints=() if ignore_type_hint else get_yield_hints(wrapped),
+                    hints=() if ignore_type_hint else get_yield_types(wrapped),
                     wrapper=asynccontextmanager(wrapped),
                 )
 
             elif isgeneratorfunction(wrapped):
                 ctx = _ScopedContext(
                     cls=CMScopedInjectable,
-                    hints=() if ignore_type_hint else get_yield_hints(wrapped),
+                    hints=() if ignore_type_hint else get_yield_types(wrapped),
                     wrapper=contextmanager(wrapped),
                 )
 
@@ -713,19 +713,19 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         return cls.from_name("__default__")
 
     @staticmethod
-    def __build_key_types(input_cls: Any) -> frozenset[Any]:
+    def __build_key_types(input_class: Any) -> frozenset[Any]:
         config = MatchingTypesConfig(ignore_none=True)
         return frozenset(
             matching_type
-            for cls in iter_flat_types(input_cls)
+            for cls in iter_flat_types(input_class)
             for return_type in iter_return_types(cls)
             for matching_type in iter_matching_types(return_type, config)
         )
 
     @staticmethod
-    def __matching_key_types(input_cls: Any) -> tuple[Any, ...]:
+    def __matching_key_types(input_class: Any) -> tuple[Any, ...]:
         config = MatchingTypesConfig(with_origin=True, with_type_alias_value=True)
-        return matching_types(input_cls, config)
+        return matching_types(input_class, config)
 
 
 def mod(name: str | None = None, /) -> Module:

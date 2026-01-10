@@ -28,14 +28,14 @@ type TypeInfo[T] = (
 )
 
 
-def get_return_hint[T](function: Callable[..., T]) -> InputType[T] | None:
+def get_return_type[T](function: Callable[..., T]) -> Any | None:
     return get_type_hints(function).get("return")
 
 
-def get_yield_hints[T](
+def get_yield_types[T](
     function: Callable[..., Iterator[T]] | Callable[..., AsyncIterator[T]],
-) -> tuple[InputType[T]] | tuple[()]:
-    return_type = get_return_hint(function)
+) -> tuple[Any] | tuple[()]:
+    return_type = get_return_type(function)
 
     if get_origin(return_type) in (
         AsyncGenerator,
@@ -62,8 +62,8 @@ def iter_flat_types(*args: Any) -> Iterator[Any]:
 
 def iter_return_types(*args: Any) -> Iterator[Any]:
     for arg in args:
-        if isfunction(arg) and (return_type := get_return_hint(arg)):
-            yield from iter_return_types(return_type)
+        if isfunction(arg) and (return_type := get_return_type(arg)):
+            yield return_type
 
         else:
             yield arg
