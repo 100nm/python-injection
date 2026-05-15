@@ -68,6 +68,7 @@ def mod(name: str = ..., /) -> Module:
     """
     Short syntax for `Module.from_name`.
     """
+
 @runtime_checkable
 class Injectable[T](Protocol):
     @property
@@ -234,9 +235,8 @@ class Module:
     ) -> _Decorator: ...
     def scoped(
         self,
-        scope_name: str,
         /,
-        *,
+        *scope_names: str,
         ignore_type_hint: bool = ...,
         inject: bool = ...,
         on: _TypeInfo[Any] = ...,

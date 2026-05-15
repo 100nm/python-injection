@@ -25,6 +25,21 @@ class TestScoped:
 
         assert instance_1 is instance_2
 
+    def test_scoped_with_several_scopes(self):
+        @scoped("scope_2", "scope_1")
+        class Dependency: ...
+
+        with define_scope("scope_1"):
+            d1 = find_instance(Dependency)
+
+            with define_scope("scope_2"):
+                d2 = find_instance(Dependency)
+
+            d3 = find_instance(Dependency)
+
+        assert d1 is not d2
+        assert d1 is d3
+
     def test_scoped_with_on(self):
         class A: ...
 

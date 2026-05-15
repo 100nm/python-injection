@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, MutableMapping
+from collections.abc import Awaitable, Callable, MutableMapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import partial
@@ -16,7 +16,7 @@ from typing import (
 
 from injection._core.common.asynchronous import AsyncSemaphore, Caller
 from injection._core.common.type import InputType
-from injection._core.scope import Scope, get_scope, in_scope_cache
+from injection._core.scope import Scope, get_first_scope, in_scope_cache
 from injection._core.slots import SlotKey
 from injection.exceptions import EmptySlotError, InjectionError
 
@@ -129,13 +129,13 @@ class ConstantInjectable[T](Injectable[T]):
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ScopedInjectable[R, T](Injectable[T], ABC):
     factory: Caller[..., R]
-    scope_name: str
+    scope_names: Sequence[str]
     key: SlotKey[T] = field(default_factory=SlotKey)
     logic: CacheLogic[T] = field(default_factory=CacheLogic)
 
     @property
     def is_locked(self) -> bool:
-        return in_scope_cache(self.key, self.scope_name)
+        return in_scope_cache(self.key, *self.scope_names)
 
     @abstractmethod
     async def abuild(self, scope: Scope) -> T:
@@ -157,14 +157,16 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
 
     def unlock(self) -> None:
         if self.is_locked:
-            raise RuntimeError(f"To unlock, close the `{self.scope_name}` scope.")
+            raise RuntimeError(
+                f"To unlock, close all open scopes in [{', '.join(f'`{name}`' for name in self.scope_names)}]."
+            )
 
     def __get_scope(self) -> Scope:
-        return get_scope(self.scope_name)
+        return get_first_scope(*self.scope_names)
 
     @classmethod
-    def bind_scope_name(cls, name: str) -> Callable[[Caller[..., R]], Self]:
-        return partial(cls, scope_name=name)
+    def bind_scope_names(cls, names: Sequence[str]) -> Callable[[Caller[..., R]], Self]:
+        return partial(cls, scope_names=names)
 
 
 class AsyncCMScopedInjectable[T](ScopedInjectable[AsyncContextManager[T], T]):
@@ -211,7 +213,7 @@ class ScopedSlotInjectable[T](Injectable[T]):
 
     def get_instance(self) -> T:
         scope_name = self.scope_name
-        scope = get_scope(scope_name)
+        scope = get_first_scope(scope_name)
 
         try:
             return scope.cache[self.key]
