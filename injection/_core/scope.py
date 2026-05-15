@@ -151,34 +151,36 @@ def define_scope(
 if TYPE_CHECKING:  # pragma: no cover
 
     @overload
-    def get_scope(name: str, default: EllipsisType = ...) -> Scope: ...
+    def get_first_scope(*names: str, default: EllipsisType = ...) -> Scope: ...
 
     @overload
-    def get_scope[T](name: str, default: T) -> Scope | T: ...
+    def get_first_scope[T](*names: str, default: T) -> Scope | T: ...
 
 
-def get_scope[T](name: str, default: T | EllipsisType = ...) -> Scope | T:
+def get_first_scope[T](*names: str, default: T | EllipsisType = ...) -> Scope | T:
     for resolvers in __scope_resolvers.values():
-        resolver = resolvers.get(name)
-        if resolver and (scope := resolver.get_scope()):
-            return scope
+        for name in names:
+            resolver = resolvers.get(name)
+            if resolver and (scope := resolver.get_scope()):
+                return scope
 
     if default is ...:
         raise ScopeUndefinedError(
-            f"Scope `{name}` isn't defined in the current context."
+            f"No scope in [{', '.join(f'`{name}`' for name in names)}] is defined in the current context."
         )
 
     return default
 
 
-def in_scope_cache(key: SlotKey[Any], scope_name: str) -> bool:
-    return any(key in scope.cache for scope in iter_active_scopes(scope_name))
+def in_scope_cache(key: SlotKey[Any], *scope_names: str) -> bool:
+    return any(key in scope.cache for scope in iter_active_scopes(*scope_names))
 
 
-def iter_active_scopes(name: str) -> Iterator[Scope]:
+def iter_active_scopes(*names: str) -> Iterator[Scope]:
     active_scopes = (
         resolver.active_scopes
         for resolvers in __scope_resolvers.values()
+        for name in names
         if (resolver := resolvers.get(name))
     )
     return itertools.chain.from_iterable(active_scopes)
@@ -194,7 +196,7 @@ def _bind_scope(
     lock = get_lock(threadsafe)
 
     with lock:
-        if get_scope(name, None):
+        if get_first_scope(name, default=None):
             raise ScopeAlreadyDefinedError(
                 f"Scope `{name}` is already defined in the current context."
             )

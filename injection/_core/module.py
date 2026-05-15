@@ -250,9 +250,8 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def scoped[**P, T](
         self,
-        scope_name: str,
         /,
-        *,
+        *scope_names: str,
         ignore_type_hint: bool = False,
         inject: bool = True,
         on: TypeInfo[T] = (),
@@ -284,7 +283,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
             self.injectable(
                 ctx.wrapper,
-                cls=ctx.cls.bind_scope_name(scope_name),
+                cls=ctx.cls.bind_scope_names(scope_names),
                 ignore_type_hint=True,
                 inject=inject,
                 on=(*ctx.hints, on),
