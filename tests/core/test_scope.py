@@ -3,7 +3,7 @@ from threading import Thread
 
 import pytest
 
-from injection import define_scope, find_instance, scoped
+from injection import SlotKey, define_scope, find_instance, scoped
 from injection.exceptions import ScopeAlreadyDefinedError, ScopeError
 
 
@@ -35,3 +35,11 @@ def test_define_shared_scope_with_already_contextual_scope_defined_raise_scope_e
     with ThreadPoolExecutor() as executor:
         with define_scope("test"):
             executor.submit(assertion)
+
+
+def test_define_scope_with_sealed_raise_scope_error():
+    with define_scope("test") as scope:
+        ...
+
+    with pytest.raises(ScopeError):
+        scope.set_slot(SlotKey(), object())
