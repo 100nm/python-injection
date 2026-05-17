@@ -212,6 +212,21 @@ def _bind_scope(
             stack.close()
 
 
+class _SealedScopeCache(MutableMapping[Any, Any]):
+    __slots__ = ()
+
+    @staticmethod
+    def guard(*args: Any, **kwargs: Any) -> NoReturn:
+        raise ScopeError("Can't access cache of an exited scope.")
+
+    __delitem__ = __getitem__ = __iter__ = __len__ = __setitem__ = guard
+
+
+_sealed_cache = _SealedScopeCache()
+
+del _SealedScopeCache
+
+
 @runtime_checkable
 class Scope(Protocol):
     __slots__ = ()
@@ -227,14 +242,13 @@ class Scope(Protocol):
         raise NotImplementedError
 
 
-@dataclass(repr=False, frozen=True, slots=True)
+@dataclass(repr=False, eq=False, slots=True)
 class BaseScope[T](Scope, ABC):
     delegate: T
-    cache: MutableMapping[SlotKey[Any], Any] = field(
-        default_factory=dict,
-        init=False,
-        hash=False,
-    )
+    cache: MutableMapping[SlotKey[Any], Any] = field(default_factory=dict, init=False)
+
+    def close(self) -> None:
+        self.cache = _sealed_cache
 
 
 class AsyncScope(BaseScope[AsyncExitStack]):
@@ -253,6 +267,7 @@ class AsyncScope(BaseScope[AsyncExitStack]):
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> Any:
+        self.close()
         return await self.delegate.__aexit__(exc_type, exc_value, traceback)
 
     async def aenter[T](self, context_manager: AsyncContextManager[T]) -> T:
@@ -278,6 +293,7 @@ class SyncScope(BaseScope[ExitStack]):
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> Any:
+        self.close()
         return self.delegate.__exit__(exc_type, exc_value, traceback)
 
     async def aenter[T](self, context_manager: AsyncContextManager[T]) -> NoReturn:
