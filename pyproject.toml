@@ -29,7 +29,7 @@ description = "Dead-simple dependency injection framework for Python."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "docs/index.md"
-requires-python = ">=3.12, <3.15"
+requires-python = ">=3.12, <3.16"
 authors = [{ name = "remimd" }]
 keywords = ["dependencies", "dependency", "inject", "injection"]
 classifiers = [
