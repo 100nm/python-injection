@@ -10,7 +10,7 @@ runs:
   using: "composite"
   steps:
     - name: Install UV
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v8.2.0
       with:
         python-version: ${{ inputs.python-version }}
 
