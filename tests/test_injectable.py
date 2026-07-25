@@ -95,8 +95,8 @@ class TestInjectable:
 
         @injectable
         class B:
-            def __init__(self, __a: A):
-                self.a = __a
+            def __init__(self, _a: A):
+                self.a = _a
 
         a = get_instance(A)
         b = get_instance(B)
@@ -143,9 +143,9 @@ class TestInjectable:
         class B: ...
 
         @injectable
-        def recipe(__a: A) -> B:
-            assert isinstance(__a, A)
-            assert __a is not a
+        def recipe(_a: A) -> B:
+            assert isinstance(_a, A)
+            assert _a is not a
             return B()
 
         a = get_instance(A)

@@ -10,9 +10,9 @@ A new instance is created every time the dependency is resolved.
 ```python
 from injection import injectable
 
+
 @injectable
-class Dependency:
-    ...
+class Dependency: ...
 ```
 
 ## Singleton
@@ -21,9 +21,9 @@ A single instance is created and shared across the entire application.
 ```python
 from injection import singleton
 
+
 @singleton
-class Dependency:
-    ...
+class Dependency: ...
 ```
 
 ## Constant
@@ -33,9 +33,11 @@ Register a pre-existing value as a dependency.
 from dataclasses import dataclass
 from injection import set_constant
 
+
 @dataclass(frozen=True)
 class Settings:
     api_key: str
+
 
 settings = set_constant(Settings("<secret_api_key>"))
 ```
@@ -53,9 +55,9 @@ For lazy constants, use the `@constant` decorator:
 ```python
 from injection import constant
 
+
 @constant
-class LazySettings:
-    ...
+class LazySettings: ...
 ```
 
 ## Factories
@@ -66,8 +68,9 @@ _Make sure not to forget the return type annotation._
 ```python
 from injection import injectable
 
-class Dependency:
-    ...
+
+class Dependency: ...
+
 
 @injectable
 def _dependency_factory() -> Dependency:
@@ -85,12 +88,12 @@ Register an implementation for an abstract class or protocol.
 from injection import injectable
 from abc import ABC
 
-class AbstractDependency(ABC):
-    ...
+
+class AbstractDependency(ABC): ...
+
 
 @injectable(on=AbstractDependency)
-class Dependency(AbstractDependency):
-    ...
+class Dependency(AbstractDependency): ...
 ```
 
 ## Scoped
@@ -99,9 +102,9 @@ A single instance is created per scope. Using a `StrEnum` for scope names is rec
 ```python
 from injection import scoped
 
+
 @scoped("<scope_name>")
-class Dependency:
-    ...
+class Dependency: ...
 ```
 
 ## Scoped with context manager
@@ -114,12 +117,12 @@ Scoped dependencies can be registered using generator functions (sync or async) 
 from collections.abc import Iterator
 from injection import scoped
 
-class Dependency:
-    def open(self):
-        ...
 
-    def close(self):
-        ...
+class Dependency:
+    def open(self): ...
+
+    def close(self): ...
+
 
 @scoped("<scope_name>")
 def dependency_factory() -> Iterator[Dependency]:
@@ -137,7 +140,7 @@ Register a dependency for a specific profile. Using a `StrEnum` for profile name
 ```python
 from injection import mod
 
+
 @mod("<profile_name>").injectable
-class Dependency:
-    ...
+class Dependency: ...
 ```

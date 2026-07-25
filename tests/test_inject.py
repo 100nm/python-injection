@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Annotated, Any, Optional, TypeVar, Union
 
 import anyio
+import anyio.lowlevel
 import pytest
 
 from injection import inject, injectable
@@ -38,7 +39,7 @@ class TestInject:
         self.assert_inject(Annotated[SomeInjectable, "metadata"])
 
     def test_inject_with_union(self):
-        self.assert_inject(Union[str, SomeInjectable])
+        self.assert_inject(Union[str, SomeInjectable])  # noqa: UP007
 
     def test_inject_with_new_union(self):
         self.assert_inject(str | SomeInjectable)
@@ -50,7 +51,7 @@ class TestInject:
         self.assert_inject(Annotated[str | SomeInjectable, "metadata"])
 
     def test_inject_with_optional(self):
-        self.assert_inject(Optional[SomeInjectable])
+        self.assert_inject(Optional[SomeInjectable])  # noqa: UP045
 
     def test_inject_with_no_parameter(self):
         @inject
@@ -302,7 +303,7 @@ class TestInject:
 
         @module.singleton
         async def dependency_factory() -> Dependency:
-            await anyio.sleep(0)
+            await anyio.lowlevel.checkpoint()
             return Dependency()
 
         instances = []

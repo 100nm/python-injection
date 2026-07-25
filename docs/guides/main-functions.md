@@ -12,6 +12,7 @@ from injection import adefine_scope
 from injection.entrypoint import AsyncEntrypoint, Entrypoint, entrypointmaker
 from injection.loaders import PythonModuleLoader
 
+
 @entrypointmaker
 def entrypoint[**P, T](self: AsyncEntrypoint[P, T]) -> Entrypoint[P, T]:
     import src
@@ -31,6 +32,7 @@ Now you can use your custom `@entrypoint` decorator on any function:
 async def main(dependency: Dependency):
     # All setup is automatically applied
     ...
+
 
 if __name__ == "__main__":
     main()
@@ -60,6 +62,7 @@ from injection.loaders import ProfileLoader, PythonModuleLoader
 
 profile_loader = ProfileLoader(...)
 
+
 @entrypointmaker(profile_loader=profile_loader)
 def entrypoint[**P, T](self: Entrypoint[P, T]) -> Entrypoint[P, T]:
     import src
@@ -84,27 +87,26 @@ from injection.entrypoint import Entrypoint, entrypointmaker
 from injection.loaders import PythonModuleLoader
 from os import getenv
 
+
 @dataclass
 class Config:
     profile: Profile
+
 
 @constant
 def _config_factory() -> Config:
     profile = Profile(getenv("PROFILE", "development"))
     return Config(profile)
 
+
 @entrypointmaker(profile_loader=profile_loader)
 def entrypoint[**P, T](self: Entrypoint[P, T], config: Config) -> Entrypoint[P, T]:
     import src
-    
+
     profile = config.profile  # Use config to determine profile
     suffixes = self.profile_loader.required_module_names(profile)
     module_loader = PythonModuleLoader.endswith(*suffixes)
-    return (
-        self.inject()
-        .load_profile(profile)
-        .load_modules(module_loader, src)
-    )
+    return self.inject().load_profile(profile).load_modules(module_loader, src)
 ```
 
 In this example, `config` is resolved from the default module and used to dynamically load the appropriate profile.

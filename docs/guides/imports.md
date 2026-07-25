@@ -32,9 +32,11 @@ For more control over which modules get imported, use `PythonModuleLoader` with 
 from injection.loaders import PythonModuleLoader
 from src import adapters, services
 
+
 def predicate(module_name: str) -> bool:
     # Only import modules containing "impl" in their name
     return "impl" in module_name
+
 
 PythonModuleLoader(predicate).load(adapters, services)
 ```
@@ -67,7 +69,7 @@ This last approach is particularly useful for explicitly marking which modules s
 ```python
 # auto-import
 
+
 @injectable(on=AbstractDependency)
-class Dependency(AbstractDependency):
-    ...
+class Dependency(AbstractDependency): ...
 ```

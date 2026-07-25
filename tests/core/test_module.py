@@ -223,9 +223,8 @@ class TestModule:
         scope_name = "test"
         module.reserve_scoped_slot(SomeClass, scope_name)
 
-        with define_scope(scope_name):
-            with pytest.raises(EmptySlotError):
-                module.find_instance(SomeClass)
+        with define_scope(scope_name), pytest.raises(EmptySlotError):
+            module.find_instance(SomeClass)
 
     def test_reserve_scoped_slot_with_several_definitions_raise_injection_error(
         self,
@@ -351,9 +350,8 @@ class TestModule:
         @module.singleton
         class A: ...
 
-        with pytest.raises(ModuleLockError):
-            with module.use_temporarily(second_module):
-                module.find_instance(A)
+        with pytest.raises(ModuleLockError), module.use_temporarily(second_module):
+            module.find_instance(A)
 
         # Cleaning
         module.unlock().stop_using(second_module)

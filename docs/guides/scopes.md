@@ -52,11 +52,13 @@ from injection import MappedScope
 
 type Locale = str
 
+
 @dataclass
 class Bindings:
     locale: Locale
-    
+
     scope = MappedScope("<scope_name>")
+
 
 with Bindings("fr_FR").scope.define():
     # Dependencies can now access the locale binding

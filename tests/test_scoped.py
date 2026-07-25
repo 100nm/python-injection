@@ -173,9 +173,8 @@ class TestScoped:
         async def some_injectable_recipe() -> AsyncIterator[SomeInjectable]:
             yield SomeInjectable()  # pragma: no cover
 
-        with define_scope("test"):
-            with pytest.raises(ScopeError):
-                await afind_instance(SomeInjectable)
+        with define_scope("test"), pytest.raises(ScopeError):
+            await afind_instance(SomeInjectable)
 
     async def test_scoped_with_async_gen_recipe_and_async_scope(self):
         class SomeInjectable: ...

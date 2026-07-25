@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from contextlib import ExitStack, contextmanager
+from contextlib import AbstractContextManager, ExitStack, contextmanager
 from dataclasses import dataclass, field
-from typing import ContextManager, Self
+from typing import Self
 from weakref import WeakSet
 
 
@@ -14,7 +14,7 @@ class EventListener(ABC):
     __slots__ = ("__weakref__",)
 
     @abstractmethod
-    def on_event(self, event: Event, /) -> ContextManager[None] | None:
+    def on_event(self, event: Event, /) -> AbstractContextManager[None] | None:
         raise NotImplementedError
 
 

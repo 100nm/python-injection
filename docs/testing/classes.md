@@ -8,9 +8,10 @@ The `LazyInstance` descriptor resolves dependencies on access:
 ```python
 from injection import LazyInstance
 
+
 class TestFeature:
     dependency = LazyInstance(Dependency)
-    
+
     def test_something(self):
         result = self.dependency.some_method()
         assert result == expected_value
@@ -22,9 +23,10 @@ For async dependencies, use `aget_lazy_instance` which returns an awaitable:
 ```python
 from injection import aget_lazy_instance
 
+
 class TestAsyncFeature:
     lazy_dependency = aget_lazy_instance(AsyncDependency)
-    
+
     async def test_something(self):
         dependency = await self.lazy_dependency
         result = await dependency.some_method()

@@ -1,15 +1,10 @@
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Generator
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
-from typing import (
-    Any,
-    AsyncContextManager,
-    NoReturn,
-    Protocol,
-    runtime_checkable,
-)
+from typing import Any, NoReturn, Protocol, runtime_checkable
 
-AsyncSemaphore: Callable[[int], AsyncContextManager[Any]]
+AsyncSemaphore: Callable[[int], AbstractAsyncContextManager[Any]]
 
 try:
     import anyio
