@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, MutableMapping, Sequence
-from contextlib import suppress
+from contextlib import AbstractAsyncContextManager, AbstractContextManager, suppress
 from dataclasses import dataclass, field
 from functools import partial
 from typing import (
     Any,
-    AsyncContextManager,
     ClassVar,
-    ContextManager,
     NoReturn,
     Protocol,
     Self,
@@ -55,7 +53,7 @@ class TransientInjectable[T](Injectable[T]):
 class CacheLogic[T]:
     __slots__ = ("__semaphore",)
 
-    __semaphore: AsyncContextManager[Any]
+    __semaphore: AbstractAsyncContextManager[Any]
 
     def __init__(self) -> None:
         self.__semaphore = AsyncSemaphore(1)
@@ -169,7 +167,7 @@ class ScopedInjectable[R, T](Injectable[T], ABC):
         return partial(cls, scope_names=names)
 
 
-class AsyncCMScopedInjectable[T](ScopedInjectable[AsyncContextManager[T], T]):
+class AsyncCMScopedInjectable[T](ScopedInjectable[AbstractAsyncContextManager[T], T]):
     __slots__ = ()
 
     async def abuild(self, scope: Scope) -> T:
@@ -180,7 +178,7 @@ class AsyncCMScopedInjectable[T](ScopedInjectable[AsyncContextManager[T], T]):
         raise RuntimeError("Can't use async context manager synchronously.")
 
 
-class CMScopedInjectable[T](ScopedInjectable[ContextManager[T], T]):
+class CMScopedInjectable[T](ScopedInjectable[AbstractContextManager[T], T]):
     __slots__ = ()
 
     async def abuild(self, scope: Scope) -> T:

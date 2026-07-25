@@ -54,9 +54,9 @@ These decorators work exactly like their production counterparts but register de
 ```python
 from injection.testing import test_injectable
 
+
 @test_injectable(on=AbstractDependency)
-class MockDependency(AbstractDependency):
-    ...
+class MockDependency(AbstractDependency): ...
 ```
 
 #### test_singleton
@@ -64,9 +64,9 @@ class MockDependency(AbstractDependency):
 ```python
 from injection.testing import test_singleton
 
+
 @test_singleton(on=AbstractDependency)
-class MockDependency(AbstractDependency):
-    ...
+class MockDependency(AbstractDependency): ...
 ```
 
 #### set_test_constant
@@ -87,14 +87,17 @@ from injection import constant
 from injection.testing import test_constant
 from os import environ
 
+
 @dataclass(frozen=True)
 class Settings:
     api_key: str
     debug: bool
 
+
 @constant
 def _settings_factory() -> Settings:
     return Settings(environ["API_KEY"], debug=False)
+
 
 @test_constant
 def _settings_test_factory() -> Settings:
@@ -106,9 +109,9 @@ def _settings_test_factory() -> Settings:
 ```python
 from injection.testing import test_scoped
 
+
 @test_scoped("<scope_name>", on=AbstractDependency)
-class MockDependency(AbstractDependency):
-    ...
+class MockDependency(AbstractDependency): ...
 ```
 
 ## How test dependencies work

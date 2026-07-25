@@ -22,11 +22,12 @@ async def integration_unknown_dependency_endpoint(dependency: Inject[object]):
     assert dependency is NotImplemented
 
 
-class TestFastAPIIntegration:
-    @pytest.fixture(scope="class")
-    def client(self) -> TestClient:
-        return TestClient(application)
+@pytest.fixture(scope="class")
+def client() -> TestClient:
+    return TestClient(application)
 
+
+class TestFastAPIIntegration:
     def test_fastapi_integration_with_success(self, client):
         response = client.post("/integration")
         assert response.status_code == 204

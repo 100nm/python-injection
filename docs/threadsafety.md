@@ -17,10 +17,11 @@ Dependency resolution and scope definition are not thread-safe by default. If yo
 ```python
 from injection import define_scope, get_instance, inject
 
+
 # Thread-safe dependency injection
 @inject(threadsafe=True)
-def function(dependency: Dependency):
-    ...
+def function(dependency: Dependency): ...
+
 
 # Thread-safe manual resolution
 dependency = get_instance(Dependency, threadsafe=True)
@@ -53,6 +54,7 @@ When this environment variable is set, all dependency resolution and scope opera
 ```python
 # ❌ Too late - injection already imported
 import injection
+
 os.environ["PYTHON_INJECTION_THREADSAFE"] = "1"
 
 # ✅ Correct - set before import

@@ -11,10 +11,12 @@ Storing your profile names in a `StrEnum` is recommended for type safety and con
 from enum import StrEnum
 from injection import mod
 
+
 class Profile(StrEnum):
     DEV = "development"
     PROD = "production"
     STAGING = "staging"
+
 
 # Get a module for a specific profile
 dev_module = mod(Profile.DEV)
@@ -44,10 +46,12 @@ For more complex scenarios where profiles share common subsets of dependencies, 
 ```python
 from injection.loaders import ProfileLoader
 
-profile_loader = ProfileLoader({
-    Profile.DEV: [SubProfile.STUB],
-    Profile.TEST: [SubProfile.STUB],
-})
+profile_loader = ProfileLoader(
+    {
+        Profile.DEV: [SubProfile.STUB],
+        Profile.TEST: [SubProfile.STUB],
+    }
+)
 
 profile_loader.load(Profile.DEV)
 ```

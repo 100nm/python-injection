@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator
-from contextlib import suppress
+from contextlib import AbstractContextManager, suppress
 from dataclasses import dataclass, field
 from enum import StrEnum
 from inspect import iscoroutinefunction
 from typing import (
     Any,
-    ContextManager,
     Literal,
     NamedTuple,
     Protocol,
@@ -226,7 +225,7 @@ class Locator:
         self.__channel.add_listener(listener)
         return self
 
-    def dispatch(self, event: Event) -> ContextManager[None]:
+    def dispatch(self, event: Event) -> AbstractContextManager[None]:
         return self.__channel.dispatch(event)
 
     def __iter_injectables(

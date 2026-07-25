@@ -8,10 +8,9 @@ from injection.exceptions import ScopeAlreadyDefinedError, ScopeError
 
 
 def test_define_scope_with_already_defined_in_context_raise_scope_already_defined_error():
-    with define_scope("test"):
-        with pytest.raises(ScopeAlreadyDefinedError):
-            with define_scope("test"):
-                pass
+    with define_scope("test"), pytest.raises(ScopeAlreadyDefinedError):  # noqa: SIM117
+        with define_scope("test"):
+            pass
 
 
 def test_define_shared_scope_with_success():
@@ -28,13 +27,11 @@ def test_define_shared_scope_with_success():
 
 def test_define_shared_scope_with_already_contextual_scope_defined_raise_scope_error():
     def assertion() -> None:
-        with pytest.raises(ScopeError):
-            with define_scope("test", shared=True):
-                pass
+        with pytest.raises(ScopeError), define_scope("test", shared=True):
+            pass
 
-    with ThreadPoolExecutor() as executor:
-        with define_scope("test"):
-            executor.submit(assertion)
+    with ThreadPoolExecutor() as executor, define_scope("test"):
+        executor.submit(assertion)
 
 
 def test_define_scope_with_sealed_raise_scope_error():

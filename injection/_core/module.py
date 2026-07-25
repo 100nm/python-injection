@@ -14,7 +14,13 @@ from collections.abc import (
     Iterator,
     Mapping,
 )
-from contextlib import asynccontextmanager, contextmanager, suppress
+from contextlib import (
+    AbstractAsyncContextManager,
+    AbstractContextManager,
+    asynccontextmanager,
+    contextmanager,
+    suppress,
+)
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partialmethod, singledispatchmethod, update_wrapper
@@ -30,17 +36,7 @@ from inspect import (
 from inspect import signature as inspect_signature
 from logging import Logger, getLogger
 from types import MethodType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncContextManager,
-    ClassVar,
-    ContextManager,
-    Literal,
-    NamedTuple,
-    Self,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Self, overload
 
 from type_analyzer import MatchingTypesConfig, iter_matching_types, matching_types
 
@@ -157,7 +153,7 @@ class Priority(StrEnum):
 type PriorityStr = Literal["low", "high"]
 
 type ContextManagerRecipe[**P, T] = (
-    Callable[P, ContextManager[T]] | Callable[P, AsyncContextManager[T]]
+    Callable[P, AbstractContextManager[T]] | Callable[P, AbstractAsyncContextManager[T]]
 )
 type GeneratorRecipe[**P, T] = (
     Callable[P, Generator[T, Any, Any]] | Callable[P, AsyncGenerator[T, Any]]
@@ -231,7 +227,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         ignore_type_hint: bool = False,
         inject: bool = True,
         on: TypeInfo[T] = (),
-        mode: Mode | ModeStr = Mode.get_default(),
+        mode: Mode | ModeStr = Mode.get_default(),  # noqa: B008
     ) -> Any:
         def decorator(wp: Recipe[P, T]) -> Recipe[P, T]:
             hints = on if ignore_type_hint else (wp, on)
@@ -255,7 +251,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         ignore_type_hint: bool = False,
         inject: bool = True,
         on: TypeInfo[T] = (),
-        mode: Mode | ModeStr = Mode.get_default(),
+        mode: Mode | ModeStr = Mode.get_default(),  # noqa: B008
     ) -> Any:
         def decorator(
             wrapped: Recipe[P, T] | GeneratorRecipe[P, T],
@@ -307,7 +303,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         on: TypeInfo[T] = (),
         *,
         alias: bool = False,
-        mode: Mode | ModeStr = Mode.get_default(),
+        mode: Mode | ModeStr = Mode.get_default(),  # noqa: B008
     ) -> T:
         if not alias:
             on = (type(instance), on)
@@ -325,7 +321,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         scope_name: str,
         *,
-        mode: Mode | ModeStr = Mode.get_default(),
+        mode: Mode | ModeStr = Mode.get_default(),  # noqa: B008
     ) -> SlotKey[T]:
         injectable = ScopedSlotInjectable(cls, scope_name)
         broker = StaticInjectableBroker(injectable)
@@ -341,8 +337,8 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
     ) -> Any:
         def decorator(wp: Callable[P, T]) -> Callable[P, T]:
             if isclass(wp):
-                wp.__init__ = self.inject(wp.__init__, threadsafe=threadsafe)
-                return wp
+                wp.__init__ = self.inject(wp.__init__, threadsafe=threadsafe)  # type: ignore[method-assign]
+                return wp  # type: ignore[return-value]
 
             return self.make_injected_function(wp, threadsafe)
 
@@ -583,7 +579,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         self,
         module: Module,
         *,
-        priority: Priority | PriorityStr = Priority.get_default(),
+        priority: Priority | PriorityStr = Priority.get_default(),  # noqa: B008
     ) -> Self:
         if module is self:
             raise ModuleError("Module can't be used by itself.")
@@ -604,10 +600,9 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
     def stop_using(self, module: Module) -> Self:
         event = ModuleRemoved(self, module)
 
-        with suppress(KeyError):
-            with self.dispatch(event):
-                self.__modules.pop(module)
-                module.remove_listener(self)
+        with suppress(KeyError), self.dispatch(event):
+            self.__modules.pop(module)
+            module.remove_listener(self)
 
         return self
 
@@ -616,7 +611,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         self,
         module: Module,
         *,
-        priority: Priority | PriorityStr = Priority.get_default(),
+        priority: Priority | PriorityStr = Priority.get_default(),  # noqa: B008
         unlock: bool = False,
     ) -> Iterator[Self]:
         self.use(module, priority=priority)
@@ -660,7 +655,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         self.__channel.remove_listener(listener)
         return self
 
-    def on_event(self, event: Event, /) -> ContextManager[None]:
+    def on_event(self, event: Event, /) -> AbstractContextManager[None]:
         self_event = ModuleEventProxy(self, event)
         return self.dispatch(self_event)
 
@@ -829,7 +824,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
     )
 
     __dependencies: Dependencies
-    __lock: ContextManager[Any]
+    __lock: AbstractContextManager[Any]
     __owner: type | None
     __signature: Signature
     __tasks: deque[Callable[..., Any]]
@@ -904,8 +899,12 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         self.__dependencies = Dependencies.resolve(self.signature, module, self.__owner)
         return self
 
-    def task[**_P, _T](self, wrapped: Callable[_P, _T] | None = None, /) -> Any:
-        def decorator(wp: Callable[_P, _T]) -> Callable[_P, _T]:
+    def task[**TaskP, TaskR](
+        self,
+        wrapped: Callable[TaskP, TaskR] | None = None,
+        /,
+    ) -> Any:
+        def decorator(wp: Callable[TaskP, TaskR]) -> Callable[TaskP, TaskR]:
             self.__tasks.append(wp)
             return wp
 
@@ -920,7 +919,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         return self
 
     @singledispatchmethod
-    def on_event(self, event: Event, /) -> ContextManager[None] | None:
+    def on_event(self, event: Event, /) -> AbstractContextManager[None] | None:
         return None
 
     @on_event.register
@@ -941,7 +940,7 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         arguments: dict[str, Any],
         additional_arguments: dict[str, Any],
     ) -> Arguments:
-        bound = BoundArguments(self.signature, additional_arguments | arguments)  # type: ignore[arg-type]
+        bound = BoundArguments(self.signature, additional_arguments | arguments)
         return Arguments(bound.args, bound.kwargs)
 
     def __run_tasks(self) -> None:

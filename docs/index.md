@@ -37,6 +37,7 @@ Simply apply the decorators and the package takes care of the rest.
 ```python
 from injection import injectable, inject, singleton
 
+
 @singleton
 class Printer:
     def __init__(self):
@@ -46,6 +47,7 @@ class Printer:
         self.history.append(message)
         print(message)
 
+
 @injectable
 class Service:
     def __init__(self, printer: Printer):
@@ -54,9 +56,11 @@ class Service:
     def hello(self):
         self.printer.print("Hello world!")
 
+
 @inject
 def main(service: Service):
     service.hello()
+
 
 if __name__ == "__main__":
     main()

@@ -6,9 +6,10 @@ The `@inject` decorator automatically resolves function parameters based on thei
 ```python
 from injection import inject
 
+
 @inject
-def function(dependency: Dependency):
-    ...
+def function(dependency: Dependency): ...
+
 
 function()  # You can now call `function` without arguments
 ```
@@ -23,8 +24,8 @@ When `@inject` is applied to an async function, it can resolve dependencies that
 Static type checkers like mypy will complain about missing arguments when calling injected functions:
 ```python
 @inject
-def function(dependency: Dependency):
-    ...
+def function(dependency: Dependency): ...
+
 
 function()  # ❌ mypy error: Missing positional argument "dependency" in call to "function"  [call-arg]
 ```
@@ -32,8 +33,8 @@ function()  # ❌ mypy error: Missing positional argument "dependency" in call t
 To fix this, provide a default value for injected parameters:
 ```python
 @inject
-def function(dependency: Dependency = NotImplemented):
-    ...
+def function(dependency: Dependency = NotImplemented): ...
+
 
 function()  # ✅ OK
 ```
@@ -47,6 +48,7 @@ The `@asfunction` decorator provides an alternative to `@inject` for cases where
 from injection import asfunction
 from typing import NamedTuple
 
+
 @asfunction
 class Function(NamedTuple):
     dependency: Dependency
@@ -54,6 +56,7 @@ class Function(NamedTuple):
     def __call__(self, foo: str, bar: str, baz: str):
         # Use self.dependency here
         ...
+
 
 # Call with only the runtime parameters
 Function("foo", "bar", "baz")
@@ -126,9 +129,10 @@ The async version of `get_lazy_instance` returns an awaitable instead of an inve
 ```python
 from injection import LazyInstance
 
+
 class Class:
     dependency = LazyInstance(Dependency)
-    
+
     def do_something(self):
         self.dependency.some_method()  # Resolved on every access
 ```

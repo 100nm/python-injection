@@ -4,7 +4,14 @@ import itertools
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import AsyncIterator, Collection, Iterator, Mapping, MutableMapping
-from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
+from contextlib import (
+    AbstractAsyncContextManager,
+    AbstractContextManager,
+    AsyncExitStack,
+    ExitStack,
+    asynccontextmanager,
+    contextmanager,
+)
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -13,8 +20,6 @@ from types import EllipsisType, TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncContextManager,
-    ContextManager,
     Final,
     Literal,
     NoReturn,
@@ -56,7 +61,7 @@ class ScopeResolver(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def bind(self, scope: Scope) -> ContextManager[None]:
+    def bind(self, scope: Scope) -> AbstractContextManager[None]:
         raise NotImplementedError
 
     @abstractmethod
@@ -128,7 +133,7 @@ __scope_resolvers: Final[Mapping[str, Mapping[str, ScopeResolver]]] = {
 async def adefine_scope(
     name: str,
     /,
-    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),  # noqa: B008
     threadsafe: bool | None = None,
 ) -> AsyncIterator[ScopeFacade]:
     async with AsyncScope() as scope:
@@ -140,12 +145,11 @@ async def adefine_scope(
 def define_scope(
     name: str,
     /,
-    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+    kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),  # noqa: B008
     threadsafe: bool | None = None,
 ) -> Iterator[ScopeFacade]:
-    with SyncScope() as scope:
-        with _bind_scope(name, scope, kind, threadsafe) as facade:
-            yield facade
+    with SyncScope() as scope, _bind_scope(name, scope, kind, threadsafe) as facade:
+        yield facade
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -234,11 +238,11 @@ class Scope(Protocol):
     cache: MutableMapping[SlotKey[Any], Any]
 
     @abstractmethod
-    async def aenter[T](self, context_manager: AsyncContextManager[T]) -> T:
+    async def aenter[T](self, context_manager: AbstractAsyncContextManager[T]) -> T:
         raise NotImplementedError
 
     @abstractmethod
-    def enter[T](self, context_manager: ContextManager[T]) -> T:
+    def enter[T](self, context_manager: AbstractContextManager[T]) -> T:
         raise NotImplementedError
 
 
@@ -270,10 +274,10 @@ class AsyncScope(BaseScope[AsyncExitStack]):
         self.close()
         return await self.delegate.__aexit__(exc_type, exc_value, traceback)
 
-    async def aenter[T](self, context_manager: AsyncContextManager[T]) -> T:
+    async def aenter[T](self, context_manager: AbstractAsyncContextManager[T]) -> T:
         return await self.delegate.enter_async_context(context_manager)
 
-    def enter[T](self, context_manager: ContextManager[T]) -> T:
+    def enter[T](self, context_manager: AbstractContextManager[T]) -> T:
         return self.delegate.enter_context(context_manager)
 
 
@@ -296,10 +300,13 @@ class SyncScope(BaseScope[ExitStack]):
         self.close()
         return self.delegate.__exit__(exc_type, exc_value, traceback)
 
-    async def aenter[T](self, context_manager: AsyncContextManager[T]) -> NoReturn:
+    async def aenter[T](
+        self,
+        context_manager: AbstractAsyncContextManager[T],
+    ) -> NoReturn:
         raise ScopeError("Synchronous scope doesn't support async context manager.")
 
-    def enter[T](self, context_manager: ContextManager[T]) -> T:
+    def enter[T](self, context_manager: AbstractContextManager[T]) -> T:
         return self.delegate.enter_context(context_manager)
 
 
@@ -319,7 +326,7 @@ class ScopeFacade(Protocol):
 @dataclass(repr=False, frozen=True, slots=True)
 class _UserScope(ScopeFacade):
     scope: Scope
-    lock: ContextManager[Any]
+    lock: AbstractContextManager[Any]
 
     def set_slot[T](self, key: SlotKey[T], value: T) -> Self:
         return self.slot_map({key: value})

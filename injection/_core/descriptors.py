@@ -73,7 +73,7 @@ class BoundMappedScope:
     async def adefine(
         self,
         /,
-        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),  # noqa: B008
         threadsafe: bool | None = None,
     ) -> AsyncIterator[None]:
         async with adefine_scope(self.name, kind, threadsafe) as scope:
@@ -86,7 +86,7 @@ class BoundMappedScope:
     def define(
         self,
         /,
-        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),
+        kind: ScopeKind | ScopeKindStr = ScopeKind.get_default(),  # noqa: B008
         threadsafe: bool | None = None,
     ) -> Iterator[None]:
         with define_scope(self.name, kind, threadsafe) as scope:

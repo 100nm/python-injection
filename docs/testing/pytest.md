@@ -9,6 +9,7 @@ You can simplify test setup by creating a pytest fixture that automatically load
 import pytest
 from injection.testing import load_test_profile
 
+
 @pytest.fixture(scope="function", autouse=True)
 def setup_test_dependencies():
     with load_test_profile():

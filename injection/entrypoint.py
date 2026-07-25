@@ -194,18 +194,18 @@ class EntrypointBuilder[**P, T1, T2](_EntrypointDecorator[P, T1, T2]):
 
         return decorator(wrapped) if wrapped else decorator
 
-    def async_to_sync[_T](
-        self: EntrypointBuilder[P, T1, Awaitable[_T]],
-        run: Callable[[Coroutine[Any, Any, _T]], _T] = asyncio.run,
+    def async_to_sync[T](
+        self: EntrypointBuilder[P, T1, Awaitable[T]],
+        run: Callable[[Coroutine[Any, Any, T]], T] = asyncio.run,
         /,
-    ) -> EntrypointBuilder[P, T1, _T]:
+    ) -> EntrypointBuilder[P, T1, T]:
         return self._add_rule(_AsyncToSyncRule(run))  # type: ignore[arg-type]
 
-    def decorate[_T](
+    def decorate[T](
         self,
-        decorator: Callable[[Callable[P, T2]], Callable[P, _T]],
+        decorator: Callable[[Callable[P, T2]], Callable[P, T]],
         /,
-    ) -> EntrypointBuilder[P, T1, _T]:
+    ) -> EntrypointBuilder[P, T1, T]:
         return self._add_rule(_DecorateRule(decorator))
 
     def inject(self) -> Self:
@@ -224,10 +224,10 @@ class EntrypointBuilder[**P, T1, T2](_EntrypointDecorator[P, T1, T2]):
         self._add_rule(_LoadProfileRule(self.profile_loader, name))
         return self
 
-    def _add_rule[_T](
+    def _add_rule[T](
         self,
-        rule: Rule[P, T2, _T],
-    ) -> EntrypointBuilder[P, T1, _T]:
+        rule: Rule[P, T2, T],
+    ) -> EntrypointBuilder[P, T1, T]:
         self.__rules.append(rule)
         return self  # type: ignore[return-value]
 

@@ -19,7 +19,7 @@ class Lazy[T](Invertible[T]):
     @property
     def is_set(self) -> bool:
         try:
-            self.__value
+            self.__value  # noqa: B018
         except AttributeError:
             return False
 
