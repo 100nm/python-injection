@@ -24,6 +24,10 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/environment
 
-      - name: Deploy MkDocs
+      - name: Build Zensical
         shell: bash
-        run: uv run mkdocs gh-deploy --force
+        run: uv run zensical build --clean
+
+      - name: Deploy to GitHub Pages
+        shell: bash
+        run: uv run ghp-import --branch gh-pages --force --message "Deployed ${GITHUB_SHA} with Zensical" --no-jekyll --push site
