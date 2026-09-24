@@ -15,7 +15,7 @@ docs = [
 ]
 test = [
     "fastapi",
-    "httpx",
+    "httpx2",
     "pydantic",
     "pytest",
     "pytest-asyncio",
