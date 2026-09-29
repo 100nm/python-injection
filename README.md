@@ -1,9 +1,10 @@
 # python-injection
 
-[![CI](https://github.com/100nm/python-injection/actions/workflows/ci.yml/badge.svg)](https://github.com/100nm/python-injection)
-[![PyPI - Version](https://img.shields.io/pypi/v/python-injection.svg?color=blue)](https://pypi.org/project/python-injection)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/python-injection.svg?color=blue)](https://pypistats.org/packages/python-injection)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![PyPI - Version](https://shieldcn.dev/pypi/v/python-injection.svg?color=3775A9&size=xs&variant=secondary)](https://pypi.org/project/python-injection)
+[![PyPI - Downloads](https://shieldcn.dev/pypi/dm/python-injection.svg?color=3775A9&size=xs&variant=secondary)](https://pypistats.org/packages/python-injection)
+[![GitHub Stars](https://shieldcn.dev/github/stars/100nm/python-injection.svg?size=xs&variant=secondary)](https://github.com/100nm/python-injection/stargazers)
+[![CI](https://shieldcn.dev/github/ci/100nm/python-injection.svg?size=xs&variant=secondary&workflow=ci.yml)](https://github.com/100nm/python-injection/actions/workflows/ci.yml)
+[![Ruff](https://shieldcn.dev/badge/code_style-Ruff-261230.svg?logo=ruff&size=xs&variant=secondary)](https://github.com/astral-sh/ruff)
 
 Documentation: https://python-injection.remimd.dev
 

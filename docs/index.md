@@ -1,7 +1,7 @@
 # python-injection
 
-[![PyPI - Version](https://img.shields.io/pypi/v/python-injection.svg?color=546d78&style=for-the-badge)](https://pypi.org/project/python-injection)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/python-injection.svg?color=546d78&style=for-the-badge)](https://pypistats.org/packages/python-injection)
+[![PyPI - Version](https://shieldcn.dev/pypi/v/python-injection.svg?variant=secondary)](https://pypi.org/project/python-injection)
+[![PyPI - Downloads](https://shieldcn.dev/pypi/dm/python-injection.svg?variant=secondary)](https://pypistats.org/packages/python-injection)
 
 ## Project motivations
 
