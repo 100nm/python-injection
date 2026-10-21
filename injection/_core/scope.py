@@ -30,7 +30,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.threading import get_lock
+from injection._core.common.threading import lock_if_threadsafe
 from injection._core.slots import SlotKey
 from injection.exceptions import (
     InjectionError,
@@ -200,7 +200,7 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
-    lock = get_lock(threadsafe, reuse=__scope_lock)
+    lock = lock_if_threadsafe(__scope_lock, threadsafe)
 
     with lock:
         if get_first_scope(name, default=None):
