@@ -16,7 +16,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
-from threading import RLock
+from threading import Lock
 from types import EllipsisType, TracebackType
 from typing import (
     TYPE_CHECKING,
@@ -39,7 +39,7 @@ from injection.exceptions import (
     ScopeUndefinedError,
 )
 
-__thread_lock: Final[RLock] = RLock()
+__thread_lock: Final[Lock] = Lock()
 
 
 class ScopeKind(StrEnum):

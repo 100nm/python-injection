@@ -10,12 +10,15 @@ def test_lock_if_threadsafe_with_threadsafe_returns_lock() -> None:
     assert lock_if_threadsafe(lock, threadsafe=True) is lock
 
 
-def test_lock_if_threadsafe_with_threadsafe_without_lock_returns_new_lock() -> None:
-    first = lock_if_threadsafe(threadsafe=True)
-    second = lock_if_threadsafe(threadsafe=True)
+def test_lock_if_threadsafe_with_threadsafe_without_lock_returns_new_non_reentrant_lock() -> (
+    None
+):
+    lock = lock_if_threadsafe(threadsafe=True)
 
-    assert first is not second
-    assert not isinstance(first, nullcontext)
+    with lock:
+        assert lock.acquire(blocking=False) is False
+
+    assert lock_if_threadsafe(threadsafe=True) is not lock
 
 
 def test_lock_if_threadsafe_without_threadsafe_returns_null_context() -> None:
