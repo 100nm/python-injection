@@ -21,7 +21,7 @@ profile_loader = ProfileLoader(...)
 load_test_profile(profile_loader)
 ```
 
-`load_test_profile` can also be used as a context manager to automatically unload the test profile after test complete:
+`load_test_profile` can also be used as a context manager to automatically unload the test profile after the test completes:
 ```python
 from injection.testing import load_test_profile
 
@@ -38,6 +38,7 @@ All the registration decorators you've seen earlier have test equivalents in `in
 ```python
 from injection.testing import (
     set_test_constant,
+    should_be_test_injectable,
     test_constant,
     test_injectable,
     test_scoped,
@@ -116,7 +117,7 @@ class MockDependency(AbstractDependency): ...
 
 ## How test dependencies work
 
-Test dependencies are registered in a separate registry and **take precedence over production dependencies** when tests are running. This means:
+Test dependencies are registered in a separate registry and **take precedence over production dependencies** once the test profile is loaded. This means:
 
 - You can override production implementations with test versions
 - Production code remains unchanged

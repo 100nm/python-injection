@@ -37,4 +37,4 @@ class TestAsyncFeature:
     Use `LazyInstance` for sync dependencies (cleaner syntax) and `aget_lazy_instance` only when you need async dependencies.
 
 !!! warning
-    `LazyInstance` resolves the dependency on **every access**. With transient dependencies, you get a new instance each time. With singletons, you get the same instance.
+    Both resolve the dependency on **every access** (see [LazyInstance](../guides/resolve-dependencies.md#lazyinstance)): with a transient dependency, you get a new instance each time.

@@ -11,12 +11,14 @@ from injection.ext.fastapi import Inject
 async def endpoint(dependency: Inject[Dependency]): ...
 ```
 
+If your endpoints run in several threads, use `InjectThreadSafe` instead of `Inject` (see [Thread safety](../threadsafety.md)).
+
 ## Useful scopes
 
 Two fairly common scopes in FastAPI:
 
-- **Application lifespan scope**: associate with application lifespan.
-- **Request scope**: associate with http request lifetime.
+- **Application lifespan scope**: lives as long as the application.
+- **Request scope**: lives as long as an HTTP request.
 
 _For a better understanding of the scopes, [here's the associated documentation](../guides/scopes.md)._
 

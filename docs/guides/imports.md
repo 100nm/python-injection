@@ -23,7 +23,7 @@ load_packages(adapters, services)
 load_packages("src.adapters", "src.services")
 ```
 
-This is the simplest approach and works well when you want to import everything from specific packages.
+This is the simplest approach and works well when you want to import everything from specific packages. A `predicate` keyword argument can also be passed to filter the imported modules, as described below.
 
 ## PythonModuleLoader
 

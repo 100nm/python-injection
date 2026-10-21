@@ -31,7 +31,7 @@ with define_scope("<scope_name>", threadsafe=True):
     ...
 ```
 
-The `threadsafe` parameter is available on all functions that resolve dependencies or define scopes.
+The `threadsafe` parameter is available on all functions that resolve dependencies or define scopes. Thread-safe resolutions of a same module share a single lock, and so do thread-safe scope definitions.
 
 ## Global thread safety
 
@@ -52,6 +52,8 @@ When this environment variable is set, all dependency resolution and scope opera
 !!! warning "Environment variable timing"
     The `PYTHON_INJECTION_THREADSAFE` environment variable is resolved at the Python module level when `injection` is first imported. If you set environment variables dynamically in your main function, they may not take effect. Set the environment variable before importing `injection` or before running your application.
 ```python
+import os
+
 # ❌ Too late - injection already imported
 import injection
 
