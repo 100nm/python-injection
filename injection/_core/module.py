@@ -45,7 +45,7 @@ from injection._core.common.asynchronous import Caller, SimpleAwaitable
 from injection._core.common.event import Event, EventChannel, EventListener
 from injection._core.common.invertible import Invertible, SimpleInvertible
 from injection._core.common.lazy import Lazy
-from injection._core.common.threading import get_lock
+from injection._core.common.threading import lock_if_threadsafe
 from injection._core.common.type import (
     InputType,
     TypeInfo,
@@ -356,7 +356,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> InjectMetadata[P, T]:
-        return InjectMetadata(wrapped, threadsafe, lock=self.__lock).listen(self)
+        return InjectMetadata(wrapped, self.__lock, threadsafe).listen(self)
 
     if TYPE_CHECKING:  # pragma: no cover
 
@@ -403,7 +403,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> T:
-        with get_lock(threadsafe, reuse=self.__lock):
+        with lock_if_threadsafe(self.__lock, threadsafe):
             injectable = self[cls]
             return await injectable.aget_instance()
 
@@ -413,7 +413,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> T:
-        with get_lock(threadsafe, reuse=self.__lock):
+        with lock_if_threadsafe(self.__lock, threadsafe):
             injectable = self[cls]
             return injectable.get_instance()
 
@@ -840,13 +840,12 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
     def __init__(
         self,
         wrapped: Callable[P, T],
+        lock: RLock,
         /,
         threadsafe: bool | None = None,
-        *,
-        lock: RLock | None = None,
     ) -> None:
         self.__dependencies = Dependencies.empty()
-        self.__lock = get_lock(threadsafe, reuse=lock)
+        self.__lock = lock_if_threadsafe(lock, threadsafe)
         self.__owner = None
         self.__tasks = deque()
         self.__wrapped = wrapped

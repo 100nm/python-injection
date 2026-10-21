@@ -16,6 +16,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
+from threading import Lock
 from types import EllipsisType, TracebackType
 from typing import (
     TYPE_CHECKING,
@@ -29,7 +30,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.threading import get_lock
+from injection._core.common.threading import lock_if_threadsafe
 from injection._core.slots import SlotKey
 from injection.exceptions import (
     InjectionError,
@@ -37,6 +38,8 @@ from injection.exceptions import (
     ScopeError,
     ScopeUndefinedError,
 )
+
+__thread_lock: Final[Lock] = Lock()
 
 
 class ScopeKind(StrEnum):
@@ -197,7 +200,7 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
-    lock = get_lock(threadsafe)
+    lock = lock_if_threadsafe(__thread_lock, threadsafe)
 
     with lock:
         if get_first_scope(name, default=None):
@@ -209,7 +212,7 @@ def _bind_scope(
         stack.enter_context(__scope_resolvers[kind][name].bind(scope))
 
     try:
-        yield _UserScope(scope, lock)
+        yield _UserScope(scope, lock_if_threadsafe(threadsafe=threadsafe))
 
     finally:
         with lock:

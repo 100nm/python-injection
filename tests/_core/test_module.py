@@ -3,6 +3,7 @@ import time
 from collections.abc import AsyncIterator, Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from threading import RLock
 from typing import Annotated, Any, Optional, Union
 
 import anyio
@@ -1231,6 +1232,6 @@ class TestModulePriorityUpdated:
 
 class TestInjectMetadata:
     def test_on_event_without_module_event_returns_none(self) -> None:
-        metadata = InjectMetadata(A)
+        metadata = InjectMetadata(A, RLock())
 
         assert metadata.on_event(_Event()) is None
