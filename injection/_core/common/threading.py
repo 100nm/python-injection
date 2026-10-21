@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import AbstractContextManager, nullcontext
 from os import getenv
 from threading import RLock
