@@ -1,5 +1,7 @@
 import logging
-from collections.abc import AsyncIterator, Iterator
+import time
+from collections.abc import AsyncIterator, Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Annotated, Any, Optional, Union
 
@@ -43,6 +45,20 @@ class C(B): ...
 
 
 class _Event(Event): ...
+
+
+def _register_slow_singleton(module: Module) -> None:
+    @module.singleton
+    def recipe() -> A:
+        time.sleep(0.05)
+        return A()
+
+
+def _run_concurrently(*functions: Callable[[], A]) -> set[A]:
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(function) for function in functions * 4]
+
+    return {future.result() for future in futures}
 
 
 class TestModule:
@@ -696,6 +712,28 @@ class TestModule:
             class Service:
                 service = method
 
+    def test_inject_with_threadsafe(self, module: Module) -> None:
+        _register_slow_singleton(module)
+
+        @module.inject(threadsafe=True)
+        def function(a: A) -> A:
+            return a
+
+        assert len(_run_concurrently(function, function)) == 1
+
+    def test_inject_with_threadsafe_in_several_functions(self, module: Module) -> None:
+        _register_slow_singleton(module)
+
+        @module.inject(threadsafe=True)
+        def first(a: A) -> A:
+            return a
+
+        @module.inject(threadsafe=True)
+        def second(a: A) -> A:
+            return a
+
+        assert len(_run_concurrently(first, second)) == 1
+
     async def test_make_async_factory_with_async_dependency_returns_factory(
         self,
         module: Module,
@@ -711,6 +749,17 @@ class TestModule:
         factory = module.make_async_factory(Service)
 
         assert isinstance((await factory()).a, A)
+
+    def test_find_instance_with_threadsafe_returns_same_singleton(
+        self,
+        module: Module,
+    ) -> None:
+        _register_slow_singleton(module)
+
+        def find() -> A:
+            return module.find_instance(A, threadsafe=True)
+
+        assert len(_run_concurrently(find, find)) == 1
 
     def test_find_instance_with_async_recipe_raises_runtime_error(
         self,
