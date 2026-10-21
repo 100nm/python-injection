@@ -12,7 +12,7 @@ from typing import (
     runtime_checkable,
 )
 
-from injection._core.common.asynchronous import AsyncSemaphore, Caller
+from injection._core.common.asynchronous import AsyncLock, Caller
 from injection._core.common.type import InputType
 from injection._core.scope import Scope, get_first_scope, in_scope_cache
 from injection._core.slots import SlotKey
@@ -51,12 +51,12 @@ class TransientInjectable[T](Injectable[T]):
 
 
 class CacheLogic[T]:
-    __slots__ = ("__semaphore",)
+    __slots__ = ("__lock",)
 
-    __semaphore: AbstractAsyncContextManager[Any]
+    __lock: AbstractAsyncContextManager[Any]
 
     def __init__(self) -> None:
-        self.__semaphore = AsyncSemaphore(1)
+        self.__lock = AsyncLock()
 
     async def aget_or_create[K](
         self,
@@ -64,7 +64,7 @@ class CacheLogic[T]:
         key: K,
         factory: Callable[..., Awaitable[T]],
     ) -> T:
-        async with self.__semaphore:
+        async with self.__lock:
             with suppress(KeyError):
                 return cache[key]
 

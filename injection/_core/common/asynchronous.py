@@ -4,7 +4,7 @@ from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from typing import Any, NoReturn, Protocol, runtime_checkable
 
-AsyncSemaphore: Callable[[int], AbstractAsyncContextManager[Any]]
+AsyncLock: Callable[[], AbstractAsyncContextManager[Any]]
 
 try:
     import anyio
@@ -12,10 +12,10 @@ try:
 except ImportError:  # pragma: no cover
     import asyncio
 
-    AsyncSemaphore = asyncio.Semaphore
+    AsyncLock = asyncio.Lock
 
 else:
-    AsyncSemaphore = anyio.Semaphore
+    AsyncLock = anyio.Lock
 
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
