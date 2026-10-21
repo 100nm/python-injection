@@ -1,4 +1,8 @@
+import sys
+from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from contextvars import Context
+from threading import Barrier
 
 import pytest
 
@@ -12,6 +16,27 @@ from injection.exceptions import (
 )
 
 
+@pytest.fixture
+def fast_thread_switching() -> Iterator[None]:
+    interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    yield
+    sys.setswitchinterval(interval)
+
+
+def _define_shared_request_scope(barrier: Barrier) -> bool:
+    barrier.wait()
+
+    try:
+        with define_scope("request", kind="shared", threadsafe=True):
+            barrier.wait()
+    except ScopeAlreadyDefinedError:
+        barrier.wait()
+        return False
+
+    return True
+
+
 def _is_request_scope_defined() -> bool:
     return get_first_scope("request", default=None) is not None
 
@@ -20,6 +45,20 @@ def test_define_scope_with_defined_scope_raises_scope_already_defined_error() ->
     with define_scope("request"), pytest.raises(ScopeAlreadyDefinedError):  # noqa: SIM117
         with define_scope("request", kind="shared"):
             pass
+
+
+@pytest.mark.usefixtures("fast_thread_switching")
+def test_define_scope_with_concurrent_definitions_raises_scope_already_defined_error() -> (
+    None
+):
+    with ThreadPoolExecutor(2) as executor:
+        for _ in range(5000):
+            barrier = Barrier(2)
+            futures = [
+                executor.submit(_define_shared_request_scope, barrier) for _ in range(2)
+            ]
+
+            assert sorted(future.result() for future in futures) == [False, True]
 
 
 @pytest.mark.parametrize(

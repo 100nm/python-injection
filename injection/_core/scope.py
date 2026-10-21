@@ -16,6 +16,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
+from threading import RLock
 from types import EllipsisType, TracebackType
 from typing import (
     TYPE_CHECKING,
@@ -37,6 +38,8 @@ from injection.exceptions import (
     ScopeError,
     ScopeUndefinedError,
 )
+
+__scope_lock: Final[RLock] = RLock()
 
 
 class ScopeKind(StrEnum):
@@ -197,7 +200,7 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
-    lock = get_lock(threadsafe)
+    lock = get_lock(threadsafe, reuse=__scope_lock)
 
     with lock:
         if get_first_scope(name, default=None):
