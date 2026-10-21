@@ -5,7 +5,7 @@
 
 ## Project motivations
 
-Dependency injection in Python has long been a source of frustration. 
+Dependency injection in Python has long been a source of frustration.
 
 Existing solutions are often verbose, require extensive boilerplate, or fail to leverage Python's type hints effectively. `python-injection` was created to solve these problems once and for all by providing a simple, elegant, and powerful dependency injection framework that feels natural to Python developers.
 
@@ -15,13 +15,13 @@ The goal is straightforward: make dependency injection so easy that you'll wonde
 
 - **Type-driven resolution**: Dependencies are automatically resolved using Python's type annotations.
 - **Decorator-based registration**: Register your dependencies with simple, readable decorators.
-- **Flexible lifetimes**: Choose from 4 type of lifetimes to match your needs:
+- **Flexible lifetimes**: Choose from four types of lifetimes to match your needs:
     - **Transient**: A new instance every time
     - **Singleton**: One instance for the entire application
     - **Scoped**: One instance per scope, with context manager support
-    - **Constant**: Register pre-existing values
+    - **Constant**: A value created once and never re-resolved, either pre-existing or computed lazily
 - **Profile support**: Ability to swap certain dependencies based on a profile.
-- **Pull-based instantiation**: Dependencies are only created when needed, improving startup time and resource usage.
+- **Pull-based instantiation**: Dependencies registered with decorators are only created when needed, improving startup time and resource usage.
 - **Full sync/async support**: Works seamlessly with both synchronous and asynchronous code.
 
 ## Installation

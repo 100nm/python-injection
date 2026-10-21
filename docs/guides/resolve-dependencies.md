@@ -14,7 +14,7 @@ def function(dependency: Dependency): ...
 function()  # You can now call `function` without arguments
 ```
 
-When `@inject` is applied to an async function, it can resolve dependencies that require an async context. If an async dependency is required by a sync function decorated with `@inject`, a `RuntimeError` will be raised.
+When `@inject` is applied to an async function, it can resolve dependencies that require an async context (created by an async function). If such a dependency is required by a sync function decorated with `@inject`, a `RuntimeError` is raised.
 
 !!! note "Performance note"
     The first call to an injected function is slower because it performs dependency resolution. Subsequent calls are faster as the resolution is cached.
@@ -92,6 +92,11 @@ from injection import get_instance
 dependency = get_instance(Dependency)
 ```
 
+A custom value can be returned instead of `NotImplemented` with the `default` parameter. It is also accepted by `get_lazy_instance`, `LazyInstance` and the async variants.
+```python
+dependency = get_instance(Dependency, None)
+```
+
 ### get_lazy_instance
 
 Returns an object with the `__invert__` operator implemented. Calling `~` on this object resolves and returns the instance, or `NotImplemented` if not found.
@@ -139,3 +144,16 @@ class Class:
 
 !!! warning
     Dependencies requiring an async context are not compatible with `LazyInstance` since descriptors cannot be awaited.
+
+## Errors
+
+All the exceptions raised by `python-injection` inherit from `InjectionError` and live in `injection.exceptions`. The most common ones:
+
+| Exception | Raised when |
+|---|---|
+| `NoInjectable` | No dependency is registered for the requested type. |
+| `ScopeUndefinedError` | A scoped dependency is resolved outside of its scope. |
+| `EmptySlotError` | A [scope binding](scopes.md#defining-scopes-with-bindings) is resolved but wasn't set when defining the scope. |
+| `ModuleLockError` | A dependency is registered, or a profile loaded, after a singleton was created (see [Singleton](register-dependencies.md#singleton)). |
+
+`get_instance`, `get_lazy_instance` and `LazyInstance` return `NotImplemented` instead of raising `NoInjectable`, `ScopeUndefinedError` and `EmptySlotError`.

@@ -6,8 +6,10 @@ Scopes allow you to control the lifetime of dependencies within a specific conte
 
 The `define_scope` context manager creates a scope for the duration of the context. It takes two parameters:
 
-- **scope_name** (required): The name of the scope. Using a `StrEnum` to store scope names is recommended.
+- **name** (required, positional only): The name of the scope. Using a `StrEnum` to store scope names is recommended.
 - **kind** (optional): Either `"contextual"` (default) or `"shared"`.
+
+When the context exits, the scoped instances are discarded and the teardown of those [registered with a context manager](register-dependencies.md#scoped-with-context-manager) runs.
 
 ```python
 from injection import define_scope
@@ -48,6 +50,7 @@ async with adefine_scope("<scope_name>"):
 
 `MappedScope` allows you to define scopes with associated data bindings. This is useful when you want to make specific values available within the scope context. **Bindings are injectable in all dependencies**, making them accessible throughout your dependency graph.
 ```python
+from dataclasses import dataclass
 from injection import MappedScope
 
 type Locale = str
@@ -64,6 +67,8 @@ with Bindings("fr_FR").scope.define():
     # Dependencies can now access the locale binding
     ...
 ```
+
+Each annotated attribute of the class becomes a binding, resolved from its type annotation. An attribute set to `None` is left unset: resolving it raises an `EmptySlotError`.
 
 The `define` method also accepts the `kind` parameter with the same `"contextual"` and `"shared"` options.
 

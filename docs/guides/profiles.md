@@ -22,12 +22,18 @@ class Profile(StrEnum):
 dev_module = mod(Profile.DEV)
 ```
 
-Once you have a module, you can use it to register dependencies that should only be available when that profile is active. The module provides access to all the registration decorators we've seen earlier (`injectable`, `singleton`, `scoped`, `constant`) as well as the `set_constant` method.
+Once you have a module, you can use it to register dependencies that should only be available when that profile is active. The module provides access to all the registration decorators we've seen earlier (`injectable`, `singleton`, `scoped`, `constant`, `should_be_injectable`) as well as the `set_constant` method.
+```python
+@mod(Profile.DEV).injectable(on=AbstractDependency)
+class DevDependency(AbstractDependency): ...
+```
+
+When a profile is loaded, its dependencies take precedence over those registered with the default decorators, which act as a fallback for everything the profile doesn't register.
 
 ## Loading a profile
 
 !!! warning "Caution"
-    Always load your profile as early as possible in your program's execution, ideally at startup before any dependency resolution occurs.
+    Always load your profile as early as possible in your program's execution, ideally at startup before any dependency resolution occurs. Once a singleton has been created, loading a profile raises a `ModuleLockError` (see [Singleton](register-dependencies.md#singleton)).
 
 ### load_profile
 
@@ -44,19 +50,25 @@ This is the simplest approach when each profile is independent and doesn't share
 
 For more complex scenarios where profiles share common subsets of dependencies, use `ProfileLoader`:
 ```python
+from enum import StrEnum
 from injection.loaders import ProfileLoader
+
+
+class SubProfile(StrEnum):
+    STUB = "stub"
+
 
 profile_loader = ProfileLoader(
     {
         Profile.DEV: [SubProfile.STUB],
-        Profile.TEST: [SubProfile.STUB],
+        Profile.STAGING: [SubProfile.STUB],
     }
 )
 
 profile_loader.load(Profile.DEV)
 ```
 
-In this example, both "dev" and "test" profiles load the "stub" module, allowing you to reuse common mock implementations or shared configurations across multiple profiles.
+In this example, both "development" and "staging" profiles load the "stub" module, allowing you to reuse common mock implementations or shared configurations across multiple profiles.
 
 !!! danger
     Only create a single `ProfileLoader` instance for your entire application to avoid conflicts. It's recommended to instantiate it at the Python module level (as a global variable) to ensure uniqueness.
