@@ -11,8 +11,12 @@ _PYTHON_INJECTION_THREADSAFE: Final[bool] = bool(
 
 
 def lock_if_threadsafe(
-    lock: RLock,
+    lock: RLock | None = None,
     threadsafe: bool | None = None,
 ) -> AbstractContextManager[Any]:
     threadsafe = _PYTHON_INJECTION_THREADSAFE if threadsafe is None else threadsafe
-    return lock if threadsafe else nullcontext()
+
+    if not threadsafe:
+        return nullcontext()
+
+    return lock or RLock()

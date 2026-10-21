@@ -10,5 +10,13 @@ def test_lock_if_threadsafe_with_threadsafe_returns_lock() -> None:
     assert lock_if_threadsafe(lock, threadsafe=True) is lock
 
 
+def test_lock_if_threadsafe_with_threadsafe_without_lock_returns_new_lock() -> None:
+    first = lock_if_threadsafe(threadsafe=True)
+    second = lock_if_threadsafe(threadsafe=True)
+
+    assert first is not second
+    assert not isinstance(first, nullcontext)
+
+
 def test_lock_if_threadsafe_without_threadsafe_returns_null_context() -> None:
     assert isinstance(lock_if_threadsafe(RLock(), threadsafe=False), nullcontext)

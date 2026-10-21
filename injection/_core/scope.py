@@ -39,7 +39,7 @@ from injection.exceptions import (
     ScopeUndefinedError,
 )
 
-__scope_lock: Final[RLock] = RLock()
+__thread_lock: Final[RLock] = RLock()
 
 
 class ScopeKind(StrEnum):
@@ -200,7 +200,7 @@ def _bind_scope(
     kind: ScopeKind | ScopeKindStr,
     threadsafe: bool | None,
 ) -> Iterator[ScopeFacade]:
-    lock = lock_if_threadsafe(__scope_lock, threadsafe)
+    lock = lock_if_threadsafe(__thread_lock, threadsafe)
 
     with lock:
         if get_first_scope(name, default=None):
@@ -212,7 +212,7 @@ def _bind_scope(
         stack.enter_context(__scope_resolvers[kind][name].bind(scope))
 
     try:
-        yield _UserScope(scope, lock)
+        yield _UserScope(scope, lock_if_threadsafe(threadsafe=threadsafe))
 
     finally:
         with lock:
