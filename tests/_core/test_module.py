@@ -992,12 +992,27 @@ class TestModule:
 
     def test_stop_using_with_unused_module(
         self,
+        caplog: pytest.LogCaptureFixture,
         event_history: EventHistory,
         module: Module,
     ) -> None:
+        caplog.set_level(logging.DEBUG, logger="python-injection")
+
         module.stop_using(Module())
 
         assert event_history.events == ()
+        assert caplog.messages == []
+
+    def test_stop_using_with_unused_module_and_locked_module(
+        self,
+        module: Module,
+    ) -> None:
+        module.singleton(A)
+        module.find_instance(A)
+
+        module.stop_using(Module())
+
+        assert module.is_locked is True
 
     def test_use_temporarily_with_module(self, module: Module) -> None:
         other = Module()

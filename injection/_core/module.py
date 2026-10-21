@@ -604,11 +604,12 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         return self
 
     def stop_using(self, module: Module) -> Self:
-        event = ModuleRemoved(self, module)
+        if module in self.__modules:
+            event = ModuleRemoved(self, module)
 
-        with suppress(KeyError), self.dispatch(event):
-            self.__modules.pop(module)
-            module.remove_listener(self)
+            with self.dispatch(event):
+                self.__modules.pop(module)
+                module.remove_listener(self)
 
         return self
 
