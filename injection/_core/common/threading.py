@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import AbstractContextManager, nullcontext
 from os import getenv
 from threading import RLock
@@ -8,6 +10,14 @@ _PYTHON_INJECTION_THREADSAFE: Final[bool] = bool(
 )
 
 
-def get_lock(threadsafe: bool | None = None) -> AbstractContextManager[Any]:
+def get_lock(
+    threadsafe: bool | None = None,
+    *,
+    reuse: RLock | None = None,
+) -> AbstractContextManager[Any]:
     threadsafe = _PYTHON_INJECTION_THREADSAFE if threadsafe is None else threadsafe
-    return RLock() if threadsafe else nullcontext()
+
+    if not threadsafe:
+        return nullcontext()
+
+    return reuse or RLock()

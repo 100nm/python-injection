@@ -35,6 +35,7 @@ from inspect import (
 )
 from inspect import signature as inspect_signature
 from logging import Logger, getLogger
+from threading import RLock
 from types import MethodType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Self, overload
 
@@ -177,6 +178,11 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
     )
     __locator: Locator = field(
         default_factory=Locator,
+        init=False,
+        repr=False,
+    )
+    __lock: RLock = field(
+        default_factory=RLock,
         init=False,
         repr=False,
     )
@@ -350,7 +356,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         /,
         threadsafe: bool | None = None,
     ) -> InjectMetadata[P, T]:
-        return InjectMetadata(wrapped, threadsafe).listen(self)
+        return InjectMetadata(wrapped, threadsafe, lock=self.__lock).listen(self)
 
     if TYPE_CHECKING:  # pragma: no cover
 
@@ -397,7 +403,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> T:
-        with get_lock(threadsafe):
+        with get_lock(threadsafe, reuse=self.__lock):
             injectable = self[cls]
             return await injectable.aget_instance()
 
@@ -407,7 +413,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         *,
         threadsafe: bool | None = None,
     ) -> T:
-        with get_lock(threadsafe):
+        with get_lock(threadsafe, reuse=self.__lock):
             injectable = self[cls]
             return injectable.get_instance()
 
@@ -835,9 +841,11 @@ class InjectMetadata[**P, T](Caller[P, T], EventListener):
         wrapped: Callable[P, T],
         /,
         threadsafe: bool | None = None,
+        *,
+        lock: RLock | None = None,
     ) -> None:
         self.__dependencies = Dependencies.empty()
-        self.__lock = get_lock(threadsafe)
+        self.__lock = get_lock(threadsafe, reuse=lock)
         self.__owner = None
         self.__tasks = deque()
         self.__wrapped = wrapped
