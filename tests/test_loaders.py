@@ -69,6 +69,13 @@ class TestPythonModuleLoader:
 
         assert modules.keys() == {"tests.packages.package1.module1"}
 
+    def test_fnmatch_with_pattern_returns_loader(self) -> None:
+        loader = PythonModuleLoader.fnmatch("*.sub_package.*")
+
+        modules = loader.load(package1).modules
+
+        assert modules.keys() == {"tests.packages.package1.sub_package.module2"}
+
     def test_from_keywords_with_keyword_returns_loader(self) -> None:
         loader = PythonModuleLoader.from_keywords("@injectable")
 
