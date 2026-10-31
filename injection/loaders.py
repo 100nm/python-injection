@@ -5,6 +5,7 @@ import sys
 from abc import abstractmethod
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from fnmatch import fnmatchcase
 from importlib import import_module
 from importlib.util import find_spec
 from os.path import isfile
@@ -98,6 +99,13 @@ class PythonModuleLoader:
 
             module = import_module(name) if self.predicate(name) else None
             yield name, module
+
+    @classmethod
+    def fnmatch(cls, *patterns: str) -> Self:
+        def predicate(module_name: str) -> bool:
+            return any(fnmatchcase(module_name, pattern) for pattern in patterns)
+
+        return cls(predicate)
 
     @classmethod
     def from_keywords(cls, *keywords: str) -> Self:

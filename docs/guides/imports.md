@@ -45,7 +45,7 @@ The predicate function receives the full module name (e.g., `"src.adapters.depen
 
 ### Factory methods
 
-`PythonModuleLoader` provides three convenient factory methods for common filtering patterns:
+`PythonModuleLoader` provides four convenient factory methods for common filtering patterns:
 
 **Filter by prefix:**
 ```python
@@ -58,6 +58,16 @@ PythonModuleLoader.startswith("impl_").load(adapters, services)
 # Import only modules ending with "_impl"
 PythonModuleLoader.endswith("_impl").load(adapters, services)
 ```
+
+`startswith` and `endswith` only check the last part of the module name (e.g., `"dependency_impl"` for `"src.adapters.dependency_impl"`).
+
+**Filter by pattern:**
+```python
+# Import only modules inside an "impl" subpackage
+PythonModuleLoader.fnmatch("*.impl.*").load(adapters, services)
+```
+
+Unlike `startswith` and `endswith`, the patterns are matched against the full module name, using the [`fnmatch`](https://docs.python.org/3/library/fnmatch.html) syntax (`*`, `?`, `[seq]`). Matching is case-sensitive, and `*` also matches dots: `"src.*"` matches `"src.adapters.dependency_impl"`.
 
 **Filter by keyword marker:**
 ```python
