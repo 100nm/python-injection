@@ -31,9 +31,31 @@ license-files = ["LICENSE"]
 readme = "docs/index.md"
 requires-python = ">=3.12, <3.16"
 authors = [{ name = "remimd" }]
-keywords = ["dependencies", "dependency", "inject", "injection"]
+keywords = [
+    "dependency-injection",
+    "di",
+    "ioc",
+    "inversion-of-control",
+    "container",
+    "ioc-container",
+    "dependencies",
+    "dependency",
+    "inject",
+    "injection",
+    "injector",
+    "scopes",
+    "singleton",
+    "type-hints",
+    "fastapi",
+    "async",
+    "asyncio",
+    "anyio",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Framework :: AnyIO",
+    "Framework :: AsyncIO",
+    "Framework :: FastAPI",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -61,6 +83,7 @@ async = [
 
 [project.urls]
 Documentation = "https://python-injection.remimd.dev"
+Issues = "https://github.com/100nm/python-injection/issues"
 Repository = "https://github.com/100nm/python-injection"
 
 [tool.coverage.report]
