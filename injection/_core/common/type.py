@@ -10,18 +10,17 @@ from collections.abc import (
     Iterator,
 )
 from inspect import isclass, isfunction
-from types import GenericAlias, UnionType
 from typing import (
     Any,
-    TypeAliasType,
     get_args,
     get_origin,
     get_type_hints,
 )
 
-type InputType[T] = type[T] | TypeAliasType | GenericAlias | UnionType
+from typing_extensions import TypeForm
+
 type TypeInfo[T] = (
-    InputType[T]
+    TypeForm[T]
     | Callable[..., T]
     | Callable[..., Awaitable[T]]
     | Collection[TypeInfo[T]]

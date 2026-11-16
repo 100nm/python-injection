@@ -12,8 +12,9 @@ from typing import (
     runtime_checkable,
 )
 
+from typing_extensions import TypeForm
+
 from injection._core.common.asynchronous import AsyncLock, Caller
-from injection._core.common.type import InputType
 from injection._core.scope import Scope, get_first_scope, in_scope_cache
 from injection._core.slots import SlotKey
 from injection.exceptions import EmptySlotError, InjectionError
@@ -202,7 +203,7 @@ class SimpleScopedInjectable[T](ScopedInjectable[T, T]):
 
 @dataclass(repr=False, eq=False, frozen=True, slots=True)
 class ScopedSlotInjectable[T](Injectable[T]):
-    cls: InputType[T]
+    cls: TypeForm[T]
     scope_name: str
     key: SlotKey[T] = field(default_factory=SlotKey)
 

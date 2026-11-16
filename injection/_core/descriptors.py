@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Self, get_type_hints
 
+from typing_extensions import TypeForm
+
 from injection._core.common.invertible import Invertible
-from injection._core.common.type import InputType
 from injection._core.module import Module, mod
 from injection._core.scope import ScopeKind, ScopeKindStr, adefine_scope, define_scope
 from injection._core.slots import SlotKey
@@ -103,7 +104,7 @@ class LazyInstance[T]:
 
     def __init__(
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         /,
         default: T = NotImplemented,
         *,

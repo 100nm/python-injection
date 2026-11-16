@@ -1289,6 +1289,7 @@ source = { editable = "." }
 default-groups = ["dev", "docs", "test"]
 dependencies = [
     { name = "type-analyzer" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -1320,6 +1321,7 @@ test = [
 requires-dist = [
     { name = "anyio", marker = "extra == 'async'" },
     { name = "type-analyzer" },
+    { name = "typing-extensions" },
 ]
 provides-extras = ["async"]
 

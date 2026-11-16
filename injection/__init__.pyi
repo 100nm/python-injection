@@ -5,9 +5,10 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Final, Protocol, Self, final, overload, runtime_checkable
 
+from typing_extensions import TypeForm
+
 from ._core.asfunction import AsFunctionWrappedType as _AsFunctionWrappedType
 from ._core.common.invertible import Invertible as _Invertible
-from ._core.common.type import InputType as _InputType
 from ._core.common.type import TypeInfo as _TypeInfo
 from ._core.locator import InjectableFactory as _InjectableFactory
 from ._core.locator import ModeStr
@@ -124,7 +125,7 @@ class _BoundMappedScope:
 class LazyInstance[T]:
     def __init__(
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         /,
         default: T = ...,
         *,
@@ -148,7 +149,7 @@ class Module:
 
     name: str | None
 
-    def __contains__(self, cls: _InputType[Any], /) -> bool: ...
+    def __contains__(self, cls: TypeForm[Any], /) -> bool: ...
     @property
     def is_locked(self) -> bool: ...
     @overload
@@ -304,7 +305,7 @@ class Module:
 
     def reserve_scoped_slot[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         /,
         scope_name: str,
         *,
@@ -324,13 +325,13 @@ class Module:
     ) -> Callable[..., Awaitable[T]]: ...
     async def afind_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         *,
         threadsafe: bool | None = ...,
     ) -> T: ...
     def find_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         *,
         threadsafe: bool | None = ...,
     ) -> T:
@@ -342,7 +343,7 @@ class Module:
     @overload
     async def aget_instance[T, Default](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: Default,
         *,
         threadsafe: bool | None = ...,
@@ -350,7 +351,7 @@ class Module:
     @overload
     async def aget_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: T = ...,
         *,
         threadsafe: bool | None = ...,
@@ -358,7 +359,7 @@ class Module:
     @overload
     def get_instance[T, Default](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: Default,
         *,
         threadsafe: bool | None = ...,
@@ -371,7 +372,7 @@ class Module:
     @overload
     def get_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: T = ...,
         *,
         threadsafe: bool | None = ...,
@@ -379,7 +380,7 @@ class Module:
     @overload
     def aget_lazy_instance[T, Default](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: Default,
         *,
         threadsafe: bool | None = ...,
@@ -387,7 +388,7 @@ class Module:
     @overload
     def aget_lazy_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: T = ...,
         *,
         threadsafe: bool | None = ...,
@@ -395,7 +396,7 @@ class Module:
     @overload
     def get_lazy_instance[T, Default](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: Default,
         *,
         threadsafe: bool | None = ...,
@@ -411,7 +412,7 @@ class Module:
     @overload
     def get_lazy_instance[T](
         self,
-        cls: _InputType[T],
+        cls: TypeForm[T],
         default: T = ...,
         *,
         threadsafe: bool | None = ...,
