@@ -1,9 +1,9 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from types import GenericAlias
-from typing import Annotated, Any, TypeAlias, TypeAliasType
+from typing import Annotated, Any, TypeAlias
 
 from fastapi import Depends
+from typing_extensions import TypeForm
 
 from injection import Module, mod
 
@@ -17,7 +17,7 @@ class FastAPIInject:
 
     def __call__[T](
         self,
-        cls: type[T] | TypeAliasType | GenericAlias,
+        cls: TypeForm[T],
         /,
         default: T = NotImplemented,
         *,

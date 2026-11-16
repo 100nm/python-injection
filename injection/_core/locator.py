@@ -16,9 +16,10 @@ from typing import (
 )
 from weakref import WeakKeyDictionary
 
+from typing_extensions import TypeForm
+
 from injection._core.common.asynchronous import AsyncCaller, Caller, SyncCaller
 from injection._core.common.event import Event, EventChannel, EventListener
-from injection._core.common.type import InputType
 from injection._core.injectables import Injectable
 from injection.exceptions import NoInjectable, SkipInjectable
 
@@ -30,7 +31,7 @@ class LocatorEvent(Event, ABC):
 
 @dataclass(frozen=True, slots=True)
 class LocatorDependenciesUpdated[T](LocatorEvent):
-    classes: Collection[InputType[T]]
+    classes: Collection[TypeForm[T]]
     mode: Mode
 
     def __str__(self) -> str:
@@ -155,7 +156,7 @@ class Record[T](NamedTuple):
 
 @dataclass(repr=False, eq=False, frozen=True, kw_only=True, slots=True)
 class Updater[T]:
-    classes: Collection[InputType[T]]
+    classes: Collection[TypeForm[T]]
     broker: InjectableBroker[T]
     mode: Mode
 
@@ -165,7 +166,7 @@ class Updater[T]:
 
 @dataclass(repr=False, frozen=True, slots=True)
 class Locator:
-    __records: dict[InputType[Any], Record[Any]] = field(
+    __records: dict[TypeForm[Any], Record[Any]] = field(
         default_factory=dict,
         init=False,
     )
@@ -174,7 +175,7 @@ class Locator:
         init=False,
     )
 
-    def __contains__(self, cls: InputType[Any], /) -> bool:
+    def __contains__(self, cls: TypeForm[Any], /) -> bool:
         return cls in self.__records
 
     @property
@@ -186,7 +187,7 @@ class Locator:
 
     def request[T](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         /,
         provider: InjectionProvider,
     ) -> Injectable[T]:
@@ -242,9 +243,9 @@ class Locator:
 
     def __prepare_for_updating[T](
         self,
-        classes: Iterable[InputType[T]],
+        classes: Iterable[TypeForm[T]],
         record: Record[T],
-    ) -> Iterator[tuple[InputType[T], Record[T]]]:
+    ) -> Iterator[tuple[TypeForm[T], Record[T]]]:
         for cls in classes:
             try:
                 existing = self.__records[cls]
@@ -260,7 +261,7 @@ class Locator:
     def __keep_new_record[T](
         new: Record[T],
         existing: Record[T],
-        cls: InputType[T],
+        cls: TypeForm[T],
     ) -> bool:
         new_mode, existing_mode = new.mode, existing.mode
 

@@ -40,6 +40,7 @@ from types import MethodType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Self, overload
 
 from type_analyzer import MatchingTypesConfig, iter_matching_types, matching_types
+from typing_extensions import TypeForm
 
 from injection._core.common.asynchronous import Caller, SimpleAwaitable
 from injection._core.common.event import Event, EventChannel, EventListener
@@ -47,7 +48,6 @@ from injection._core.common.invertible import Invertible, SimpleInvertible
 from injection._core.common.lazy import Lazy
 from injection._core.common.threading import lock_if_threadsafe
 from injection._core.common.type import (
-    InputType,
     TypeInfo,
     get_yield_types,
     iter_flat_types,
@@ -202,7 +202,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
     def __post_init__(self) -> None:
         self.__locator.add_listener(self)
 
-    def __getitem__[T](self, cls: InputType[T], /) -> Injectable[T]:
+    def __getitem__[T](self, cls: TypeForm[T], /) -> Injectable[T]:
         key_types = self.__matching_key_types(cls)
 
         for locator in self._iter_locators():
@@ -212,7 +212,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
         raise NoInjectable(cls)
 
-    def __contains__(self, cls: InputType[Any], /) -> bool:
+    def __contains__(self, cls: TypeForm[Any], /) -> bool:
         key_types = self.__matching_key_types(cls)
         return any(
             key_type in locator
@@ -323,7 +323,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def reserve_scoped_slot[T](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         /,
         scope_name: str,
         *,
@@ -399,7 +399,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     async def afind_instance[T](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         *,
         threadsafe: bool | None = None,
     ) -> T:
@@ -409,7 +409,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def find_instance[T](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         *,
         threadsafe: bool | None = None,
     ) -> T:
@@ -422,7 +422,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         async def aget_instance[T, Default](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: Default,
             *,
             threadsafe: bool | None = ...,
@@ -431,7 +431,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         async def aget_instance[T](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: T = ...,
             *,
             threadsafe: bool | None = ...,
@@ -439,7 +439,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     async def aget_instance[T, Default](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         default: Default = NotImplemented,
         *,
         threadsafe: bool | None = None,
@@ -454,7 +454,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def get_instance[T, Default](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: Default,
             *,
             threadsafe: bool | None = ...,
@@ -463,7 +463,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def get_instance[T](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: T = ...,
             *,
             threadsafe: bool | None = ...,
@@ -471,7 +471,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def get_instance[T, Default](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         default: Default = NotImplemented,
         *,
         threadsafe: bool | None = None,
@@ -486,7 +486,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def aget_lazy_instance[T, Default](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: Default,
             *,
             threadsafe: bool | None = ...,
@@ -495,7 +495,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def aget_lazy_instance[T](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: T = ...,
             *,
             threadsafe: bool | None = ...,
@@ -503,7 +503,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def aget_lazy_instance[T, Default](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         default: Default = NotImplemented,
         *,
         threadsafe: bool | None = None,
@@ -522,7 +522,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def get_lazy_instance[T, Default](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: Default,
             *,
             threadsafe: bool | None = ...,
@@ -531,7 +531,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
         @overload
         def get_lazy_instance[T](
             self,
-            cls: InputType[T],
+            cls: TypeForm[T],
             default: T = ...,
             *,
             threadsafe: bool | None = ...,
@@ -539,7 +539,7 @@ class Module(EventListener, InjectionProvider):  # type: ignore[misc]
 
     def get_lazy_instance[T, Default](
         self,
-        cls: InputType[T],
+        cls: TypeForm[T],
         default: Default = NotImplemented,
         *,
         threadsafe: bool | None = None,
